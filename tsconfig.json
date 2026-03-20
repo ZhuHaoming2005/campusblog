@@ -24,6 +24,12 @@
       }
     ],
     "paths": {
+      "@/components": [
+        "./src/app/(frontend)/components"
+      ],
+      "@/lib": [
+        "./src/app/(frontend)/lib"
+      ],
       "@/*": [
         "./src/*"
       ],
