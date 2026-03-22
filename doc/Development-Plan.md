@@ -70,11 +70,11 @@
 
 **阶段验收标准**：
 
-- [ ] `pnpm dev` 启动成功
-- [ ] `/admin` 可访问
-- [ ] `wrangler d1 execute D1 --local --command="SELECT 1"` 正常
-- [ ] 本地 `.wrangler/state/` 生成且 D1/KV/R2 可访问
-- [ ] 前台 i18n 基础设施可读取 `zh-CN` 与 `en-US` 词条
+- [√] `pnpm dev` 启动成功
+- [√] `/admin` 可访问
+- [√] `wrangler d1 execute D1 --local --command="SELECT 1"` 正常
+- [√] 本地 `.wrangler/state/` 生成且 D1/KV/R2 可访问
+- [√] 前台 i18n 基础设施可读取 `zh-CN` 与 `en-US` 词条
 
 ---
 
