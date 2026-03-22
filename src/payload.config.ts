@@ -2,6 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
 import { buildConfig } from 'payload'
+import { en } from 'payload/i18n/en'
+import { zh } from 'payload/i18n/zh'
 import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
@@ -50,6 +52,13 @@ export default buildConfig({
     },
   },
   collections: [Users, Media],
+  i18n: {
+    fallbackLanguage: 'zh',
+    supportedLanguages: {
+      en,
+      zh,
+    },
+  },
   secret: process.env.PAYLOAD_SECRET || '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
