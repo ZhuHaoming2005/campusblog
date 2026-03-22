@@ -63,12 +63,17 @@ export type SupportedTimezones =
 
 export interface Config {
   auth: {
-    users: UserAuthOperations;
+    admins: AdminAuthOperations;
   };
   blocks: {};
   collections: {
-    users: User;
+    admins: Admin;
     media: Media;
+    schools: School;
+    'school-sub-channels': SchoolSubChannel;
+    tags: Tag;
+    'user-profiles': UserProfile;
+    posts: Post;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,8 +81,13 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    admins: AdminsSelect<false> | AdminsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    schools: SchoolsSelect<false> | SchoolsSelect<true>;
+    'school-sub-channels': SchoolSubChannelsSelect<false> | SchoolSubChannelsSelect<true>;
+    tags: TagsSelect<false> | TagsSelect<true>;
+    'user-profiles': UserProfilesSelect<false> | UserProfilesSelect<true>;
+    posts: PostsSelect<false> | PostsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -90,13 +100,13 @@ export interface Config {
   globals: {};
   globalsSelect: {};
   locale: null;
-  user: User;
+  user: Admin;
   jobs: {
     tasks: unknown;
     workflows: unknown;
   };
 }
-export interface UserAuthOperations {
+export interface AdminAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -116,10 +126,14 @@ export interface UserAuthOperations {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
+ * via the `definition` "admins".
  */
-export interface User {
+export interface Admin {
   id: number;
+  /**
+   * Admin role controls privileged operations in Payload collections/endpoints. Keep at least one admin role account.
+   */
+  roles: ('admin' | 'editor')[];
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -137,7 +151,7 @@ export interface User {
       }[]
     | null;
   password?: string | null;
-  collection: 'users';
+  collection: 'admins';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -155,6 +169,187 @@ export interface Media {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schools".
+ */
+export interface School {
+  id: number;
+  /**
+   * School display name used in navigation, listing, and search.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Short introduction shown on the school page and in previews.
+   */
+  description?: string | null;
+  /**
+   * Controls whether the school is visible on the frontend.
+   */
+  isActive?: boolean | null;
+  /**
+   * Manual ordering value. Lower numbers appear first.
+   */
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channels".
+ */
+export interface SchoolSubChannel {
+  id: number;
+  /**
+   * Sub-channel name, for example Lost and Found or Events.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Parent school that this sub-channel belongs to.
+   */
+  school: number | School;
+  /**
+   * Short summary displayed on channel pages and admin lists.
+   */
+  description?: string | null;
+  /**
+   * Controls whether this sub-channel is available to readers.
+   */
+  isActive?: boolean | null;
+  /**
+   * Manual ordering value inside the same school.
+   */
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags".
+ */
+export interface Tag {
+  id: number;
+  /**
+   * Tag name shown on posts and used for filtering.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Optional internal note about when this tag should be used.
+   */
+  description?: string | null;
+  /**
+   * Inactive tags are hidden from tag selectors in new posts.
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-profiles".
+ */
+export interface UserProfile {
+  id: number;
+  /**
+   * Foreign key reference to biz_users.id from the business user table.
+   */
+  bizUserID: string;
+  /**
+   * Public name shown in article bylines and profile cards.
+   */
+  displayName: string;
+  /**
+   * Short profile biography shown on user-facing profile sections.
+   */
+  bio?: string | null;
+  /**
+   * Profile image displayed for the user across the site.
+   */
+  avatar?: (number | null) | Media;
+  /**
+   * Controls whether this profile can be shown publicly.
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts".
+ */
+export interface Post {
+  id: number;
+  /**
+   * Article title shown in listings and detail pages.
+   */
+  title: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Publishing state. Hidden items stay inaccessible to public readers.
+   */
+  status: 'draft' | 'published' | 'hidden';
+  /**
+   * Primary school channel that owns this post.
+   */
+  school: number | School;
+  /**
+   * Optional sub-channel. Must belong to the selected school.
+   */
+  subChannel?: (number | null) | SchoolSubChannel;
+  /**
+   * Public profile shown as the article author.
+   */
+  authorProfile?: (number | null) | UserProfile;
+  /**
+   * Topic labels used for filtering and recommendations.
+   */
+  tags?: (number | Tag)[] | null;
+  /**
+   * Optional thumbnail image used in cards and previews.
+   */
+  coverImage?: (number | null) | Media;
+  /**
+   * Short summary shown in cards, feed items, and search results.
+   */
+  excerpt?: string | null;
+  /**
+   * Main article body stored as Tiptap JSON document.
+   */
+  content:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Auto-filled timestamp when status first changes to Published.
+   */
+  publishedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -181,17 +376,37 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
+        relationTo: 'admins';
+        value: number | Admin;
       } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'schools';
+        value: number | School;
+      } | null)
+    | ({
+        relationTo: 'school-sub-channels';
+        value: number | SchoolSubChannel;
+      } | null)
+    | ({
+        relationTo: 'tags';
+        value: number | Tag;
+      } | null)
+    | ({
+        relationTo: 'user-profiles';
+        value: number | UserProfile;
+      } | null)
+    | ({
+        relationTo: 'posts';
+        value: number | Post;
       } | null);
   globalSlug?: string | null;
   user: {
-    relationTo: 'users';
-    value: number | User;
+    relationTo: 'admins';
+    value: number | Admin;
   };
   updatedAt: string;
   createdAt: string;
@@ -203,8 +418,8 @@ export interface PayloadLockedDocument {
 export interface PayloadPreference {
   id: number;
   user: {
-    relationTo: 'users';
-    value: number | User;
+    relationTo: 'admins';
+    value: number | Admin;
   };
   key?: string | null;
   value?:
@@ -232,9 +447,10 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users_select".
+ * via the `definition` "admins_select".
  */
-export interface UsersSelect<T extends boolean = true> {
+export interface AdminsSelect<T extends boolean = true> {
+  roles?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -267,6 +483,81 @@ export interface MediaSelect<T extends boolean = true> {
   filesize?: T;
   width?: T;
   height?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "schools_select".
+ */
+export interface SchoolsSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channels_select".
+ */
+export interface SchoolSubChannelsSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  school?: T;
+  description?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tags_select".
+ */
+export interface TagsSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-profiles_select".
+ */
+export interface UserProfilesSelect<T extends boolean = true> {
+  bizUserID?: T;
+  displayName?: T;
+  bio?: T;
+  avatar?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "posts_select".
+ */
+export interface PostsSelect<T extends boolean = true> {
+  title?: T;
+  generateSlug?: T;
+  slug?: T;
+  status?: T;
+  school?: T;
+  subChannel?: T;
+  authorProfile?: T;
+  tags?: T;
+  coverImage?: T;
+  excerpt?: T;
+  content?: T;
+  publishedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

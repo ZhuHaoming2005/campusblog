@@ -1,21 +1,21 @@
 import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/login'
-import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
+import { seedTestAdmin, cleanupTestAdmin, testAdmin } from '../helpers/seedAdmin'
 
 test.describe('Admin Panel', () => {
   let page: Page
 
   test.beforeAll(async ({ browser }, testInfo) => {
-    await seedTestUser()
+    await seedTestAdmin()
 
     const context = await browser.newContext()
     page = await context.newPage()
 
-    await login({ page, user: testUser })
+    await login({ page, user: testAdmin })
   })
 
   test.afterAll(async () => {
-    await cleanupTestUser()
+    await cleanupTestAdmin()
   })
 
   test('can navigate to dashboard', async () => {
@@ -26,15 +26,15 @@ test.describe('Admin Panel', () => {
   })
 
   test('can navigate to list view', async () => {
-    await page.goto('http://localhost:3000/admin/collections/users')
-    await expect(page).toHaveURL('http://localhost:3000/admin/collections/users')
-    const listViewArtifact = page.locator('h1', { hasText: 'Users' }).first()
+    await page.goto('http://localhost:3000/admin/collections/admins')
+    await expect(page).toHaveURL('http://localhost:3000/admin/collections/admins')
+    const listViewArtifact = page.locator('h1', { hasText: 'Admins' }).first()
     await expect(listViewArtifact).toBeVisible()
   })
 
   test('can navigate to edit view', async () => {
-    await page.goto('http://localhost:3000/admin/collections/users/create')
-    await expect(page).toHaveURL(/\/admin\/collections\/users\/[a-zA-Z0-9-_]+/)
+    await page.goto('http://localhost:3000/admin/collections/admins/create')
+    await expect(page).toHaveURL(/\/admin\/collections\/admins\/[a-zA-Z0-9-_]+/)
     const editViewArtifact = page.locator('input[name="email"]')
     await expect(editViewArtifact).toBeVisible()
   })

@@ -9,7 +9,12 @@ import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
 import { r2Storage } from '@payloadcms/storage-r2'
 
-import { Users } from './collections/Users'
+import { Posts } from './collections/Posts'
+import { SchoolSubChannels } from './collections/SchoolSubChannels'
+import { Schools } from './collections/Schools'
+import { Admins } from './collections/Admins'
+import { Tags } from './collections/Tags'
+import { UserProfiles } from './collections/UserProfiles'
 import { Media } from './collections/Media'
 
 const filename = fileURLToPath(import.meta.url)
@@ -46,12 +51,12 @@ const cloudflare =
 
 export default buildConfig({
   admin: {
-    user: Users.slug,
+    user: Admins.slug,
     importMap: {
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media],
+  collections: [Admins, Media, Schools, SchoolSubChannels, Tags, UserProfiles, Posts],
   i18n: {
     fallbackLanguage: 'zh',
     supportedLanguages: {
