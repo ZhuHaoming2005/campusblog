@@ -263,3 +263,25 @@ campusblog/
 - 管理员后台可调整单用户与全量配额
 - KV 直接使用，无降级策略
 - 文档路径与目录结构对齐当前快速开始模板
+- 项目从开发期即按中英双语规范建设（至少 `zh-CN` 与 `en-US`）
+
+---
+
+## 14. 多语言开发规范
+
+### 14.1 语言范围（最低要求）
+
+1. 必须支持中文（`zh-CN`）与英文（`en-US`）。
+2. 任一新功能上线时，两个语言版本必须同时可用。
+
+### 14.2 开发约束
+
+1. 前台与管理端自定义 UI 文案禁止硬编码在组件中，统一走 i18n 资源文件。
+2. 日期、时间、数字与容量显示必须使用 locale-aware 格式化。
+3. 与 Payload 内容相关的对外展示字段，应在模型层预留多语言能力（如本地化字段或双语字段结构）。
+
+### 14.3 工程建议路径
+
+1. 前台翻译资源：`src/app/(frontend)/locales/zh-CN.json`、`src/app/(frontend)/locales/en-US.json`
+2. i18n 工具层：`src/app/(frontend)/lib/i18n/`
+3. 语言切换组件：`src/app/(frontend)/components/layout/LanguageSwitcher.tsx`
