@@ -4,6 +4,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-spin {
+  0%   { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
 :root {
   --font-mono: 'Roboto Mono', monospace;
 }
@@ -13,10 +24,6 @@
 }
 
 html {
-  font-size: 18px;
-  line-height: 32px;
-
-  background-color: var(--background);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -27,53 +34,13 @@ body,
 }
 
 body {
-  font-family: system-ui;
-  font-size: 18px;
-  line-height: 32px;
-
   margin: 0;
-
-  @media (max-width: 1024px) {
-    font-size: 15px;
-    line-height: 24px;
-  }
 }
 
 img {
   max-width: 100%;
   height: auto;
   display: block;
-}
-
-h1 {
-  margin: 40px 0;
-  font-size: 64px;
-  line-height: 70px;
-  font-weight: bold;
-
-  @media (max-width: 1024px) {
-    margin: 24px 0;
-    font-size: 42px;
-    line-height: 42px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 38px;
-    line-height: 38px;
-  }
-
-  @media (max-width: 400px) {
-    font-size: 32px;
-    line-height: 32px;
-  }
-}
-
-p {
-  margin: 24px 0;
-
-  @media (max-width: 1024px) {
-    margin: calc(var(--base) * 0.75) 0;
-  }
 }
 
 a {
@@ -94,95 +61,43 @@ svg {
   vertical-align: middle;
 }
 
-.home {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  height: 100vh;
-  padding: 45px;
-  max-width: 1024px;
-  margin: 0 auto;
-  overflow: hidden;
+/* Masonry grid layout */
+.masonry-grid {
+  column-count: 1;
+  column-gap: 1.5rem;
+}
 
-  @media (max-width: 400px) {
-    padding: 24px;
+@media (min-width: 640px) {
+  .masonry-grid {
+    column-count: 2;
   }
+}
 
-  .content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
-
-    h1 {
-      text-align: center;
-    }
-
-    .languageSwitcher {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      font-size: 14px;
-      line-height: 20px;
-
-      .languageSwitcherLabel {
-        font-weight: 500;
-      }
-
-      .languageSwitcherSelect {
-        min-width: 130px;
-      }
-    }
+@media (min-width: 1024px) {
+  .masonry-grid {
+    column-count: 3;
   }
+}
 
-  .links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    a {
-      text-decoration: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
-
-    .admin {
-      color: rgb(0, 0, 0);
-      background: rgb(255, 255, 255);
-      border: 1px solid rgb(0, 0, 0);
-    }
-
-    .docs {
-      color: rgb(255, 255, 255);
-      background: rgb(0, 0, 0);
-      border: 1px solid rgb(255, 255, 255);
-    }
+@media (min-width: 1280px) {
+  .masonry-grid {
+    column-count: 4;
   }
+}
 
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.masonry-item {
+  break-inside: avoid;
+  margin-bottom: 1.5rem;
+}
 
-    @media (max-width: 1024px) {
-      flex-direction: column;
-      gap: 6px;
-    }
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
 
-    p {
-      margin: 0;
-    }
-
-    .codeLink {
-      text-decoration: none;
-      padding: 0 0.5rem;
-      background: rgb(60, 60, 60);
-      border-radius: 4px;
-    }
-  }
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 @layer base {
@@ -259,7 +174,6 @@ svg {
   }
   * {
     @apply border-border;
-    /* Tailwind v3 has no `outline-ring/50`; shadcn v4 presets assume @theme */
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
   }
   body {
@@ -270,6 +184,7 @@ svg {
   }
 }
 
+/* Tiptap editor styles */
 .tiptap-editor .ProseMirror {
   outline: none;
 }

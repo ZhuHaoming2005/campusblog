@@ -1,13 +1,33 @@
 {
-  "home": {
-    "logoAlt": "Payload Logo",
-    "welcome": "Welcome to your new project.",
-    "welcomeBack": "Welcome back, {{email}}",
+  "common": {
+    "appName": "Campus Curator",
+    "appTagline": "Academic Excellence",
+    "searchPlaceholder": "Search campus news...",
+    "createPost": "Create Post",
+    "login": "Login",
     "languageLabel": "Language",
-    "languageZh": "Chinese",
-    "languageEn": "English",
-    "goAdmin": "Go to admin panel",
-    "documentation": "Documentation",
-    "editHint": "Update this page by editing"
+    "languageZh": "中文",
+    "languageEn": "English"
+  },
+  "sidebar": {
+    "discover": "Discover",
+    "channels": "Channels",
+    "addChannel": "Add Channel"
+  },
+  "discover": {
+    "noPosts": "No posts to discover yet",
+    "noPostsHint": "Be the first to share your insights"
+  },
+  "school": {
+    "homepage": "Homepage",
+    "allPosts": "All Posts",
+    "addSubChannel": "Add Sub-channel",
+    "noPosts": "No posts in this school yet",
+    "noPostsHint": "Be the first to publish an article",
+    "subscribe": "Subscribe",
+    "subscribed": "Subscribed",
+    "description": "About",
+    "notFound": "School not found",
+    "notFoundHint": "This school does not exist or has been disabled"
   }
 }

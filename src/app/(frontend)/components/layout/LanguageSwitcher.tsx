@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { IconLanguage } from '@tabler/icons-react'
 
 import { SUPPORTED_LOCALES, type AppLocale } from '@/app/(frontend)/lib/i18n/config'
 import {
@@ -33,25 +34,23 @@ export default function LanguageSwitcher({
 }: LanguageSwitcherProps) {
   const router = useRouter()
 
-  const handleSwitchLocale = (nextLocale: AppLocale) => {
-    if (nextLocale === locale) return
-
-    document.cookie = `locale=${nextLocale}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax`
+  const handleLocaleValueChange = (value: string) => {
+    if (!isAppLocale(value) || value === locale) return
+    document.cookie = `locale=${value}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax`
     router.refresh()
   }
 
-  const handleLocaleValueChange = (value: string) => {
-    if (!isAppLocale(value)) return
-    handleSwitchLocale(value)
-  }
-
   return (
-    <div className="languageSwitcher" aria-label={label}>
+    <div className="fixed top-4 right-16 z-50" aria-label={label}>
       <Select value={locale} onValueChange={handleLocaleValueChange}>
-        <SelectTrigger className="languageSwitcherSelect" aria-label={label}>
+        <SelectTrigger
+          className="h-9 gap-1.5 rounded-full bg-white/70 backdrop-blur-md shadow-sm border-campus-primary/10 hover:bg-white/90 transition-all px-3"
+          aria-label={label}
+        >
+          <IconLanguage size={16} className="text-campus-primary shrink-0" />
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent align="end">
           <SelectGroup>
             <SelectItem value="zh-CN">{zhLabel}</SelectItem>
             <SelectItem value="en-US">{enLabel}</SelectItem>

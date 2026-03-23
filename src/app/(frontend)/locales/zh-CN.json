@@ -1,13 +1,33 @@
 {
-  "home": {
-    "logoAlt": "Payload 徽标",
-    "welcome": "欢迎来到你的新项目。",
-    "welcomeBack": "欢迎回来，{{email}}",
+  "common": {
+    "appName": "校园博客",
+    "appTagline": "学术卓越",
+    "searchPlaceholder": "搜索校园趣闻...",
+    "createPost": "发布文章",
+    "login": "登录",
     "languageLabel": "语言",
     "languageZh": "中文",
-    "languageEn": "英文",
-    "goAdmin": "进入管理后台",
-    "documentation": "文档",
-    "editHint": "你可以编辑以下文件来更新本页"
+    "languageEn": "English"
+  },
+  "sidebar": {
+    "discover": "发现",
+    "channels": "学校频道",
+    "addChannel": "添加频道"
+  },
+  "discover": {
+    "noPosts": "暂无内容，敬请期待",
+    "noPostsHint": "成为第一个分享见解的人"
+  },
+  "school": {
+    "homepage": "主页",
+    "allPosts": "全部文章",
+    "addSubChannel": "添加子频道",
+    "noPosts": "该学校暂无文章",
+    "noPostsHint": "快来发布第一篇文章吧",
+    "subscribe": "订阅",
+    "subscribed": "已订阅",
+    "description": "简介",
+    "notFound": "学校未找到",
+    "notFoundHint": "该学校不存在或已被禁用"
   }
 }

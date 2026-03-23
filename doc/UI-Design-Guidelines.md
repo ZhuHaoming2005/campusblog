@@ -25,6 +25,8 @@
 5. Tiptap `3.20.4`
 6. Payload CMS `3.77.0`
 
+优先使用Aceternity UI，其次使用shadcn/ui预设风格
+
 ---
 
 ## 3. shadcn/ui 预设（来自 `components.json`）
