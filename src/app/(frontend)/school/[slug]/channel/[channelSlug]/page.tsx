@@ -6,9 +6,9 @@ import { IconSchool } from '@tabler/icons-react'
 
 import config from '@/payload.config'
 import PostCard, { getAspectClass } from '@/components/PostCard'
-import { extractTextFromTiptapJson } from '../../lib/tiptap-text'
-import { getDictionary } from '../../lib/i18n/dictionaries'
-import { resolveRequestLocale } from '../../lib/i18n/locale'
+import { extractTextFromTiptapJson } from '../../../../lib/tiptap-text'
+import { getDictionary } from '../../../../lib/i18n/dictionaries'
+import { resolveRequestLocale } from '../../../../lib/i18n/locale'
 
 type MediaDoc = {
   url?: string
@@ -24,12 +24,12 @@ type UserProfileDoc = {
   avatar?: MediaDoc | string | number | null
 }
 
-export default async function SchoolPage({
+export default async function SubChannelPage({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ slug: string; channelSlug: string }>
 }) {
-  const { slug } = await params
+  const { slug, channelSlug } = await params
   const headers = await getHeaders()
   const cookies = await getCookies()
   const locale = resolveRequestLocale({
@@ -55,10 +55,32 @@ export default async function SchoolPage({
     notFound()
   }
 
+  const { docs: channels } = await payload.find({
+    collection: 'school-sub-channels',
+    where: {
+      and: [
+        { school: { equals: school.id } },
+        { slug: { equals: channelSlug } },
+        { isActive: { equals: true } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+  })
+
+  const channel = channels[0]
+  if (!channel) {
+    notFound()
+  }
+
   const { docs: posts } = await payload.find({
     collection: 'posts',
     where: {
-      and: [{ school: { equals: school.id } }, { status: { equals: 'published' } }],
+      and: [
+        { school: { equals: school.id } },
+        { subChannel: { equals: channel.id } },
+        { status: { equals: 'published' } },
+      ],
     },
     sort: '-publishedAt',
     limit: 20,
@@ -67,14 +89,14 @@ export default async function SchoolPage({
 
   return (
     <section className="px-6 lg:px-10 py-6">
-      {/* School description card */}
-      {school.description && (
+      {/* Channel description card */}
+      {channel.description && (
         <div className="mb-6 p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-campus-primary/8 shadow-sm">
           <h3 className="font-label text-xs uppercase tracking-[0.15em] text-foreground/40 font-bold mb-2">
             {t.school.description}
           </h3>
           <p className="text-base text-foreground/70 leading-relaxed font-label">
-            {school.description}
+            {channel.description}
           </p>
         </div>
       )}

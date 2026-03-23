@@ -6,6 +6,7 @@ import { IconCompass } from '@tabler/icons-react'
 import config from '@/payload.config'
 import PostCard, { getAspectClass } from '@/components/PostCard'
 import SearchBar from '@/components/layout/SearchBar'
+import { extractTextFromTiptapJson } from './lib/tiptap-text'
 import { getDictionary } from './lib/i18n/dictionaries'
 import { resolveRequestLocale } from './lib/i18n/locale'
 
@@ -80,6 +81,8 @@ export default async function DiscoverPage() {
                 key={post.id}
                 title={post.title}
                 slug={post.slug}
+                excerpt={post.excerpt}
+                contentText={extractTextFromTiptapJson(post.content)}
                 coverImageUrl={coverImage?.url}
                 coverImageAlt={coverImage?.alt}
                 authorName={authorProfile?.displayName}

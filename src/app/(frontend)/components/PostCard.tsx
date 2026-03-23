@@ -9,6 +9,7 @@ type PostCardProps = {
   title: string
   slug: string
   excerpt?: string | null
+  contentText?: string | null
   coverImageUrl?: string | null
   coverImageAlt?: string | null
   authorName?: string | null
@@ -30,9 +31,40 @@ export function getAspectClass(index: number): string {
   return ASPECT_CLASSES[index % ASPECT_CLASSES.length]
 }
 
+function NotebookPreview({ text }: { text: string }) {
+  return (
+    <div className="w-full h-full relative bg-[#fefcf3] overflow-hidden select-none">
+      {/* Paper texture gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#fefcf3] via-[#fdf8ee] to-[#faf3e4]" />
+      {/* Ruled lines */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage:
+            'repeating-linear-gradient(to bottom, transparent, transparent 27px, rgba(176,166,150,0.2) 27px, rgba(176,166,150,0.2) 28px)',
+          backgroundPositionY: '11px',
+        }}
+      />
+      {/* Left margin line */}
+      <div className="absolute left-8 top-0 bottom-0 w-px bg-[#e8b4b8]/40" />
+      {/* Hole punches */}
+      <div className="absolute left-2.5 top-6 w-2.5 h-2.5 rounded-full border border-[#d0c8bc]/30" />
+      <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border border-[#d0c8bc]/30" />
+      {/* Text content */}
+      <div className="relative z-10 pl-11 pr-4 pt-3 pb-2">
+        <p className="text-[13px] leading-[28px] text-[#4a4540]/80 font-body line-clamp-[12] whitespace-pre-wrap break-words">
+          {text}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 export default function PostCard({
   title,
   slug,
+  excerpt,
+  contentText,
   coverImageUrl,
   coverImageAlt,
   authorName,
@@ -40,46 +72,41 @@ export default function PostCard({
   tagLabel,
   aspectClass = 'aspect-[3/4]',
 }: PostCardProps) {
+  const previewText = excerpt || contentText || ''
+  const hasImage = Boolean(coverImageUrl)
+
   return (
     <div className="masonry-item">
       <Link href={`/post/${slug}`} className="no-underline block group">
         <CardSpotlight className="bg-card rounded-xl overflow-hidden shadow-sm border border-transparent hover:border-campus-primary/10 hover:shadow-[0_8px_30px_rgba(13,59,102,0.1)] transition-all duration-300 transform hover:scale-[1.02]">
-          {/* Cover Image */}
+          {/* Cover / Notebook Preview */}
           <div
-            className={`relative ${aspectClass} bg-campus-surface-container overflow-hidden`}
+            className={`relative ${aspectClass} overflow-hidden`}
           >
-            {coverImageUrl ? (
+            {hasImage ? (
               <img
                 alt={coverImageAlt || title}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                src={coverImageUrl}
+                src={coverImageUrl!}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-campus-surface-container to-campus-surface-dim/50">
-                <svg
-                  width="56"
-                  height="56"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  className="text-campus-on-surface-variant/20"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <path d="m21 15-5-5L5 21" />
-                </svg>
-              </div>
+              <NotebookPreview text={previewText} />
             )}
             {tagLabel && (
               <Badge
                 variant="secondary"
-                className="absolute top-3 left-3 bg-white/20 backdrop-blur-md border-white/10 text-white text-xs font-label font-bold uppercase tracking-wider shadow-sm"
+                className={`absolute top-3 left-3 text-xs font-label font-bold uppercase tracking-wider shadow-sm ${
+                  hasImage
+                    ? 'bg-white/20 backdrop-blur-md border-white/10 text-white'
+                    : 'bg-[#4a4540]/8 backdrop-blur-sm border-[#4a4540]/10 text-[#4a4540]/70'
+                }`}
               >
                 {tagLabel}
               </Badge>
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {hasImage && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            )}
           </div>
 
           {/* Content */}

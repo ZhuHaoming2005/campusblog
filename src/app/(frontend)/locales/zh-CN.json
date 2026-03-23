@@ -29,5 +29,32 @@
     "description": "简介",
     "notFound": "学校未找到",
     "notFoundHint": "该学校不存在或已被禁用"
+  },
+  "editor": {
+    "pageTitle": "撰写文章",
+    "titlePlaceholder": "输入文章标题...",
+    "contentPlaceholder": "开始写作...",
+    "excerptLabel": "文章摘要",
+    "excerptPlaceholder": "简短描述（可选，展示在卡片中）",
+    "schoolLabel": "选择学校",
+    "schoolPlaceholder": "请选择学校频道",
+    "subChannelLabel": "子频道（可选）",
+    "subChannelPlaceholder": "请选择子频道",
+    "subChannelNone": "不选择",
+    "tagsLabel": "标签",
+    "tagsPlaceholder": "选择标签",
+    "coverLabel": "封面图片",
+    "coverUpload": "点击上传封面",
+    "coverUploading": "上传中...",
+    "coverRemove": "移除封面",
+    "metaTitle": "文章设置",
+    "publish": "发布文章",
+    "publishing": "发布中...",
+    "publishSuccess": "文章发布成功！",
+    "publishError": "发布失败，请重试",
+    "titleRequired": "请输入文章标题",
+    "contentRequired": "请输入文章内容",
+    "schoolRequired": "请选择学校频道",
+    "backToHome": "返回首页"
   }
 }

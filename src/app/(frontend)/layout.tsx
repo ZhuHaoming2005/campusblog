@@ -7,6 +7,7 @@ import { IconBrandGithub } from '@tabler/icons-react'
 import config from '@/payload.config'
 import SidebarNav from '@/components/layout/SidebarNav'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
+import HideOnEditor from '@/components/layout/HideOnEditor'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getDictionary } from './lib/i18n/dictionaries'
 import { resolveRequestLocale } from './lib/i18n/locale'
@@ -55,24 +56,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="bg-campus-surface font-body text-campus-on-surface antialiased">
         <TooltipProvider delayDuration={300}>
           <SidebarNav schools={schoolItems} locale={locale} t={t} />
-          {githubUrl ? (
-            <a
-              href={githubUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="fixed top-4 right-4 z-50 h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm border border-campus-primary/10 hover:bg-white/90 transition-all flex items-center justify-center text-campus-primary"
-              aria-label="GitHub"
-              title="GitHub"
-            >
-              <IconBrandGithub size={18} />
-            </a>
-          ) : null}
-          <LanguageSwitcher
-            locale={locale}
-            label={t.common.languageLabel}
-            zhLabel={t.common.languageZh}
-            enLabel={t.common.languageEn}
-          />
+          <HideOnEditor>
+            {githubUrl ? (
+              <a
+                href={githubUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="fixed top-4 right-4 z-50 h-9 w-9 rounded-full bg-white/70 backdrop-blur-md shadow-sm border border-campus-primary/10 hover:bg-white/90 transition-all flex items-center justify-center text-campus-primary"
+                aria-label="GitHub"
+                title="GitHub"
+              >
+                <IconBrandGithub size={18} />
+              </a>
+            ) : null}
+            <LanguageSwitcher
+              locale={locale}
+              label={t.common.languageLabel}
+              zhLabel={t.common.languageZh}
+              enLabel={t.common.languageEn}
+            />
+          </HideOnEditor>
           <main className="lg:ml-72 min-h-screen">{children}</main>
         </TooltipProvider>
       </body>

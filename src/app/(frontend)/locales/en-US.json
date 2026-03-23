@@ -29,5 +29,32 @@
     "description": "About",
     "notFound": "School not found",
     "notFoundHint": "This school does not exist or has been disabled"
+  },
+  "editor": {
+    "pageTitle": "Write Article",
+    "titlePlaceholder": "Enter article title...",
+    "contentPlaceholder": "Start writing...",
+    "excerptLabel": "Excerpt",
+    "excerptPlaceholder": "Short description (optional, shown in cards)",
+    "schoolLabel": "School",
+    "schoolPlaceholder": "Select a school channel",
+    "subChannelLabel": "Sub-channel (optional)",
+    "subChannelPlaceholder": "Select a sub-channel",
+    "subChannelNone": "None",
+    "tagsLabel": "Tags",
+    "tagsPlaceholder": "Select tags",
+    "coverLabel": "Cover Image",
+    "coverUpload": "Click to upload cover",
+    "coverUploading": "Uploading...",
+    "coverRemove": "Remove cover",
+    "metaTitle": "Post Settings",
+    "publish": "Publish",
+    "publishing": "Publishing...",
+    "publishSuccess": "Article published successfully!",
+    "publishError": "Failed to publish. Please try again.",
+    "titleRequired": "Title is required",
+    "contentRequired": "Content is required",
+    "schoolRequired": "School is required",
+    "backToHome": "Back to Home"
   }
 }

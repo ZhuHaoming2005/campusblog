@@ -235,3 +235,34 @@ svg {
 .tiptap-readonly-wrap .ProseMirror {
   cursor: default;
 }
+
+/* Tiptap placeholder */
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Tiptap blockquote */
+.tiptap-editor .ProseMirror blockquote {
+  border-left: 3px solid rgba(13, 59, 102, 0.15);
+  padding-left: 1rem;
+  margin: 0.75em 0;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+/* Tiptap horizontal rule */
+.tiptap-editor .ProseMirror hr {
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  margin: 1.5em 0;
+}
+
+/* Tiptap inline code */
+.tiptap-editor .ProseMirror code {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0.15em 0.35em;
+  border-radius: 0.25rem;
+}
