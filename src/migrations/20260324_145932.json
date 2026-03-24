@@ -2,8 +2,8 @@
   "version": "6",
   "dialect": "sqlite",
   "tables": {
-    "admins_roles": {
-      "name": "admins_roles",
+    "users_roles": {
+      "name": "users_roles",
       "columns": {
         "order": {
           "name": "order",
@@ -35,15 +35,15 @@
         }
       },
       "indexes": {
-        "admins_roles_order_idx": {
-          "name": "admins_roles_order_idx",
+        "users_roles_order_idx": {
+          "name": "users_roles_order_idx",
           "columns": [
             "order"
           ],
           "isUnique": false
         },
-        "admins_roles_parent_idx": {
-          "name": "admins_roles_parent_idx",
+        "users_roles_parent_idx": {
+          "name": "users_roles_parent_idx",
           "columns": [
             "parent_id"
           ],
@@ -51,10 +51,10 @@
         }
       },
       "foreignKeys": {
-        "admins_roles_parent_fk": {
-          "name": "admins_roles_parent_fk",
-          "tableFrom": "admins_roles",
-          "tableTo": "admins",
+        "users_roles_parent_fk": {
+          "name": "users_roles_parent_fk",
+          "tableFrom": "users_roles",
+          "tableTo": "users",
           "columnsFrom": [
             "parent_id"
           ],
@@ -69,8 +69,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "admins_sessions": {
-      "name": "admins_sessions",
+    "users_sessions": {
+      "name": "users_sessions",
       "columns": {
         "_order": {
           "name": "_order",
@@ -109,15 +109,15 @@
         }
       },
       "indexes": {
-        "admins_sessions_order_idx": {
-          "name": "admins_sessions_order_idx",
+        "users_sessions_order_idx": {
+          "name": "users_sessions_order_idx",
           "columns": [
             "_order"
           ],
           "isUnique": false
         },
-        "admins_sessions_parent_id_idx": {
-          "name": "admins_sessions_parent_id_idx",
+        "users_sessions_parent_id_idx": {
+          "name": "users_sessions_parent_id_idx",
           "columns": [
             "_parent_id"
           ],
@@ -125,10 +125,10 @@
         }
       },
       "foreignKeys": {
-        "admins_sessions_parent_id_fk": {
-          "name": "admins_sessions_parent_id_fk",
-          "tableFrom": "admins_sessions",
-          "tableTo": "admins",
+        "users_sessions_parent_id_fk": {
+          "name": "users_sessions_parent_id_fk",
+          "tableFrom": "users_sessions",
+          "tableTo": "users",
           "columnsFrom": [
             "_parent_id"
           ],
@@ -143,8 +143,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "admins": {
-      "name": "admins",
+    "users": {
+      "name": "users",
       "columns": {
         "id": {
           "name": "id",
@@ -152,6 +152,51 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "avatar_id": {
+          "name": "avatar_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": true
+        },
+        "quota_bytes": {
+          "name": "quota_bytes",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 104857600
+        },
+        "used_bytes": {
+          "name": "used_bytes",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 0
         },
         "updated_at": {
           "name": "updated_at",
@@ -221,29 +266,64 @@
         }
       },
       "indexes": {
-        "admins_updated_at_idx": {
-          "name": "admins_updated_at_idx",
+        "users_display_name_idx": {
+          "name": "users_display_name_idx",
+          "columns": [
+            "display_name"
+          ],
+          "isUnique": false
+        },
+        "users_avatar_idx": {
+          "name": "users_avatar_idx",
+          "columns": [
+            "avatar_id"
+          ],
+          "isUnique": false
+        },
+        "users_is_active_idx": {
+          "name": "users_is_active_idx",
+          "columns": [
+            "is_active"
+          ],
+          "isUnique": false
+        },
+        "users_updated_at_idx": {
+          "name": "users_updated_at_idx",
           "columns": [
             "updated_at"
           ],
           "isUnique": false
         },
-        "admins_created_at_idx": {
-          "name": "admins_created_at_idx",
+        "users_created_at_idx": {
+          "name": "users_created_at_idx",
           "columns": [
             "created_at"
           ],
           "isUnique": false
         },
-        "admins_email_idx": {
-          "name": "admins_email_idx",
+        "users_email_idx": {
+          "name": "users_email_idx",
           "columns": [
             "email"
           ],
           "isUnique": true
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "users_avatar_id_media_id_fk": {
+          "name": "users_avatar_id_media_id_fk",
+          "tableFrom": "users",
+          "tableTo": "media",
+          "columnsFrom": [
+            "avatar_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {}
@@ -735,132 +815,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "user_profiles": {
-      "name": "user_profiles",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "biz_user_i_d": {
-          "name": "biz_user_i_d",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "display_name": {
-          "name": "display_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "bio": {
-          "name": "bio",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "avatar_id": {
-          "name": "avatar_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
-        }
-      },
-      "indexes": {
-        "user_profiles_biz_user_i_d_idx": {
-          "name": "user_profiles_biz_user_i_d_idx",
-          "columns": [
-            "biz_user_i_d"
-          ],
-          "isUnique": true
-        },
-        "user_profiles_display_name_idx": {
-          "name": "user_profiles_display_name_idx",
-          "columns": [
-            "display_name"
-          ],
-          "isUnique": false
-        },
-        "user_profiles_avatar_idx": {
-          "name": "user_profiles_avatar_idx",
-          "columns": [
-            "avatar_id"
-          ],
-          "isUnique": false
-        },
-        "user_profiles_is_active_idx": {
-          "name": "user_profiles_is_active_idx",
-          "columns": [
-            "is_active"
-          ],
-          "isUnique": false
-        },
-        "user_profiles_updated_at_idx": {
-          "name": "user_profiles_updated_at_idx",
-          "columns": [
-            "updated_at"
-          ],
-          "isUnique": false
-        },
-        "user_profiles_created_at_idx": {
-          "name": "user_profiles_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "user_profiles_avatar_id_media_id_fk": {
-          "name": "user_profiles_avatar_id_media_id_fk",
-          "tableFrom": "user_profiles",
-          "tableTo": "media",
-          "columnsFrom": [
-            "avatar_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "posts": {
       "name": "posts",
       "columns": {
@@ -915,11 +869,11 @@
           "notNull": false,
           "autoincrement": false
         },
-        "author_profile_id": {
-          "name": "author_profile_id",
+        "author_id": {
+          "name": "author_id",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "autoincrement": false
         },
         "cover_image_id": {
@@ -1003,10 +957,10 @@
           ],
           "isUnique": false
         },
-        "posts_author_profile_idx": {
-          "name": "posts_author_profile_idx",
+        "posts_author_idx": {
+          "name": "posts_author_idx",
           "columns": [
-            "author_profile_id"
+            "author_id"
           ],
           "isUnique": false
         },
@@ -1066,12 +1020,12 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "posts_author_profile_id_user_profiles_id_fk": {
-          "name": "posts_author_profile_id_user_profiles_id_fk",
+        "posts_author_id_users_id_fk": {
+          "name": "posts_author_id_users_id_fk",
           "tableFrom": "posts",
-          "tableTo": "user_profiles",
+          "tableTo": "users",
           "columnsFrom": [
-            "author_profile_id"
+            "author_id"
           ],
           "columnsTo": [
             "id"
@@ -1191,6 +1145,158 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "comments": {
+      "name": "comments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "post_id": {
+          "name": "post_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "author_id": {
+          "name": "author_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'published'"
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
+        }
+      },
+      "indexes": {
+        "comments_post_idx": {
+          "name": "comments_post_idx",
+          "columns": [
+            "post_id"
+          ],
+          "isUnique": false
+        },
+        "comments_author_idx": {
+          "name": "comments_author_idx",
+          "columns": [
+            "author_id"
+          ],
+          "isUnique": false
+        },
+        "comments_parent_idx": {
+          "name": "comments_parent_idx",
+          "columns": [
+            "parent_id"
+          ],
+          "isUnique": false
+        },
+        "comments_status_idx": {
+          "name": "comments_status_idx",
+          "columns": [
+            "status"
+          ],
+          "isUnique": false
+        },
+        "comments_updated_at_idx": {
+          "name": "comments_updated_at_idx",
+          "columns": [
+            "updated_at"
+          ],
+          "isUnique": false
+        },
+        "comments_created_at_idx": {
+          "name": "comments_created_at_idx",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "comments_post_id_posts_id_fk": {
+          "name": "comments_post_id_posts_id_fk",
+          "tableFrom": "comments",
+          "tableTo": "posts",
+          "columnsFrom": [
+            "post_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "comments_author_id_users_id_fk": {
+          "name": "comments_author_id_users_id_fk",
+          "tableFrom": "comments",
+          "tableTo": "users",
+          "columnsFrom": [
+            "author_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "comments_parent_id_comments_id_fk": {
+          "name": "comments_parent_id_comments_id_fk",
+          "tableFrom": "comments",
+          "tableTo": "comments",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1330,8 +1436,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "admins_id": {
-          "name": "admins_id",
+        "users_id": {
+          "name": "users_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1365,15 +1471,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "user_profiles_id": {
-          "name": "user_profiles_id",
+        "posts_id": {
+          "name": "posts_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "posts_id": {
-          "name": "posts_id",
+        "comments_id": {
+          "name": "comments_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1402,10 +1508,10 @@
           ],
           "isUnique": false
         },
-        "payload_locked_documents_rels_admins_id_idx": {
-          "name": "payload_locked_documents_rels_admins_id_idx",
+        "payload_locked_documents_rels_users_id_idx": {
+          "name": "payload_locked_documents_rels_users_id_idx",
           "columns": [
-            "admins_id"
+            "users_id"
           ],
           "isUnique": false
         },
@@ -1437,17 +1543,17 @@
           ],
           "isUnique": false
         },
-        "payload_locked_documents_rels_user_profiles_id_idx": {
-          "name": "payload_locked_documents_rels_user_profiles_id_idx",
-          "columns": [
-            "user_profiles_id"
-          ],
-          "isUnique": false
-        },
         "payload_locked_documents_rels_posts_id_idx": {
           "name": "payload_locked_documents_rels_posts_id_idx",
           "columns": [
             "posts_id"
+          ],
+          "isUnique": false
+        },
+        "payload_locked_documents_rels_comments_id_idx": {
+          "name": "payload_locked_documents_rels_comments_id_idx",
+          "columns": [
+            "comments_id"
           ],
           "isUnique": false
         }
@@ -1466,12 +1572,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payload_locked_documents_rels_admins_fk": {
-          "name": "payload_locked_documents_rels_admins_fk",
+        "payload_locked_documents_rels_users_fk": {
+          "name": "payload_locked_documents_rels_users_fk",
           "tableFrom": "payload_locked_documents_rels",
-          "tableTo": "admins",
+          "tableTo": "users",
           "columnsFrom": [
-            "admins_id"
+            "users_id"
           ],
           "columnsTo": [
             "id"
@@ -1531,12 +1637,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payload_locked_documents_rels_user_profiles_fk": {
-          "name": "payload_locked_documents_rels_user_profiles_fk",
+        "payload_locked_documents_rels_posts_fk": {
+          "name": "payload_locked_documents_rels_posts_fk",
           "tableFrom": "payload_locked_documents_rels",
-          "tableTo": "user_profiles",
+          "tableTo": "posts",
           "columnsFrom": [
-            "user_profiles_id"
+            "posts_id"
           ],
           "columnsTo": [
             "id"
@@ -1544,12 +1650,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payload_locked_documents_rels_posts_fk": {
-          "name": "payload_locked_documents_rels_posts_fk",
+        "payload_locked_documents_rels_comments_fk": {
+          "name": "payload_locked_documents_rels_comments_fk",
           "tableFrom": "payload_locked_documents_rels",
-          "tableTo": "posts",
+          "tableTo": "comments",
           "columnsFrom": [
-            "posts_id"
+            "comments_id"
           ],
           "columnsTo": [
             "id"
@@ -1662,8 +1768,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "admins_id": {
-          "name": "admins_id",
+        "users_id": {
+          "name": "users_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1692,10 +1798,10 @@
           ],
           "isUnique": false
         },
-        "payload_preferences_rels_admins_id_idx": {
-          "name": "payload_preferences_rels_admins_id_idx",
+        "payload_preferences_rels_users_id_idx": {
+          "name": "payload_preferences_rels_users_id_idx",
           "columns": [
-            "admins_id"
+            "users_id"
           ],
           "isUnique": false
         }
@@ -1714,12 +1820,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payload_preferences_rels_admins_fk": {
-          "name": "payload_preferences_rels_admins_fk",
+        "payload_preferences_rels_users_fk": {
+          "name": "payload_preferences_rels_users_fk",
           "tableFrom": "payload_preferences_rels",
-          "tableTo": "admins",
+          "tableTo": "users",
           "columnsFrom": [
-            "admins_id"
+            "users_id"
           ],
           "columnsTo": [
             "id"
@@ -1804,6 +1910,6 @@
   "internal": {
     "indexes": {}
   },
-  "id": "27e87d44-f81c-4193-a75e-b50e336ff267",
+  "id": "6d9ab5be-1f20-48d3-ac56-f572173da1ad",
   "prevId": "00000000-0000-0000-0000-000000000000"
 }

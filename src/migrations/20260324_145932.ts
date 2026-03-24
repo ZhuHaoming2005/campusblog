@@ -1,29 +1,35 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-d1-sqlite'
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  await db.run(sql`CREATE TABLE \`admins_roles\` (
+  await db.run(sql`CREATE TABLE \`users_roles\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` integer NOT NULL,
   	\`value\` text,
   	\`id\` integer PRIMARY KEY NOT NULL,
-  	FOREIGN KEY (\`parent_id\`) REFERENCES \`admins\`(\`id\`) ON UPDATE no action ON DELETE cascade
+  	FOREIGN KEY (\`parent_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
-  await db.run(sql`CREATE INDEX \`admins_roles_order_idx\` ON \`admins_roles\` (\`order\`);`)
-  await db.run(sql`CREATE INDEX \`admins_roles_parent_idx\` ON \`admins_roles\` (\`parent_id\`);`)
-  await db.run(sql`CREATE TABLE \`admins_sessions\` (
+  await db.run(sql`CREATE INDEX \`users_roles_order_idx\` ON \`users_roles\` (\`order\`);`)
+  await db.run(sql`CREATE INDEX \`users_roles_parent_idx\` ON \`users_roles\` (\`parent_id\`);`)
+  await db.run(sql`CREATE TABLE \`users_sessions\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`id\` text PRIMARY KEY NOT NULL,
   	\`created_at\` text,
   	\`expires_at\` text NOT NULL,
-  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`admins\`(\`id\`) ON UPDATE no action ON DELETE cascade
+  	FOREIGN KEY (\`_parent_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
-  await db.run(sql`CREATE INDEX \`admins_sessions_order_idx\` ON \`admins_sessions\` (\`_order\`);`)
-  await db.run(sql`CREATE INDEX \`admins_sessions_parent_id_idx\` ON \`admins_sessions\` (\`_parent_id\`);`)
-  await db.run(sql`CREATE TABLE \`admins\` (
+  await db.run(sql`CREATE INDEX \`users_sessions_order_idx\` ON \`users_sessions\` (\`_order\`);`)
+  await db.run(sql`CREATE INDEX \`users_sessions_parent_id_idx\` ON \`users_sessions\` (\`_parent_id\`);`)
+  await db.run(sql`CREATE TABLE \`users\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
+  	\`display_name\` text NOT NULL,
+  	\`bio\` text,
+  	\`avatar_id\` integer,
+  	\`is_active\` integer DEFAULT true,
+  	\`quota_bytes\` numeric DEFAULT 104857600,
+  	\`used_bytes\` numeric DEFAULT 0,
   	\`updated_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
   	\`created_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
   	\`email\` text NOT NULL,
@@ -32,12 +38,16 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	\`salt\` text,
   	\`hash\` text,
   	\`login_attempts\` numeric DEFAULT 0,
-  	\`lock_until\` text
+  	\`lock_until\` text,
+  	FOREIGN KEY (\`avatar_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null
   );
   `)
-  await db.run(sql`CREATE INDEX \`admins_updated_at_idx\` ON \`admins\` (\`updated_at\`);`)
-  await db.run(sql`CREATE INDEX \`admins_created_at_idx\` ON \`admins\` (\`created_at\`);`)
-  await db.run(sql`CREATE UNIQUE INDEX \`admins_email_idx\` ON \`admins\` (\`email\`);`)
+  await db.run(sql`CREATE INDEX \`users_display_name_idx\` ON \`users\` (\`display_name\`);`)
+  await db.run(sql`CREATE INDEX \`users_avatar_idx\` ON \`users\` (\`avatar_id\`);`)
+  await db.run(sql`CREATE INDEX \`users_is_active_idx\` ON \`users\` (\`is_active\`);`)
+  await db.run(sql`CREATE INDEX \`users_updated_at_idx\` ON \`users\` (\`updated_at\`);`)
+  await db.run(sql`CREATE INDEX \`users_created_at_idx\` ON \`users\` (\`created_at\`);`)
+  await db.run(sql`CREATE UNIQUE INDEX \`users_email_idx\` ON \`users\` (\`email\`);`)
   await db.run(sql`CREATE TABLE \`media\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`alt\` text NOT NULL,
@@ -110,24 +120,6 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`CREATE INDEX \`tags_is_active_idx\` ON \`tags\` (\`is_active\`);`)
   await db.run(sql`CREATE INDEX \`tags_updated_at_idx\` ON \`tags\` (\`updated_at\`);`)
   await db.run(sql`CREATE INDEX \`tags_created_at_idx\` ON \`tags\` (\`created_at\`);`)
-  await db.run(sql`CREATE TABLE \`user_profiles\` (
-  	\`id\` integer PRIMARY KEY NOT NULL,
-  	\`biz_user_i_d\` text NOT NULL,
-  	\`display_name\` text NOT NULL,
-  	\`bio\` text,
-  	\`avatar_id\` integer,
-  	\`is_active\` integer DEFAULT true,
-  	\`updated_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
-  	\`created_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
-  	FOREIGN KEY (\`avatar_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null
-  );
-  `)
-  await db.run(sql`CREATE UNIQUE INDEX \`user_profiles_biz_user_i_d_idx\` ON \`user_profiles\` (\`biz_user_i_d\`);`)
-  await db.run(sql`CREATE INDEX \`user_profiles_display_name_idx\` ON \`user_profiles\` (\`display_name\`);`)
-  await db.run(sql`CREATE INDEX \`user_profiles_avatar_idx\` ON \`user_profiles\` (\`avatar_id\`);`)
-  await db.run(sql`CREATE INDEX \`user_profiles_is_active_idx\` ON \`user_profiles\` (\`is_active\`);`)
-  await db.run(sql`CREATE INDEX \`user_profiles_updated_at_idx\` ON \`user_profiles\` (\`updated_at\`);`)
-  await db.run(sql`CREATE INDEX \`user_profiles_created_at_idx\` ON \`user_profiles\` (\`created_at\`);`)
   await db.run(sql`CREATE TABLE \`posts\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`title\` text NOT NULL,
@@ -136,7 +128,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	\`status\` text DEFAULT 'draft' NOT NULL,
   	\`school_id\` integer NOT NULL,
   	\`sub_channel_id\` integer,
-  	\`author_profile_id\` integer,
+  	\`author_id\` integer NOT NULL,
   	\`cover_image_id\` integer,
   	\`excerpt\` text,
   	\`content\` text NOT NULL,
@@ -145,7 +137,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	\`created_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
   	FOREIGN KEY (\`school_id\`) REFERENCES \`schools\`(\`id\`) ON UPDATE no action ON DELETE set null,
   	FOREIGN KEY (\`sub_channel_id\`) REFERENCES \`school_sub_channels\`(\`id\`) ON UPDATE no action ON DELETE set null,
-  	FOREIGN KEY (\`author_profile_id\`) REFERENCES \`user_profiles\`(\`id\`) ON UPDATE no action ON DELETE set null,
+  	FOREIGN KEY (\`author_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE set null,
   	FOREIGN KEY (\`cover_image_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE set null
   );
   `)
@@ -154,7 +146,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`CREATE INDEX \`posts_status_idx\` ON \`posts\` (\`status\`);`)
   await db.run(sql`CREATE INDEX \`posts_school_idx\` ON \`posts\` (\`school_id\`);`)
   await db.run(sql`CREATE INDEX \`posts_sub_channel_idx\` ON \`posts\` (\`sub_channel_id\`);`)
-  await db.run(sql`CREATE INDEX \`posts_author_profile_idx\` ON \`posts\` (\`author_profile_id\`);`)
+  await db.run(sql`CREATE INDEX \`posts_author_idx\` ON \`posts\` (\`author_id\`);`)
   await db.run(sql`CREATE INDEX \`posts_cover_image_idx\` ON \`posts\` (\`cover_image_id\`);`)
   await db.run(sql`CREATE INDEX \`posts_published_at_idx\` ON \`posts\` (\`published_at\`);`)
   await db.run(sql`CREATE INDEX \`posts_updated_at_idx\` ON \`posts\` (\`updated_at\`);`)
@@ -173,6 +165,26 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`CREATE INDEX \`posts_rels_parent_idx\` ON \`posts_rels\` (\`parent_id\`);`)
   await db.run(sql`CREATE INDEX \`posts_rels_path_idx\` ON \`posts_rels\` (\`path\`);`)
   await db.run(sql`CREATE INDEX \`posts_rels_tags_id_idx\` ON \`posts_rels\` (\`tags_id\`);`)
+  await db.run(sql`CREATE TABLE \`comments\` (
+  	\`id\` integer PRIMARY KEY NOT NULL,
+  	\`post_id\` integer NOT NULL,
+  	\`author_id\` integer NOT NULL,
+  	\`parent_id\` integer,
+  	\`status\` text DEFAULT 'published' NOT NULL,
+  	\`content\` text NOT NULL,
+  	\`updated_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  	\`created_at\` text DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) NOT NULL,
+  	FOREIGN KEY (\`post_id\`) REFERENCES \`posts\`(\`id\`) ON UPDATE no action ON DELETE set null,
+  	FOREIGN KEY (\`author_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE set null,
+  	FOREIGN KEY (\`parent_id\`) REFERENCES \`comments\`(\`id\`) ON UPDATE no action ON DELETE set null
+  );
+  `)
+  await db.run(sql`CREATE INDEX \`comments_post_idx\` ON \`comments\` (\`post_id\`);`)
+  await db.run(sql`CREATE INDEX \`comments_author_idx\` ON \`comments\` (\`author_id\`);`)
+  await db.run(sql`CREATE INDEX \`comments_parent_idx\` ON \`comments\` (\`parent_id\`);`)
+  await db.run(sql`CREATE INDEX \`comments_status_idx\` ON \`comments\` (\`status\`);`)
+  await db.run(sql`CREATE INDEX \`comments_updated_at_idx\` ON \`comments\` (\`updated_at\`);`)
+  await db.run(sql`CREATE INDEX \`comments_created_at_idx\` ON \`comments\` (\`created_at\`);`)
   await db.run(sql`CREATE TABLE \`payload_kv\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`key\` text NOT NULL,
@@ -195,33 +207,33 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	\`order\` integer,
   	\`parent_id\` integer NOT NULL,
   	\`path\` text NOT NULL,
-  	\`admins_id\` integer,
+  	\`users_id\` integer,
   	\`media_id\` integer,
   	\`schools_id\` integer,
   	\`school_sub_channels_id\` integer,
   	\`tags_id\` integer,
-  	\`user_profiles_id\` integer,
   	\`posts_id\` integer,
+  	\`comments_id\` integer,
   	FOREIGN KEY (\`parent_id\`) REFERENCES \`payload_locked_documents\`(\`id\`) ON UPDATE no action ON DELETE cascade,
-  	FOREIGN KEY (\`admins_id\`) REFERENCES \`admins\`(\`id\`) ON UPDATE no action ON DELETE cascade,
+  	FOREIGN KEY (\`users_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade,
   	FOREIGN KEY (\`media_id\`) REFERENCES \`media\`(\`id\`) ON UPDATE no action ON DELETE cascade,
   	FOREIGN KEY (\`schools_id\`) REFERENCES \`schools\`(\`id\`) ON UPDATE no action ON DELETE cascade,
   	FOREIGN KEY (\`school_sub_channels_id\`) REFERENCES \`school_sub_channels\`(\`id\`) ON UPDATE no action ON DELETE cascade,
   	FOREIGN KEY (\`tags_id\`) REFERENCES \`tags\`(\`id\`) ON UPDATE no action ON DELETE cascade,
-  	FOREIGN KEY (\`user_profiles_id\`) REFERENCES \`user_profiles\`(\`id\`) ON UPDATE no action ON DELETE cascade,
-  	FOREIGN KEY (\`posts_id\`) REFERENCES \`posts\`(\`id\`) ON UPDATE no action ON DELETE cascade
+  	FOREIGN KEY (\`posts_id\`) REFERENCES \`posts\`(\`id\`) ON UPDATE no action ON DELETE cascade,
+  	FOREIGN KEY (\`comments_id\`) REFERENCES \`comments\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_order_idx\` ON \`payload_locked_documents_rels\` (\`order\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_parent_idx\` ON \`payload_locked_documents_rels\` (\`parent_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_path_idx\` ON \`payload_locked_documents_rels\` (\`path\`);`)
-  await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_admins_id_idx\` ON \`payload_locked_documents_rels\` (\`admins_id\`);`)
+  await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_users_id_idx\` ON \`payload_locked_documents_rels\` (\`users_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_media_id_idx\` ON \`payload_locked_documents_rels\` (\`media_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_schools_id_idx\` ON \`payload_locked_documents_rels\` (\`schools_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_school_sub_channels_id_idx\` ON \`payload_locked_documents_rels\` (\`school_sub_channels_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_tags_id_idx\` ON \`payload_locked_documents_rels\` (\`tags_id\`);`)
-  await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_user_profiles_id_idx\` ON \`payload_locked_documents_rels\` (\`user_profiles_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_posts_id_idx\` ON \`payload_locked_documents_rels\` (\`posts_id\`);`)
+  await db.run(sql`CREATE INDEX \`payload_locked_documents_rels_comments_id_idx\` ON \`payload_locked_documents_rels\` (\`comments_id\`);`)
   await db.run(sql`CREATE TABLE \`payload_preferences\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`key\` text,
@@ -238,15 +250,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   	\`order\` integer,
   	\`parent_id\` integer NOT NULL,
   	\`path\` text NOT NULL,
-  	\`admins_id\` integer,
+  	\`users_id\` integer,
   	FOREIGN KEY (\`parent_id\`) REFERENCES \`payload_preferences\`(\`id\`) ON UPDATE no action ON DELETE cascade,
-  	FOREIGN KEY (\`admins_id\`) REFERENCES \`admins\`(\`id\`) ON UPDATE no action ON DELETE cascade
+  	FOREIGN KEY (\`users_id\`) REFERENCES \`users\`(\`id\`) ON UPDATE no action ON DELETE cascade
   );
   `)
   await db.run(sql`CREATE INDEX \`payload_preferences_rels_order_idx\` ON \`payload_preferences_rels\` (\`order\`);`)
   await db.run(sql`CREATE INDEX \`payload_preferences_rels_parent_idx\` ON \`payload_preferences_rels\` (\`parent_id\`);`)
   await db.run(sql`CREATE INDEX \`payload_preferences_rels_path_idx\` ON \`payload_preferences_rels\` (\`path\`);`)
-  await db.run(sql`CREATE INDEX \`payload_preferences_rels_admins_id_idx\` ON \`payload_preferences_rels\` (\`admins_id\`);`)
+  await db.run(sql`CREATE INDEX \`payload_preferences_rels_users_id_idx\` ON \`payload_preferences_rels\` (\`users_id\`);`)
   await db.run(sql`CREATE TABLE \`payload_migrations\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`name\` text,
@@ -260,16 +272,16 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
-  await db.run(sql`DROP TABLE \`admins_roles\`;`)
-  await db.run(sql`DROP TABLE \`admins_sessions\`;`)
-  await db.run(sql`DROP TABLE \`admins\`;`)
+  await db.run(sql`DROP TABLE \`users_roles\`;`)
+  await db.run(sql`DROP TABLE \`users_sessions\`;`)
+  await db.run(sql`DROP TABLE \`users\`;`)
   await db.run(sql`DROP TABLE \`media\`;`)
   await db.run(sql`DROP TABLE \`schools\`;`)
   await db.run(sql`DROP TABLE \`school_sub_channels\`;`)
   await db.run(sql`DROP TABLE \`tags\`;`)
-  await db.run(sql`DROP TABLE \`user_profiles\`;`)
   await db.run(sql`DROP TABLE \`posts\`;`)
   await db.run(sql`DROP TABLE \`posts_rels\`;`)
+  await db.run(sql`DROP TABLE \`comments\`;`)
   await db.run(sql`DROP TABLE \`payload_kv\`;`)
   await db.run(sql`DROP TABLE \`payload_locked_documents\`;`)
   await db.run(sql`DROP TABLE \`payload_locked_documents_rels\`;`)
