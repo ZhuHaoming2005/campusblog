@@ -1,14 +1,13 @@
 import { headers as getHeaders } from 'next/headers.js'
 import { cookies as getCookies } from 'next/headers.js'
-import { getPayload } from 'payload'
 import { IconCompass } from '@tabler/icons-react'
 
-import config from '@/payload.config'
 import PostCard, { getAspectClass } from '@/components/PostCard'
 import SearchBar from '@/components/layout/SearchBar'
 import { extractTextFromTiptapJson } from './lib/tiptap-text'
 import { getDictionary } from './lib/i18n/dictionaries'
 import { resolveRequestLocale } from './lib/i18n/locale'
+import { getPublishedPosts } from './lib/cmsData'
 
 type MediaDoc = {
   url?: string
@@ -33,16 +32,7 @@ export default async function DiscoverPage() {
   })
   const t = getDictionary(locale)
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  const { docs: posts } = await payload.find({
-    collection: 'posts',
-    where: { status: { equals: 'published' } },
-    sort: '-publishedAt',
-    limit: 20,
-    depth: 2,
-  })
+  const posts = await getPublishedPosts()
 
   return (
     <section className="px-6 lg:px-10">

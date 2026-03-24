@@ -1,16 +1,15 @@
 import React from 'react'
 import { headers as getHeaders } from 'next/headers.js'
 import { cookies as getCookies } from 'next/headers.js'
-import { getPayload } from 'payload'
 import { IconBrandGithub } from '@tabler/icons-react'
 
-import config from '@/payload.config'
 import SidebarNav from '@/components/layout/SidebarNav'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import HideOnEditor from '@/components/layout/HideOnEditor'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getDictionary } from './lib/i18n/dictionaries'
 import { resolveRequestLocale } from './lib/i18n/locale'
+import { getActiveSchools } from './lib/cmsData'
 import './styles.css'
 
 export const metadata = {
@@ -28,16 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   })
   const t = getDictionary(locale)
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  const { docs: schools } = await payload.find({
-    collection: 'schools',
-    where: { isActive: { equals: true } },
-    sort: 'sortOrder',
-    limit: 50,
-    depth: 0,
-  })
+  const schools = await getActiveSchools()
 
   const schoolItems = schools.map((s) => ({
     id: s.id,

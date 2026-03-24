@@ -1,13 +1,12 @@
 import React from 'react'
 import { headers as getHeaders } from 'next/headers.js'
 import { cookies as getCookies } from 'next/headers.js'
-import { getPayload } from 'payload'
 import { notFound } from 'next/navigation'
 
-import config from '@/payload.config'
 import SchoolTopBar from '@/components/layout/SchoolTopBar'
 import { getDictionary } from '../../lib/i18n/dictionaries'
 import { resolveRequestLocale } from '../../lib/i18n/locale'
+import { getSchoolBySlug, getSubChannelsBySchool } from '../../lib/cmsData'
 
 export default async function SchoolLayout({
   children,
@@ -25,32 +24,12 @@ export default async function SchoolLayout({
   })
   const t = getDictionary(locale)
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  const { docs: schools } = await payload.find({
-    collection: 'schools',
-    where: {
-      and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-    },
-    limit: 1,
-    depth: 0,
-  })
-
-  const school = schools[0]
+  const school = await getSchoolBySlug(slug)
   if (!school) {
     notFound()
   }
 
-  const { docs: subChannels } = await payload.find({
-    collection: 'school-sub-channels',
-    where: {
-      and: [{ school: { equals: school.id } }, { isActive: { equals: true } }],
-    },
-    sort: 'sortOrder',
-    limit: 50,
-    depth: 0,
-  })
+  const subChannels = await getSubChannelsBySchool(school.id)
 
   const channelItems = subChannels.map((ch) => ({
     id: ch.id,

@@ -12,21 +12,23 @@
 
 以下版本来自当前项目 `pnpm list --depth 0`：
 
-- Next.js：`15.4.11`
-- React：`19.2.1`
-- React DOM：`19.2.1`
-- Payload CMS：`3.77.0`
-- `@payloadcms/next`：`3.77.0`
-- `@payloadcms/db-d1-sqlite`：`3.77.0`
-- `@payloadcms/storage-r2`：`3.77.0`
-- `@payloadcms/ui`：`3.77.0`
+- Next.js：`16.2.1`
+- React：`19.2.4`
+- React DOM：`19.2.4`
+- Payload CMS：`3.80.0`
+- `@payloadcms/next`：`3.80.0`
+- `@payloadcms/db-d1-sqlite`：`3.80.0`
+- `@payloadcms/storage-r2`：`3.80.0`
+- `@payloadcms/ui`：`3.80.0`
 - Tailwind CSS：`3.4.19`
 - shadcn CLI：`4.1.0`
 - Tiptap：`3.20.4`（`@tiptap/core/react/html/starter-kit`）
-- OpenNext Cloudflare：`1.17.1`
+- OpenNext Cloudflare：`1.17.3`
 - Wrangler：`4.76.0`
-- TypeScript：`5.7.3`
+- TypeScript：`5.9.3`
 - jose：当前项目后续接入时固定到实现版本（本仓库尚未安装）
+
+代码编写时注意使用Next.js 16 与 React 19 的新特性（如 Server Actions、Server Components、React 18+ API 等），并确保与 Payload CMS 3.80.0 的兼容性。
 
 说明：Aceternity UI 为组件拷贝式使用，不依赖固定 npm 包版本。
 

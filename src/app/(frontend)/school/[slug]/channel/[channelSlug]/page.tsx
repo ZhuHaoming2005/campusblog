@@ -1,14 +1,17 @@
 import { headers as getHeaders } from 'next/headers.js'
 import { cookies as getCookies } from 'next/headers.js'
-import { getPayload } from 'payload'
 import { notFound } from 'next/navigation'
 import { IconSchool } from '@tabler/icons-react'
 
-import config from '@/payload.config'
 import PostCard, { getAspectClass } from '@/components/PostCard'
 import { extractTextFromTiptapJson } from '../../../../lib/tiptap-text'
 import { getDictionary } from '../../../../lib/i18n/dictionaries'
 import { resolveRequestLocale } from '../../../../lib/i18n/locale'
+import {
+  getPublishedPostsBySchoolAndChannel,
+  getSchoolBySlug,
+  getSchoolSubChannelBySlug,
+} from '../../../../lib/cmsData'
 
 type MediaDoc = {
   url?: string
@@ -38,54 +41,17 @@ export default async function SubChannelPage({
   })
   const t = getDictionary(locale)
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
-
-  const { docs: schools } = await payload.find({
-    collection: 'schools',
-    where: {
-      and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-    },
-    limit: 1,
-    depth: 0,
-  })
-
-  const school = schools[0]
+  const school = await getSchoolBySlug(slug)
   if (!school) {
     notFound()
   }
 
-  const { docs: channels } = await payload.find({
-    collection: 'school-sub-channels',
-    where: {
-      and: [
-        { school: { equals: school.id } },
-        { slug: { equals: channelSlug } },
-        { isActive: { equals: true } },
-      ],
-    },
-    limit: 1,
-    depth: 0,
-  })
-
-  const channel = channels[0]
+  const channel = await getSchoolSubChannelBySlug(school.id, channelSlug)
   if (!channel) {
     notFound()
   }
 
-  const { docs: posts } = await payload.find({
-    collection: 'posts',
-    where: {
-      and: [
-        { school: { equals: school.id } },
-        { subChannel: { equals: channel.id } },
-        { status: { equals: 'published' } },
-      ],
-    },
-    sort: '-publishedAt',
-    limit: 20,
-    depth: 2,
-  })
+  const posts = await getPublishedPostsBySchoolAndChannel(school.id, channel.id)
 
   return (
     <section className="px-6 lg:px-10 py-6">

@@ -1,5 +1,10 @@
 import { getPayload } from 'payload'
+import { revalidateTag } from 'next/cache'
+import { after } from 'next/server'
 import config from '@payload-config'
+
+export const runtime = 'nodejs'
+export const maxDuration = 15
 
 type PostRequestBody = {
   title?: string
@@ -72,6 +77,17 @@ export async function POST(request: Request) {
       collection: 'posts',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       data: data as any,
+    })
+
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-by-school', 'max')
+    revalidateTag('posts-by-school-channel', 'max')
+
+    after(() => {
+      const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
+      console.info(
+        `[posts:create] id=${post.id} slug=${post.slug} school=${schoolId}${channelInfo}`,
+      )
     })
 
     return Response.json({ success: true, post: { id: post.id, slug: post.slug } })
