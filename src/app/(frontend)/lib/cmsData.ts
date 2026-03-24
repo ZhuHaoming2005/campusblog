@@ -120,6 +120,27 @@ const getPublishedPostsCached = unstable_cache(
   },
 )
 
+const getPublishedPostBySlugCached = unstable_cache(
+  async (slug: string): Promise<Post[]> => {
+    const payload = await getPayloadClient()
+    const { docs } = await payload.find({
+      collection: 'posts',
+      where: {
+        and: [{ slug: { equals: slug } }, { status: { equals: 'published' } }],
+      },
+      limit: 1,
+      depth: 2,
+    })
+
+    return docs
+  },
+  ['post-published-by-slug'],
+  {
+    revalidate: 60,
+    tags: ['posts'],
+  },
+)
+
 const getPublishedPostsBySchoolCached = unstable_cache(
   async (schoolId: number): Promise<Post[]> => {
     const payload = await getPayloadClient()
@@ -188,6 +209,11 @@ export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: s
 
 export async function getPublishedPosts() {
   return getPublishedPostsCached()
+}
+
+export async function getPublishedPostBySlug(slug: string) {
+  const posts = await getPublishedPostBySlugCached(slug)
+  return posts[0] ?? null
 }
 
 export async function getPublishedPostsBySchool(schoolId: number) {

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { IconHeart, IconUser } from '@tabler/icons-react'
+import { IconCalendarEvent, IconClockHour4, IconUser } from '@tabler/icons-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -15,16 +15,20 @@ type PostCardProps = {
   authorName?: string | null
   authorAvatarUrl?: string | null
   tagLabel?: string | null
+  schoolName?: string | null
+  channelName?: string | null
+  publishedLabel?: string | null
+  readingMinutes?: number | null
   aspectClass?: string
 }
 
 const ASPECT_CLASSES = [
-  'aspect-[3/4]',
-  'aspect-square',
-  'aspect-[4/5]',
-  'aspect-[3/2]',
+  'aspect-[5/4]',
+  'aspect-[6/5]',
   'aspect-[4/3]',
-  'aspect-[2/3]',
+  'aspect-square',
+  'aspect-[7/6]',
+  'aspect-[3/2]',
 ]
 
 export function getAspectClass(index: number): string {
@@ -41,8 +45,8 @@ function NotebookPreview({ text }: { text: string }) {
         className="absolute inset-0"
         style={{
           backgroundImage:
-            'repeating-linear-gradient(to bottom, transparent, transparent 33px, rgba(176,166,150,0.24) 33px, rgba(176,166,150,0.24) 34px)',
-          backgroundPositionY: '10px',
+            'repeating-linear-gradient(to bottom, transparent, transparent 29px, rgba(176,166,150,0.24) 29px, rgba(176,166,150,0.24) 30px)',
+          backgroundPositionY: '8px',
         }}
       />
       {/* Left margin line */}
@@ -51,8 +55,8 @@ function NotebookPreview({ text }: { text: string }) {
       <div className="absolute left-2.5 top-6 w-3.5 h-3.5 rounded-full border border-[#d0c8bc]/40" />
       <div className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border border-[#d0c8bc]/40" />
       {/* Text content */}
-      <div className="relative z-10 pl-14 pr-5 pt-4 pb-3">
-        <p className="text-[16px] leading-[34px] text-[#4a4540]/82 font-body line-clamp-[8] whitespace-pre-wrap break-words">
+      <div className="relative z-10 pl-14 pr-5 pt-3 pb-2">
+        <p className="text-[15px] leading-[30px] text-[#4a4540]/82 font-body line-clamp-[5] whitespace-pre-wrap break-words">
           {text}
         </p>
       </div>
@@ -70,7 +74,11 @@ export default function PostCard({
   authorName,
   authorAvatarUrl,
   tagLabel,
-  aspectClass = 'aspect-[3/4]',
+  schoolName,
+  channelName,
+  publishedLabel,
+  readingMinutes,
+  aspectClass = 'aspect-[5/4]',
 }: PostCardProps) {
   const previewText = excerpt || contentText || ''
   const hasImage = Boolean(coverImageUrl)
@@ -80,9 +88,7 @@ export default function PostCard({
       <Link href={`/post/${slug}`} className="no-underline block group">
         <CardSpotlight className="bg-card rounded-xl overflow-hidden shadow-sm border border-transparent hover:border-campus-primary/10 hover:shadow-[0_8px_30px_rgba(13,59,102,0.1)] transition-all duration-300 transform hover:scale-[1.02]">
           {/* Cover / Notebook Preview */}
-          <div
-            className={`relative ${aspectClass} overflow-hidden`}
-          >
+          <div className={`relative ${aspectClass} max-h-56 overflow-hidden sm:max-h-60`}>
             {hasImage ? (
               <img
                 alt={coverImageAlt || title}
@@ -111,6 +117,26 @@ export default function PostCard({
 
           {/* Content */}
           <div className="p-4 space-y-2.5">
+            {(schoolName || channelName) && (
+              <div className="flex flex-wrap gap-1.5">
+                {schoolName ? (
+                  <Badge
+                    variant="secondary"
+                    className="bg-campus-primary/8 text-campus-primary border-campus-primary/10"
+                  >
+                    {schoolName}
+                  </Badge>
+                ) : null}
+                {channelName ? (
+                  <Badge
+                    variant="secondary"
+                    className="bg-campus-teal/10 text-campus-teal border-campus-teal/10"
+                  >
+                    {channelName}
+                  </Badge>
+                ) : null}
+              </div>
+            )}
             <h3 className="font-headline text-lg leading-snug text-campus-primary line-clamp-2 group-hover:text-campus-teal transition-colors duration-200">
               {title}
             </h3>
@@ -126,12 +152,19 @@ export default function PostCard({
                   {authorName || 'Anonymous'}
                 </span>
               </div>
-              <div className="flex items-center gap-1 text-foreground/50 group/like cursor-pointer">
-                <IconHeart
-                  size={15}
-                  className="group-hover/like:text-campus-accent group-hover/like:fill-campus-accent/20 transition-all duration-200"
-                />
-                <span className="text-[13px] font-label">0</span>
+              <div className="flex flex-col items-end gap-1 text-[12px] font-label text-foreground/50">
+                {publishedLabel ? (
+                  <span className="inline-flex items-center gap-1">
+                    <IconCalendarEvent size={14} />
+                    {publishedLabel}
+                  </span>
+                ) : null}
+                {readingMinutes ? (
+                  <span className="inline-flex items-center gap-1">
+                    <IconClockHour4 size={14} />
+                    {readingMinutes} min
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>

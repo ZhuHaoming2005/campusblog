@@ -30,7 +30,7 @@ export function TiptapReadOnly({ content, className = '' }: TiptapReadOnlyProps)
   if (!editor) {
     return (
       <div className={`rounded-md border border-transparent min-h-[4rem] ${className}`}>
-        <span className="text-muted-foreground text-sm">Loading…</span>
+        <span className="text-muted-foreground text-sm">Loading...</span>
       </div>
     )
   }

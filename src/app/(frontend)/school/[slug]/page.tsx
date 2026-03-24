@@ -3,25 +3,10 @@ import { cookies as getCookies } from 'next/headers.js'
 import { notFound } from 'next/navigation'
 import { IconSchool } from '@tabler/icons-react'
 
-import PostCard, { getAspectClass } from '@/components/PostCard'
-import { extractTextFromTiptapJson } from '../../lib/tiptap-text'
+import PostFeed from '@/components/PostFeed'
 import { getDictionary } from '../../lib/i18n/dictionaries'
 import { resolveRequestLocale } from '../../lib/i18n/locale'
 import { getPublishedPostsBySchool, getSchoolBySlug } from '../../lib/cmsData'
-
-type MediaDoc = {
-  url?: string
-  alt?: string
-}
-
-type TagDoc = {
-  name?: string
-}
-
-type UserDoc = {
-  displayName?: string
-  avatar?: MediaDoc | string | number | null
-}
 
 export default async function SchoolPage({
   params,
@@ -60,47 +45,7 @@ export default async function SchoolPage({
 
       {/* Posts grid */}
       {posts.length > 0 ? (
-        <div className="masonry-grid">
-          {posts.map((post, index) => {
-            const coverImage =
-              post.coverImage && typeof post.coverImage === 'object'
-                ? (post.coverImage as MediaDoc)
-                : null
-
-            const firstTag =
-              post.tags && Array.isArray(post.tags) && post.tags.length > 0
-                ? typeof post.tags[0] === 'object'
-                  ? (post.tags[0] as TagDoc).name
-                  : null
-                : null
-
-            const author =
-              post.author && typeof post.author === 'object'
-                ? (post.author as UserDoc)
-                : null
-
-            const authorAvatar =
-              author?.avatar && typeof author.avatar === 'object'
-                ? (author.avatar as MediaDoc).url
-                : null
-
-            return (
-              <PostCard
-                key={post.id}
-                title={post.title}
-                slug={post.slug}
-                excerpt={post.excerpt}
-                contentText={extractTextFromTiptapJson(post.content)}
-                coverImageUrl={coverImage?.url}
-                coverImageAlt={coverImage?.alt}
-                authorName={author?.displayName}
-                authorAvatarUrl={authorAvatar}
-                tagLabel={firstTag}
-                aspectClass={getAspectClass(index)}
-              />
-            )
-          })}
-        </div>
+        <PostFeed posts={posts} locale={locale} showChannelName />
       ) : (
         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
           <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-campus-primary/10 via-campus-teal/10 to-campus-accent/10 flex items-center justify-center mb-8 animate-float shadow-lg shadow-campus-primary/5">
