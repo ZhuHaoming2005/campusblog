@@ -10,8 +10,10 @@ import {
   IconAlertTriangle,
   IconArrowLeft,
   IconCheck,
+  IconLoader2,
   IconPencil,
   IconPhoto,
+  IconTrash,
 } from '@tabler/icons-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +30,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
 import { TiptapToolbar } from './TiptapToolbar'
 
@@ -52,7 +55,11 @@ type EditorDictionary = {
     coverLabel: string
     coverUpload: string
     coverUploading: string
+    coverUploadError: string
     coverRemove: string
+    imageInsert: string
+    imageUploading: string
+    imageUploadError: string
     metaTitle: string
     publish: string
     publishing: string
@@ -66,6 +73,8 @@ type EditorDictionary = {
     contentRequired: string
     schoolRequired: string
     schoolRequiredDraft: string
+    quotaExceeded: string
+    requiredQuota: string
     backToHome: string
   }
 }
@@ -80,6 +89,9 @@ type InitialPostData = {
   subChannelId: string
   tagIds: string[]
   content: JSONContent | null
+  coverImageAlt?: string | null
+  coverImageId?: string
+  coverImageUrl?: string | null
 }
 
 type EditorFormProps = {
@@ -98,6 +110,16 @@ function isContentEmpty(json: JSONContent | null): boolean {
   )
 }
 
+function buildCoverAlt(title: string): string {
+  const trimmedTitle = title.trim()
+  return trimmedTitle ? `${trimmedTitle} cover` : 'post-cover'
+}
+
+function buildInlineImageAlt(title: string): string {
+  const trimmedTitle = title.trim()
+  return trimmedTitle ? `${trimmedTitle} inline image` : `post-inline-image-${Date.now().toString(36)}`
+}
+
 export default function EditorForm({
   schools,
   subChannels,
@@ -112,6 +134,21 @@ export default function EditorForm({
   const [subChannelId, setSubChannelId] = useState(initialPost?.subChannelId ?? '')
   const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tagIds ?? [])
   const [editorContent, setEditorContent] = useState<JSONContent | null>(initialPost?.content ?? null)
+  const [coverImage, setCoverImage] = useState<{
+    alt?: string | null
+    id: string
+    url?: string | null
+  } | null>(
+    initialPost?.coverImageId
+      ? {
+          alt: initialPost.coverImageAlt,
+          id: initialPost.coverImageId,
+          url: initialPost.coverImageUrl,
+        }
+      : null,
+  )
+  const [isUploadingCover, setIsUploadingCover] = useState(false)
+  const [isUploadingInlineImage, setIsUploadingInlineImage] = useState(false)
   const [submitAction, setSubmitAction] = useState<SubmitAction>(null)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
@@ -171,6 +208,8 @@ export default function EditorForm({
       return
     }
 
+    if (isUploadingCover || isUploadingInlineImage) return
+
     setSubmitAction(status === 'published' ? 'publish' : 'draft')
     setFeedback(null)
 
@@ -185,6 +224,7 @@ export default function EditorForm({
       if (subChannelId && subChannelId !== '__none__') body.subChannel = subChannelId
       if (excerpt.trim()) body.excerpt = excerpt.trim()
       if (selectedTags.length > 0) body.tags = selectedTags
+      body.coverImage = coverImage?.id ?? null
 
       const response = await fetch(initialPost ? `/api/posts/${initialPost.id}` : '/api/posts', {
         method: initialPost ? 'PATCH' : 'POST',
@@ -192,12 +232,26 @@ export default function EditorForm({
         body: JSON.stringify(body),
       })
 
-      const data = (await response.json()) as { error?: string }
+      const data = (await response.json()) as {
+        error?: string
+        quota?: {
+          remainingBytes: number
+          requiredBytes: number
+        }
+      }
 
       if (!response.ok) {
+        const quotaMessage =
+          data.quota && data.error
+            ? `${data.error}`
+            : undefined
+
         setFeedback({
           type: 'error',
-          message: data.error || (status === 'published' ? t.editor.publishError : t.editor.draftError),
+          message:
+            quotaMessage ||
+            data.error ||
+            (status === 'published' ? t.editor.publishError : t.editor.draftError),
         })
         return
       }
@@ -220,6 +274,89 @@ export default function EditorForm({
       setSubmitAction(null)
     }
   }
+
+  const handleInlineImageUpload = useCallback(
+    async (file: File) => {
+      if (!editor) return
+
+      setIsUploadingInlineImage(true)
+      setFeedback(null)
+
+      try {
+        const fallbackAlt = buildInlineImageAlt(title)
+        const media = await uploadMediaFile({
+          alt: fallbackAlt,
+          fallbackError: t.editor.imageUploadError,
+          file,
+        })
+
+        if (!media.url) {
+          throw new Error(t.editor.imageUploadError)
+        }
+
+        editor
+          .chain()
+          .focus()
+          .setCampusImage({
+            alt: media.alt ?? fallbackAlt,
+            mediaId: String(media.id),
+            src: media.url,
+          })
+          .run()
+
+        setEditorContent(editor.getJSON())
+      } catch (error) {
+        setFeedback({
+          type: 'error',
+          message:
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : t.editor.imageUploadError,
+        })
+      } finally {
+        setIsUploadingInlineImage(false)
+      }
+    },
+    [editor, t.editor.imageUploadError, title],
+  )
+
+  const handleCoverImageChange = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+
+      if (!file) return
+
+      setIsUploadingCover(true)
+      setFeedback(null)
+
+      try {
+        const fallbackAlt = buildCoverAlt(title)
+        const media = await uploadMediaFile({
+          alt: fallbackAlt,
+          fallbackError: t.editor.coverUploadError,
+          file,
+        })
+
+        setCoverImage({
+          alt: media.alt ?? fallbackAlt,
+          id: String(media.id),
+          url: media.url,
+        })
+      } catch (error) {
+        setFeedback({
+          type: 'error',
+          message:
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : t.editor.coverUploadError,
+        })
+      } finally {
+        setIsUploadingCover(false)
+      }
+    },
+    [t.editor.coverUploadError, title],
+  )
 
   return (
     <div className="min-h-screen">
@@ -255,7 +392,7 @@ export default function EditorForm({
             <button
               type="button"
               onClick={() => void submitPost('draft')}
-              disabled={submitAction !== null}
+              disabled={submitAction !== null || isUploadingCover || isUploadingInlineImage}
               className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-campus-primary/10 bg-white/75 px-5 text-sm font-label font-semibold text-campus-primary transition-all hover:bg-campus-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <IconCheck size={17} />
@@ -264,7 +401,7 @@ export default function EditorForm({
 
             <MovingBorderButton
               onClick={() => void submitPost('published')}
-              disabled={submitAction !== null}
+              disabled={submitAction !== null || isUploadingCover || isUploadingInlineImage}
               containerClassName="shrink-0"
               className="px-8 font-label font-bold text-base"
             >
@@ -301,7 +438,12 @@ export default function EditorForm({
               errors.content ? 'border-red-400' : 'border-campus-primary/8',
             )}
           >
-            <TiptapToolbar editor={editor} />
+            <TiptapToolbar
+              editor={editor}
+              imageTitle={t.editor.imageInsert}
+              imageUploadingTitle={t.editor.imageUploading}
+              onUploadImage={handleInlineImageUpload}
+            />
             <EditorContent editor={editor} />
           </div>
           {errors.content ? <p className="text-sm font-label text-red-500">{errors.content}</p> : null}
@@ -408,9 +550,46 @@ export default function EditorForm({
 
               <div className="space-y-2">
                 <Label className="font-label text-sm text-foreground/70">{t.editor.coverLabel}</Label>
-                <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-campus-primary/10 p-6 transition-all hover:border-campus-primary/20 hover:bg-campus-primary/[0.02]">
-                  <IconPhoto size={28} className="text-foreground/20" />
-                  <span className="text-sm font-label text-foreground/40">{t.editor.coverUpload}</span>
+                <div className="space-y-3">
+                  {coverImage?.url ? (
+                    <div className="overflow-hidden rounded-2xl border border-campus-primary/10 bg-white/80">
+                      <img
+                        src={coverImage.url}
+                        alt={coverImage.alt || title || t.editor.coverLabel}
+                        className="h-44 w-full object-cover"
+                      />
+                    </div>
+                  ) : null}
+
+                  <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-campus-primary/10 p-6 text-center transition-all hover:border-campus-primary/20 hover:bg-campus-primary/[0.02]">
+                    {isUploadingCover ? (
+                      <IconLoader2 size={28} className="animate-spin text-campus-primary/60" />
+                    ) : (
+                      <IconPhoto size={28} className="text-foreground/20" />
+                    )}
+                    <span className="text-sm font-label text-foreground/40">
+                      {isUploadingCover ? t.editor.coverUploading : t.editor.coverUpload}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(event) => {
+                        void handleCoverImageChange(event)
+                      }}
+                    />
+                  </label>
+
+                  {coverImage ? (
+                    <button
+                      type="button"
+                      onClick={() => setCoverImage(null)}
+                      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 text-sm font-label text-destructive transition-colors hover:bg-destructive/10"
+                    >
+                      <IconTrash size={16} />
+                      {t.editor.coverRemove}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </CardContent>

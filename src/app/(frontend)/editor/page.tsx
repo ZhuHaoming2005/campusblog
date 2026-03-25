@@ -26,6 +26,19 @@ function toRelationId(value: unknown): string {
   return ''
 }
 
+function toMediaData(value: unknown): { alt?: string | null; id: string; url?: string | null } | null {
+  if (!value || typeof value !== 'object' || !('id' in value)) return null
+
+  const media = value as { alt?: string | null; id?: string | number | null; url?: string | null }
+  if (typeof media.id !== 'string' && typeof media.id !== 'number') return null
+
+  return {
+    alt: media.alt,
+    id: String(media.id),
+    url: media.url,
+  }
+}
+
 function toEditorContent(content: Post['content']): JSONContent | null {
   if (!content || typeof content !== 'object' || Array.isArray(content)) return null
   return content as JSONContent
@@ -122,6 +135,9 @@ export default async function EditorPage({
             .map((tag: number | string | { id?: number | string | null }) => toRelationId(tag))
             .filter(Boolean),
           content: toEditorContent(initialPostResult.content),
+          coverImageAlt: toMediaData(initialPostResult.coverImage)?.alt,
+          coverImageId: toMediaData(initialPostResult.coverImage)?.id,
+          coverImageUrl: toMediaData(initialPostResult.coverImage)?.url,
         }
       : null
 

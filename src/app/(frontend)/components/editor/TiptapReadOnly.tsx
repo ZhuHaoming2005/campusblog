@@ -2,6 +2,7 @@
 
 import type { JSONContent } from '@tiptap/core'
 import { EditorContent, useEditor } from '@tiptap/react'
+import { useEffect } from 'react'
 
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
 
@@ -26,6 +27,18 @@ export function TiptapReadOnly({ content, className = '' }: TiptapReadOnlyProps)
       },
     },
   })
+
+  useEffect(() => {
+    if (!editor) return
+
+    const nextContent = content ?? { type: 'doc', content: [] }
+    const current = JSON.stringify(editor.getJSON())
+    const next = JSON.stringify(nextContent)
+
+    if (current !== next) {
+      editor.commands.setContent(nextContent, { emitUpdate: false })
+    }
+  }, [content, editor])
 
   if (!editor) {
     return (

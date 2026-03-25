@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import type { Post } from '@/payload-types'
 import LogoutButton from '@/components/auth/LogoutButton'
 import UserProfileEditor from '@/components/user/UserProfileEditor'
+import UserPostActions from '@/components/user/UserPostActions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +45,7 @@ function UserPostList({
   locale,
   metaLabel,
   posts,
+  t,
 }: {
   actionHref?: (post: Post) => string | null
   emptyLabel: string
@@ -51,6 +53,7 @@ function UserPostList({
   locale: string
   metaLabel: string
   posts: Post[]
+  t: ReturnType<typeof getDictionary>
 }) {
   if (posts.length === 0) {
     return <p className="text-sm font-label text-foreground/50">{emptyLabel}</p>
@@ -98,15 +101,15 @@ function UserPostList({
                 </p>
               </div>
 
-              {actionHref?.(post) ? (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="shrink-0 rounded-xl border-campus-primary/10 bg-white/70 text-campus-primary hover:bg-campus-primary/5"
-                >
-                  <Link href={actionHref(post) ?? '/user/me'}>{hrefLabel}</Link>
-                </Button>
-              ) : null}
+              <UserPostActions
+                actionHref={actionHref?.(post)}
+                actionLabel={hrefLabel}
+                confirmLabel={t.userCenter.deletePostConfirm}
+                deleteErrorLabel={t.userCenter.deletePostError}
+                deleteLabel={t.userCenter.deletePost}
+                deletingLabel={t.userCenter.deletingPost}
+                postId={post.id}
+              />
             </div>
           </div>
         )
@@ -272,6 +275,7 @@ export default async function UserCenterPage() {
               locale={locale}
               metaLabel={t.userCenter.updatedAt}
               posts={draftPostsResult.docs}
+              t={t}
             />
           </CardContent>
         </Card>
@@ -290,6 +294,7 @@ export default async function UserCenterPage() {
               locale={locale}
               metaLabel={t.userCenter.publishedAt}
               posts={publishedPostsResult.docs}
+              t={t}
             />
           </CardContent>
         </Card>

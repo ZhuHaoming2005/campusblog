@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import type { Editor } from '@tiptap/react'
 import {
   IconBold,
@@ -16,12 +17,17 @@ import {
   IconSeparator,
   IconArrowBackUp,
   IconArrowForwardUp,
+  IconLoader2,
+  IconPhoto,
 } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 
 type TiptapToolbarProps = {
   editor: Editor | null
+  imageTitle?: string
+  imageUploadingTitle?: string
+  onUploadImage?: (file: File) => Promise<void>
 }
 
 type ToolbarButtonProps = {
@@ -52,10 +58,32 @@ function ToolbarButton({ onClick, isActive, disabled, children, title }: Toolbar
   )
 }
 
-export function TiptapToolbar({ editor }: TiptapToolbarProps) {
+export function TiptapToolbar({
+  editor,
+  imageTitle = 'Insert image',
+  imageUploadingTitle = 'Uploading image...',
+  onUploadImage,
+}: TiptapToolbarProps) {
   if (!editor) return null
 
   const iconSize = 18
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+
+  const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file || !onUploadImage) return
+
+    setIsUploadingImage(true)
+
+    try {
+      await onUploadImage(file)
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
 
   return (
     <div className="flex items-center gap-0.5 flex-wrap px-3 py-2 border-b border-border/50">
@@ -148,6 +176,19 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
       >
         <IconSeparator size={iconSize} />
       </ToolbarButton>
+      {onUploadImage ? (
+        <ToolbarButton
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploadingImage}
+          title={isUploadingImage ? imageUploadingTitle : imageTitle}
+        >
+          {isUploadingImage ? (
+            <IconLoader2 size={iconSize} className="animate-spin" />
+          ) : (
+            <IconPhoto size={iconSize} />
+          )}
+        </ToolbarButton>
+      ) : null}
 
       <Separator orientation="vertical" className="mx-1 h-5" />
 
@@ -165,6 +206,18 @@ export function TiptapToolbar({ editor }: TiptapToolbarProps) {
       >
         <IconArrowForwardUp size={iconSize} />
       </ToolbarButton>
+
+      {onUploadImage ? (
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => {
+            void handleImageSelect(event)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

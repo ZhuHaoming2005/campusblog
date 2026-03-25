@@ -5,6 +5,10 @@ import { buildSlugField } from '@/fields/slug'
 import { tiptapJsonAdminComponents } from '@/fields/tiptapJsonAdmin'
 import { setCurrentAuthor } from '@/hooks/setCurrentAuthor'
 import { setPublishedAt } from '@/hooks/setPublishedAt'
+import {
+  syncUserPostQuotaAfterChange,
+  syncUserPostQuotaAfterDelete,
+} from '@/hooks/syncUserPostQuota'
 import { validatePostChannelRelation } from '@/hooks/validatePostChannelRelation'
 
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
@@ -30,6 +34,8 @@ export const Posts: CollectionConfig = {
   hooks: {
     beforeValidate: [setCurrentAuthor, validatePostChannelRelation],
     beforeChange: [setPublishedAt],
+    afterChange: [syncUserPostQuotaAfterChange],
+    afterDelete: [syncUserPostQuotaAfterDelete],
   },
   fields: [
     {

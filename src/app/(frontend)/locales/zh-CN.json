@@ -52,7 +52,11 @@
     "coverLabel": "封面图",
     "coverUpload": "点击上传封面",
     "coverUploading": "上传中...",
+    "coverUploadError": "封面图上传失败，请稍后再试。",
     "coverRemove": "移除封面",
+    "imageInsert": "插入图片",
+    "imageUploading": "图片上传中...",
+    "imageUploadError": "图片上传失败，请稍后再试。",
     "metaTitle": "文章设置",
     "publish": "发布",
     "publishing": "发布中...",
@@ -67,6 +71,8 @@
     "contentRequired": "请输入正文内容",
     "schoolRequired": "请选择学校频道",
     "schoolRequiredDraft": "请先选择学校频道再保存草稿",
+    "quotaExceeded": "这篇文章已超出你的发布配额。",
+    "requiredQuota": "需要",
     "backToHome": "返回首页"
   },
   "auth": {
@@ -120,7 +126,11 @@
     "emptyPublished": "你还没有发布任何文章。",
     "publishedAt": "发布时间",
     "updatedAt": "更新时间",
-    "viewPublicPost": "查看文章"
+    "viewPublicPost": "查看文章",
+    "deletePost": "删除",
+    "deletingPost": "删除中...",
+    "deletePostConfirm": "确定要永久删除这篇文章吗？",
+    "deletePostError": "暂时无法删除这篇文章，请稍后再试。"
   },
   "post": {
     "author": "作者",

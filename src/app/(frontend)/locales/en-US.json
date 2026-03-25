@@ -52,7 +52,11 @@
     "coverLabel": "Cover Image",
     "coverUpload": "Click to upload cover",
     "coverUploading": "Uploading...",
+    "coverUploadError": "Failed to upload the cover image. Please try again.",
     "coverRemove": "Remove cover",
+    "imageInsert": "Insert image",
+    "imageUploading": "Uploading image...",
+    "imageUploadError": "Failed to upload the image. Please try again.",
     "metaTitle": "Post Settings",
     "publish": "Publish",
     "publishing": "Publishing...",
@@ -67,6 +71,8 @@
     "contentRequired": "Content is required",
     "schoolRequired": "School is required",
     "schoolRequiredDraft": "Please choose a school before saving your draft.",
+    "quotaExceeded": "This article exceeds your publishing quota.",
+    "requiredQuota": "Required",
     "backToHome": "Back to Home"
   },
   "auth": {
@@ -120,7 +126,11 @@
     "emptyPublished": "You haven't published any posts yet.",
     "publishedAt": "Published at",
     "updatedAt": "Updated at",
-    "viewPublicPost": "View Post"
+    "viewPublicPost": "View Post",
+    "deletePost": "Delete",
+    "deletingPost": "Deleting...",
+    "deletePostConfirm": "Delete this article permanently?",
+    "deletePostError": "Unable to delete this article right now. Please try again."
   },
   "post": {
     "author": "Author",

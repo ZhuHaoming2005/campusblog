@@ -5,6 +5,7 @@ import config from '@payload-config'
 
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
+import { projectQuotaForPublishedPost } from '@/quota/postQuota'
 
 export const runtime = 'nodejs'
 export const maxDuration = 15
@@ -16,7 +17,7 @@ type PostRequestBody = {
   subChannel?: string | number
   tags?: (string | number)[]
   excerpt?: string
-  coverImage?: string | number
+  coverImage?: string | number | null
   status?: 'draft' | 'published'
 }
 
@@ -42,6 +43,17 @@ function toNumericId(value: string | number | undefined): number | undefined {
   if (value === undefined || value === null || value === '') return undefined
   const num = Number(value)
   return Number.isFinite(num) ? num : undefined
+}
+
+function formatBytes(value: number, locale: string): string {
+  const formatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: value >= 1024 * 1024 ? 1 : 0,
+  })
+
+  if (value >= 1024 * 1024 * 1024) return `${formatter.format(value / (1024 * 1024 * 1024))} GB`
+  if (value >= 1024 * 1024) return `${formatter.format(value / (1024 * 1024))} MB`
+  if (value >= 1024) return `${formatter.format(value / 1024)} KB`
+  return `${formatter.format(value)} B`
 }
 
 export async function POST(request: Request) {
@@ -71,6 +83,14 @@ export async function POST(request: Request) {
       return Response.json({ error: t.editor.authRequired }, { status: 401 })
     }
 
+    const currentUser = await payload.findByID({
+      collection: 'users',
+      depth: 0,
+      id: user.id,
+      overrideAccess: false,
+      user,
+    })
+
     const normalizedTitle =
       title && typeof title === 'string' && title.trim()
         ? title.trim()
@@ -95,10 +115,36 @@ export async function POST(request: Request) {
     if (subChannelId) data.subChannel = subChannelId
 
     if (excerpt) data.excerpt = excerpt
-    if (coverImage) data.coverImage = toNumericId(coverImage)
+
+    const coverImageId = toNumericId(coverImage ?? undefined)
+    if (coverImage !== undefined) data.coverImage = coverImageId ?? null
 
     if (tags && Array.isArray(tags) && tags.length > 0) {
       data.tags = tags.map((t) => toNumericId(t)).filter(Boolean)
+    }
+
+    if (nextStatus === 'published') {
+      const projection = await projectQuotaForPublishedPost({
+        candidatePost: {
+          content: normalizedContent,
+          coverImage: coverImageId ?? null,
+          excerpt: excerpt?.trim() || null,
+          title: normalizedTitle,
+        },
+        payload,
+        quotaBytes: currentUser.quotaBytes,
+        userId: currentUser.id,
+      })
+
+      if (!projection.allowed) {
+        return Response.json(
+          {
+            error: `${t.editor.quotaExceeded} ${t.userCenter.remainingQuota}: ${formatBytes(projection.remainingBytes, locale)}. ${t.editor.requiredQuota}: ${formatBytes(projection.requiredBytes, locale)}.`,
+            quota: projection,
+          },
+          { status: 400 },
+        )
+      }
     }
 
     const post = await payload.create({
