@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
 import { buildConfig } from 'payload'
+import type { PayloadLogger } from 'payload'
 import { en } from 'payload/i18n/en'
 import { zh } from 'payload/i18n/zh'
 import { fileURLToPath } from 'url'
@@ -21,7 +22,9 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(value) : undefined)
 
-const isCLI = process.argv.some((value) => realpath(value).endsWith(path.join('payload', 'bin.js')))
+const isCLI = process.argv.some(
+  (value) => realpath(value)?.endsWith(path.join('payload', 'bin.js')) ?? false,
+)
 const isProduction = process.env.NODE_ENV === 'production'
 
 const createLog =
@@ -42,7 +45,7 @@ const cloudflareLogger = {
   error: createLog('error', console.error),
   fatal: createLog('fatal', console.error),
   silent: () => {},
-} as any // Use PayloadLogger type when it's exported
+} as unknown as PayloadLogger
 
 const cloudflare =
   isCLI || !isProduction

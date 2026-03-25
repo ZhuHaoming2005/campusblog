@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { IconCalendarEvent, IconClockHour4, IconUser } from '@tabler/icons-react'
 
@@ -90,16 +91,19 @@ export default function PostCard({
       <Link href={`/post/${slug}`} className="group block w-full no-underline">
         <CardSpotlight className="w-full bg-card rounded-xl overflow-hidden border border-transparent shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-campus-primary/10 hover:shadow-[0_8px_30px_rgba(13,59,102,0.1)]">
           {/* Cover / Notebook Preview */}
-          <div className={`relative w-full ${aspectClass} max-h-56 overflow-hidden sm:max-h-60`}>
-            {hasImage ? (
-              <img
-                alt={coverImageAlt || title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                src={coverImageUrl!}
-              />
-            ) : (
-              <NotebookPreview text={previewText} />
-            )}
+            <div className={`relative w-full ${aspectClass} max-h-56 overflow-hidden sm:max-h-60`}>
+              {hasImage ? (
+                <Image
+                  alt={coverImageAlt || title}
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  src={coverImageUrl!}
+                  fill
+                  sizes="(min-width: 1024px) 24rem, (min-width: 640px) 50vw, 100vw"
+                  unoptimized
+                />
+              ) : (
+                <NotebookPreview text={previewText} />
+              )}
             {hasImage && (
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             )}

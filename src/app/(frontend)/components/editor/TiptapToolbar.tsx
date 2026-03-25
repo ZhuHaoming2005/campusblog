@@ -64,11 +64,11 @@ export function TiptapToolbar({
   imageUploadingTitle = 'Uploading image...',
   onUploadImage,
 }: TiptapToolbarProps) {
-  if (!editor) return null
-
   const iconSize = 18
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+
+  if (!editor) return null
 
   const handleImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]

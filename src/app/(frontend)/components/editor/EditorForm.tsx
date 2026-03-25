@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { JSONContent } from '@tiptap/core'
@@ -556,9 +557,12 @@ export default function EditorForm({
                 <div className="space-y-3">
                   {coverImage?.url ? (
                     <div className="overflow-hidden rounded-2xl border border-campus-primary/10 bg-white/80">
-                      <img
+                      <Image
                         src={coverImage.url}
                         alt={coverImage.alt || title || t.editor.coverLabel}
+                        width={1200}
+                        height={704}
+                        unoptimized
                         className="h-44 w-full object-cover"
                       />
                     </div>

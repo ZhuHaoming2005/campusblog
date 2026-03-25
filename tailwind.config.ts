@@ -71,9 +71,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        headline: ['"Noto Serif SC"', 'serif'],
-        body: ['"Noto Sans SC"', 'sans-serif'],
-        label: ['Manrope', 'sans-serif'],
+        headline: ['var(--font-headline)', '"Noto Serif SC"', 'serif'],
+        body: ['var(--font-body)', '"Noto Sans SC"', 'sans-serif'],
+        label: ['var(--font-label)', 'Manrope', 'sans-serif'],
       },
       borderRadius: {
         lg: 'var(--radius)',

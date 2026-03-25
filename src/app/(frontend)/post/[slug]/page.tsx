@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { cookies as getCookies } from 'next/headers.js'
 import { headers as getHeaders } from 'next/headers.js'
@@ -221,9 +222,12 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
 
             {coverImage?.url ? (
               <div className="overflow-hidden rounded-[2rem] border border-campus-primary/10 bg-white shadow-[0_18px_60px_rgba(13,59,102,0.08)]">
-                <img
+                <Image
                   src={coverImage.url}
                   alt={coverImage.alt || post.title}
+                  width={1600}
+                  height={900}
+                  unoptimized
                   className="h-auto max-h-[36rem] w-full object-cover"
                 />
               </div>

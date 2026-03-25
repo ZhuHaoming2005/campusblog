@@ -54,7 +54,7 @@ type SidebarNavProps = {
   currentUser: SidebarUser | null
 }
 
-export default function SidebarNav({ schools, locale, t, currentUser }: SidebarNavProps) {
+export default function SidebarNav({ schools, locale: _locale, t, currentUser }: SidebarNavProps) {
   const pathname = usePathname()
   const isDiscover = pathname === '/'
   const authNextPath =
