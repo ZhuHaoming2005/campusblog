@@ -1,4 +1,4 @@
-declare module 'file-type/core.js' {
+declare module 'file-type/core' {
   export type FileTypeResult =
     | {
         readonly ext: string

@@ -7,7 +7,7 @@ import {
   reasonableDetectionSizeInBytes,
   supportedExtensions,
   supportedMimeTypes,
-} from 'file-type/core.js'
+} from 'file-type/core'
 
 export {
   FileTypeParser,
