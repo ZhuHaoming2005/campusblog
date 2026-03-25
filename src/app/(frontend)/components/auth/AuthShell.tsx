@@ -55,7 +55,7 @@ export default function AuthShell({
                 <h1
                   aria-hidden={headerMode !== 'login'}
                   className={cn(
-                    'font-headline text-3xl font-bold text-campus-primary transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:text-4xl',
+                    'font-headline text-3xl font-bold text-campus-primary transition-all duration-420 ease-expressive sm:text-4xl',
                     headerMode === 'login'
                       ? 'relative translate-y-0 opacity-100 delay-75'
                       : 'absolute inset-0 -translate-y-2 opacity-0',
@@ -66,7 +66,7 @@ export default function AuthShell({
                 <h1
                   aria-hidden={headerMode !== 'register'}
                   className={cn(
-                    'font-headline text-3xl font-bold text-campus-primary transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:text-4xl',
+                    'font-headline text-3xl font-bold text-campus-primary transition-all duration-420 ease-expressive sm:text-4xl',
                     headerMode === 'register'
                       ? 'relative translate-y-0 opacity-100 delay-75'
                       : 'absolute inset-0 translate-y-2 opacity-0',
@@ -82,7 +82,7 @@ export default function AuthShell({
                   size={22}
                   aria-hidden={headerMode !== 'login'}
                   className={cn(
-                    'absolute inset-0 transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'absolute inset-0 transition-all duration-420 ease-expressive',
                     headerMode === 'login'
                       ? 'translate-y-0 opacity-100 delay-75'
                       : '-translate-y-2 opacity-0',
@@ -92,7 +92,7 @@ export default function AuthShell({
                   size={22}
                   aria-hidden={headerMode !== 'register'}
                   className={cn(
-                    'absolute inset-0 transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'absolute inset-0 transition-all duration-420 ease-expressive',
                     headerMode === 'register'
                       ? 'translate-y-0 opacity-100 delay-75'
                       : 'translate-y-2 opacity-0',
@@ -106,7 +106,7 @@ export default function AuthShell({
             <p
               aria-hidden={headerMode !== 'login'}
               className={cn(
-                'text-sm leading-7 text-foreground/62 transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:text-[0.95rem]',
+                'text-sm leading-7 text-foreground/62 transition-all duration-420 ease-expressive sm:text-[0.95rem]',
                 headerMode === 'login'
                   ? 'relative translate-y-0 opacity-100 delay-75'
                   : 'absolute inset-0 -translate-y-2 opacity-0',
@@ -117,7 +117,7 @@ export default function AuthShell({
             <p
               aria-hidden={headerMode !== 'register'}
               className={cn(
-                'text-sm leading-7 text-foreground/62 transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] sm:text-[0.95rem]',
+                'text-sm leading-7 text-foreground/62 transition-all duration-420 ease-expressive sm:text-[0.95rem]',
                 headerMode === 'register'
                   ? 'relative translate-y-0 opacity-100 delay-75'
                   : 'absolute inset-0 translate-y-2 opacity-0',
@@ -130,13 +130,13 @@ export default function AuthShell({
           <div className="relative mt-3.5 grid grid-cols-2 rounded-[1.05rem] border border-campus-primary/10 bg-campus-primary/[0.04] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
             <div
               className={cn(
-                'pointer-events-none absolute bottom-1.5 top-1.5 z-0 w-[calc(50%-0.375rem)] rounded-[0.95rem] bg-white/95 shadow-[0_16px_36px_rgba(13,59,102,0.14)] ring-1 ring-white/70 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                'pointer-events-none absolute bottom-1.5 top-1.5 z-0 w-[calc(50%-0.375rem)] rounded-[0.95rem] bg-white/95 shadow-[0_16px_36px_rgba(13,59,102,0.14)] ring-1 ring-white/70 transition-all duration-500 ease-expressive',
                 mode === 'login' ? 'left-1.5' : 'left-[calc(50%+0.125rem)]',
               )}
             />
             <div
               className={cn(
-                'pointer-events-none absolute bottom-2 z-0 h-8 w-[calc(50%-1rem)] rounded-full bg-campus-primary/10 blur-xl transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                'pointer-events-none absolute bottom-2 z-0 h-8 w-[calc(50%-1rem)] rounded-full bg-campus-primary/10 blur-xl transition-all duration-500 ease-expressive',
                 mode === 'login' ? 'left-3' : 'left-[calc(50%+0.25rem)]',
               )}
             />
@@ -148,7 +148,7 @@ export default function AuthShell({
                 onModeChange('login')
               }}
               className={cn(
-                'group relative z-10 inline-flex items-center justify-center rounded-[0.95rem] px-4 py-3 font-label text-sm font-semibold no-underline transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985]',
+                'group relative z-10 inline-flex items-center justify-center rounded-[0.95rem] px-4 py-3 font-label text-sm font-semibold no-underline transition-all duration-500 ease-expressive active:scale-[0.985]',
                 mode === 'login'
                   ? 'text-campus-primary'
                   : 'text-foreground/50 hover:text-campus-primary',
@@ -156,7 +156,7 @@ export default function AuthShell({
             >
               <span
                 className={cn(
-                  'transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  'transition-all duration-500 ease-expressive',
                   mode === 'login'
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-px opacity-80 group-hover:opacity-100',
@@ -173,7 +173,7 @@ export default function AuthShell({
                 onModeChange('register')
               }}
               className={cn(
-                'group relative z-10 inline-flex items-center justify-center rounded-[0.95rem] px-4 py-3 font-label text-sm font-semibold no-underline transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.985]',
+                'group relative z-10 inline-flex items-center justify-center rounded-[0.95rem] px-4 py-3 font-label text-sm font-semibold no-underline transition-all duration-500 ease-expressive active:scale-[0.985]',
                 mode === 'register'
                   ? 'text-campus-primary'
                   : 'text-foreground/50 hover:text-campus-primary',
@@ -181,7 +181,7 @@ export default function AuthShell({
             >
               <span
                 className={cn(
-                  'transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                  'transition-all duration-500 ease-expressive',
                   mode === 'register'
                     ? 'translate-y-0 opacity-100'
                     : 'translate-y-px opacity-80 group-hover:opacity-100',

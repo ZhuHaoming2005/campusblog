@@ -109,14 +109,14 @@ export default function AuthExperience({
       onModeChange={updateMode}
     >
       <div
-        className="relative overflow-hidden transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        className="relative overflow-hidden transition-[height] duration-500 ease-expressive"
         style={panelHeight ? { height: `${panelHeight}px` } : undefined}
       >
         <div
           ref={loginRef}
           aria-hidden={displayMode !== 'login'}
           className={cn(
-            'transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform',
+            'transition-all duration-420 ease-expressive will-change-transform',
             displayMode === 'login'
               ? 'relative translate-x-0 opacity-100 delay-75'
               : 'absolute inset-0 -translate-x-6 opacity-0 pointer-events-none delay-0',
@@ -134,7 +134,7 @@ export default function AuthExperience({
           ref={registerRef}
           aria-hidden={displayMode !== 'register'}
           className={cn(
-            'transition-all duration-[420ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform',
+            'transition-all duration-420 ease-expressive will-change-transform',
             displayMode === 'register'
               ? 'relative translate-x-0 opacity-100 delay-75'
               : 'absolute inset-0 translate-x-6 opacity-0 pointer-events-none delay-0',
