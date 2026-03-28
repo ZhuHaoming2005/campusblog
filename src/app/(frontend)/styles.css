@@ -1,4 +1,4 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -381,3 +381,5 @@ svg {
   border-radius: 1.5rem;
   margin: 1.5rem 0;
 }
+
+

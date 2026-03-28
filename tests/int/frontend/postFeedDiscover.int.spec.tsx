@@ -58,7 +58,7 @@ function makePost(id: number): Post {
 }
 
 describe('PostFeed discover mode', () => {
-  it('marks the first two cards as featured discover cards', () => {
+  it('uses the discover masonry layout and marks the first two cards as featured', () => {
     const { container } = render(
       <PostFeed
         posts={[makePost(1), makePost(2), makePost(3)]}
@@ -70,7 +70,9 @@ describe('PostFeed discover mode', () => {
       />,
     )
 
-    expect(container.querySelector('[data-testid="discover-post-feed"]')?.className).toContain('masonry-grid--discover')
+    const feed = container.querySelector('[data-testid="discover-post-feed"]')
+    expect(feed?.className).toContain('masonry-grid--discover')
+    expect(feed?.className).not.toContain('discover-grid')
     expect(container.querySelectorAll('[data-card-variant="discover-featured"]').length).toBe(2)
     expect(container.querySelectorAll('[data-card-variant="discover-default"]').length).toBe(1)
   })
@@ -111,3 +113,5 @@ describe('PostFeed discover mode', () => {
     expect(container.querySelectorAll('[data-card-variant="discover-featured"] .space-y-2 > p').length).toBe(0)
   })
 })
+
+

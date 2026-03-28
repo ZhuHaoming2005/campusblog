@@ -14,7 +14,7 @@ import {
 import type { AppLocale } from '@/app/(frontend)/lib/i18n/config'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { GradientText } from '@/components/ui/gradient-text'
-import { MovingBorderLink } from '@/components/ui/moving-border'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
@@ -151,14 +151,16 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
       <Separator className="mx-6 mt-2 bg-campus-primary/8" />
 
       <div className="space-y-4 p-5">
-        <MovingBorderLink
-          href={createPostHref}
-          containerClassName="w-full"
-          className="font-label font-bold text-base"
+        <Button
+          asChild
+          data-testid="sidebar-create-post-button"
+          className="h-11 w-full rounded-full bg-campus-primary px-5 font-label text-base font-bold text-white shadow-[0_12px_24px_rgba(13,59,102,0.14)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-campus-primary hover:shadow-[0_16px_32px_rgba(13,59,102,0.18)]"
         >
-          <IconPencil size={20} />
-          {t.common.createPost}
-        </MovingBorderLink>
+          <Link href={createPostHref}>
+            <IconPencil size={20} />
+            {t.common.createPost}
+          </Link>
+        </Button>
 
         {currentUser ? (
           <Link
@@ -212,3 +214,7 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
     </aside>
   )
 }
+
+
+
+

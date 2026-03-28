@@ -181,7 +181,7 @@ export default async function UserCenterPage() {
       : undefined
 
   return (
-    <section className="bg-gradient-to-b from-campus-page via-campus-panel-soft/30 to-campus-page px-6 py-8 lg:px-10">
+    <section className="bg-gradient-to-b from-campus-page via-campus-panel-soft/30 to-campus-page px-6 pb-8 pt-[calc(var(--floating-toolbar-top)+var(--floating-toolbar-height)+1rem)] lg:px-10">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4 rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/55 to-campus-page p-6 shadow-[0_16px_40px_rgba(13,59,102,0.06)]">
           <div>
@@ -320,5 +320,6 @@ export default async function UserCenterPage() {
     </section>
   )
 }
+
 
 
