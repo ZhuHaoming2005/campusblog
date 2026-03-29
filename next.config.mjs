@@ -8,6 +8,13 @@ const __dirname = path.dirname(__filename)
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    localPatterns: [
+      {
+        pathname: '/api/media/file/**',
+      },
+    ],
+  },
   // Packages with Cloudflare Workers (workerd) specific code
   // Read more: https://opennext.js.org/cloudflare/howtos/workerd
   serverExternalPackages: ['jose', 'pg-cloudflare'],
