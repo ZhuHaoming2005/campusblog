@@ -14,11 +14,10 @@ pnpm-lock.yaml
 # vscode
 .vscode/
 
-# cursor
+# agent
 .cursor/
-
-# codex
 .codex/
+.superpowers/
 
 # testing
 /coverage
