@@ -1,23 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const {
+  buildConfigMock,
   cleanupAllOrphanMediaMock,
-  createPayloadConfigMock,
   getPayloadMock,
+  r2StorageMock,
+  sqliteD1AdapterMock,
 } = vi.hoisted(() => ({
+  buildConfigMock: vi.fn((config) => config),
   cleanupAllOrphanMediaMock: vi.fn(),
-  createPayloadConfigMock: vi.fn(),
   getPayloadMock: vi.fn(),
+  r2StorageMock: vi.fn((args) => args),
+  sqliteD1AdapterMock: vi.fn((args) => args),
 }))
 
 vi.mock('payload', () => ({
+  buildConfig: buildConfigMock,
   getPayload: getPayloadMock,
 }))
 
-vi.mock('@/payload/createPayloadConfig', () => ({
-  createPayloadConfig: createPayloadConfigMock,
+vi.mock('@payloadcms/db-d1-sqlite', () => ({
+  sqliteD1Adapter: sqliteD1AdapterMock,
 }))
 
+vi.mock('@payloadcms/storage-r2', () => ({
+  r2Storage: r2StorageMock,
+}))
+
+vi.mock('payload/i18n/en', () => ({ en: { label: 'en' } }))
+vi.mock('payload/i18n/zh', () => ({ zh: { label: 'zh' } }))
+vi.mock('@/collections/Comments', () => ({ Comments: { slug: 'comments' } }))
+vi.mock('@/collections/Media', () => ({ Media: { slug: 'media' } }))
+vi.mock('@/collections/Posts', () => ({ Posts: { slug: 'posts' } }))
+vi.mock('@/collections/SchoolSubChannels', () => ({ SchoolSubChannels: { slug: 'school-sub-channels' } }))
+vi.mock('@/collections/Schools', () => ({ Schools: { slug: 'schools' } }))
+vi.mock('@/collections/Tags', () => ({ Tags: { slug: 'tags' } }))
+vi.mock('@/collections/Users', () => ({ Users: { slug: 'users' } }))
 vi.mock('@/media/orphanCleanup', () => ({
   cleanupAllOrphanMedia: cleanupAllOrphanMediaMock,
 }))
@@ -28,9 +46,11 @@ describe('media cleanup cron', () => {
 
   beforeEach(() => {
     vi.resetModules()
-    createPayloadConfigMock.mockReset()
-    getPayloadMock.mockReset()
+    buildConfigMock.mockClear()
     cleanupAllOrphanMediaMock.mockReset()
+    getPayloadMock.mockReset()
+    r2StorageMock.mockClear()
+    sqliteD1AdapterMock.mockClear()
 
     Object.defineProperty(globalThis, cloudflareContextSymbol, {
       configurable: true,
@@ -49,12 +69,11 @@ describe('media cleanup cron', () => {
     Reflect.deleteProperty(globalThis, cloudflareContextSymbol)
   })
 
-  it('runs orphan cleanup using explicit worker bindings when cloudflare context is getter-only', async () => {
+  it('runs orphan cleanup without mutating the getter-only cloudflare context', async () => {
     const env = {
       D1: { binding: 'd1' },
       R2: { binding: 'r2' },
     }
-    const payloadConfig = { config: true }
     const payload = { payload: true }
     const cleanupResult = {
       deletedIds: [42],
@@ -62,15 +81,18 @@ describe('media cleanup cron', () => {
       scannedCount: 5,
     }
 
-    createPayloadConfigMock.mockReturnValue(payloadConfig)
     getPayloadMock.mockResolvedValue(payload)
     cleanupAllOrphanMediaMock.mockResolvedValue(cleanupResult)
 
     const { runMediaCleanupCron } = await import('@/worker/mediaCleanupCron')
 
     await expect(runMediaCleanupCron(env as never)).resolves.toEqual(cleanupResult)
-    expect(createPayloadConfigMock).toHaveBeenCalledWith(env)
-    expect(getPayloadMock).toHaveBeenCalledWith({ config: payloadConfig })
+    expect(sqliteD1AdapterMock).toHaveBeenCalledWith({ binding: env.D1 })
+    expect(r2StorageMock).toHaveBeenCalledWith({
+      bucket: env.R2,
+      collections: { media: true },
+    })
+    expect(getPayloadMock).toHaveBeenCalled()
     expect(cleanupAllOrphanMediaMock).toHaveBeenCalledWith({ payload })
   })
 })

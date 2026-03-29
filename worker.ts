@@ -2,7 +2,6 @@
 import openNextWorker from './.open-next/worker.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
-import type { PayloadCloudflareEnv } from './src/payload/createPayloadConfig'
 
 type WorkerEnv = Record<string, unknown>
 
@@ -13,7 +12,7 @@ export default {
 
   async scheduled(_event: ScheduledEvent, env: WorkerEnv, _ctx: ExecutionContext) {
     try {
-      const result = await runMediaCleanupCron(env as PayloadCloudflareEnv)
+      const result = await runMediaCleanupCron(env as { D1: D1Database; R2: R2Bucket })
 
       console.info(
         `[media-cleanup:cron] scanned=${result.scannedCount} referenced=${result.referencedCount} deleted=${result.deletedIds.length}`,
