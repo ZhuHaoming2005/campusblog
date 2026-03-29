@@ -5,7 +5,6 @@ import { buildConfig } from 'payload'
 import type { PayloadLogger } from 'payload'
 import { en } from 'payload/i18n/en'
 import { zh } from 'payload/i18n/zh'
-import { fileURLToPath } from 'url'
 
 import { Comments } from '@/collections/Comments'
 import { Media } from '@/collections/Media'
@@ -15,9 +14,7 @@ import { Schools } from '@/collections/Schools'
 import { Tags } from '@/collections/Tags'
 import { Users } from '@/collections/Users'
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
-const srcDir = path.resolve(dirname, '..')
+const srcDir = path.resolve(process.cwd(), 'src')
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
