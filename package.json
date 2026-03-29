@@ -25,16 +25,16 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.17.3",
+    "@opennextjs/cloudflare": "^1.18.0",
     "@payloadcms/db-d1-sqlite": "3.80.0",
     "@payloadcms/next": "3.80.0",
     "@payloadcms/storage-r2": "3.80.0",
     "@payloadcms/ui": "3.80.0",
     "@tabler/icons-react": "^3.40.0",
-    "@tiptap/core": "^3.20.4",
-    "@tiptap/extension-placeholder": "^3.20.4",
-    "@tiptap/react": "^3.20.4",
-    "@tiptap/starter-kit": "^3.20.4",
+    "@tiptap/core": "^3.21.0",
+    "@tiptap/extension-placeholder": "^3.21.0",
+    "@tiptap/react": "^3.21.0",
+    "@tiptap/starter-kit": "^3.21.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
@@ -93,5 +93,6 @@
         "description": "Generate a random string using `openssl rand -hex 32`"
       }
     }
-  }
+  },
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }
