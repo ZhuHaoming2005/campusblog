@@ -1,5 +1,4 @@
-import type { Payload } from 'payload'
-import type { PayloadLogger } from 'payload'
+import { collectMediaIdsFromPost, collectMediaIdsFromUser } from '@/media/orphanCleanup'
 
 type WorkerEnv = {
   D1: D1Database
@@ -12,77 +11,94 @@ type CleanupResult = {
   scannedCount: number
 }
 
-const createLog =
-  (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
-    if (typeof objOrMsg === 'string') {
-      fn(JSON.stringify({ level, msg: objOrMsg }))
-    } else {
-      fn(JSON.stringify({ level, ...objOrMsg, msg: msg ?? (objOrMsg as { msg?: string }).msg }))
+type MediaRow = {
+  filename: string | null
+  id: number | string
+}
+
+type PostRow = {
+  content: string | null
+  cover_image_id: number | string | null
+}
+
+type UserRow = {
+  avatar_id: number | string | null
+}
+
+function toNumericId(value: number | string | null | undefined): number | null {
+  if (value === undefined || value === null || value === '') return null
+
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function parseJsonSafely(value: string | null): unknown {
+  if (!value) return null
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    console.warn('[media-cleanup:cron] encountered invalid post content JSON while scanning references')
+    return null
+  }
+}
+
+async function selectRows<Row>(env: WorkerEnv, sql: string): Promise<Row[]> {
+  const result = await env.D1.prepare(sql).bind().all<Row>()
+  return result.results ?? []
+}
+
+async function deleteMediaRow(env: WorkerEnv, mediaId: number): Promise<void> {
+  await env.D1.prepare('DELETE FROM media WHERE id = ?').bind(mediaId).run()
+}
+
+export async function runMediaCleanupCron(env: WorkerEnv): Promise<CleanupResult> {
+  const [mediaRows, postRows, userRows] = await Promise.all([
+    selectRows<MediaRow>(env, 'SELECT id, filename FROM media'),
+    selectRows<PostRow>(env, 'SELECT cover_image_id, content FROM posts'),
+    selectRows<UserRow>(env, 'SELECT avatar_id FROM users'),
+  ])
+
+  const referencedMediaIds = new Set<number>()
+
+  for (const post of postRows) {
+    const content = parseJsonSafely(post.content)
+
+    for (const mediaId of collectMediaIdsFromPost({
+      content,
+      coverImage: post.cover_image_id,
+    })) {
+      referencedMediaIds.add(mediaId)
     }
   }
 
-const cloudflareLogger = {
-  level: process.env.PAYLOAD_LOG_LEVEL || 'info',
-  trace: createLog('trace', console.debug),
-  debug: createLog('debug', console.debug),
-  info: createLog('info', console.log),
-  warn: createLog('warn', console.warn),
-  error: createLog('error', console.error),
-  fatal: createLog('fatal', console.error),
-  silent: () => {},
-} as unknown as PayloadLogger
+  for (const user of userRows) {
+    for (const mediaId of collectMediaIdsFromUser({ avatar: user.avatar_id })) {
+      referencedMediaIds.add(mediaId)
+    }
+  }
 
-export async function runMediaCleanupCron(env: WorkerEnv): Promise<CleanupResult> {
-  const [
-    { buildConfig, getPayload },
-    { sqliteD1Adapter },
-    { r2Storage },
-    { en },
-    { zh },
-    { Comments },
-    { Media },
-    { Posts },
-    { SchoolSubChannels },
-    { Schools },
-    { Tags },
-    { Users },
-    { cleanupAllOrphanMedia },
-  ] = await Promise.all([
-    import('payload'),
-    import('@payloadcms/db-d1-sqlite'),
-    import('@payloadcms/storage-r2'),
-    import('payload/i18n/en'),
-    import('payload/i18n/zh'),
-    import('@/collections/Comments'),
-    import('@/collections/Media'),
-    import('@/collections/Posts'),
-    import('@/collections/SchoolSubChannels'),
-    import('@/collections/Schools'),
-    import('@/collections/Tags'),
-    import('@/collections/Users'),
-    import('@/media/orphanCleanup'),
-  ])
+  const deletedIds: number[] = []
 
-  const config = buildConfig({
-    collections: [Users, Media, Schools, SchoolSubChannels, Tags, Posts, Comments],
-    i18n: {
-      fallbackLanguage: 'zh',
-      supportedLanguages: {
-        en,
-        zh,
-      },
-    },
-    secret: process.env.PAYLOAD_SECRET || '',
-    db: sqliteD1Adapter({ binding: env.D1 }),
-    logger: process.env.NODE_ENV === 'production' ? cloudflareLogger : undefined,
-    plugins: [
-      r2Storage({
-        bucket: env.R2,
-        collections: { media: true },
-      }),
-    ],
-  })
+  for (const media of mediaRows) {
+    const mediaId = toNumericId(media.id)
+    if (mediaId === null || referencedMediaIds.has(mediaId)) continue
 
-  const payload = (await getPayload({ config })) as Payload
-  return cleanupAllOrphanMedia({ payload })
+    if (media.filename) {
+      await env.R2.delete(media.filename)
+    } else {
+      console.warn(
+        `[media-cleanup:cron] skipping R2 delete for media id=${mediaId} because filename is missing`,
+      )
+    }
+
+    await deleteMediaRow(env, mediaId)
+    deletedIds.push(mediaId)
+  }
+
+  return {
+    deletedIds,
+    referencedCount: referencedMediaIds.size,
+    scannedCount: mediaRows.length,
+  }
 }
