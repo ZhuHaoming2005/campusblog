@@ -10,9 +10,6 @@
 /.idea/*
 !/.idea/runConfigurations
 
-# vscode
-.vscode/
-
 # agent
 .cursor/
 .codex/
