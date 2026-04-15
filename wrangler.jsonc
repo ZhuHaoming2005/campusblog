@@ -13,16 +13,10 @@
   ],
   "alias": {
     // Force Wrangler's Worker bundle to use a Cloudflare-safe file-type shim.
-    "file-type": "./src/cloudflare/file-type-worker.ts"
-  },
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS",
+    "file-type": "./src/cloudflare/file-type-worker.ts",
   },
   "triggers": {
-    "crons": [
-      "0 19 * * *"
-    ]
+    "crons": ["0 19 * * *"],
   },
   "vars": {
     // Non-sensitive runtime vars. For sensitive values (e.g. PAYLOAD_SECRET),
