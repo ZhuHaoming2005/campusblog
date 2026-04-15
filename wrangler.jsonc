@@ -15,6 +15,10 @@
     // Force Wrangler's Worker bundle to use a Cloudflare-safe file-type shim.
     "file-type": "./src/cloudflare/file-type-worker.ts",
   },
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+  },
   "triggers": {
     "crons": ["0 19 * * *"],
   },
