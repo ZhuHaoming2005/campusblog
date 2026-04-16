@@ -6,7 +6,7 @@ import PostFeed from '@/components/PostFeed'
 import { DEFAULT_LOCALE } from '../../lib/i18n/config'
 import { getDictionary } from '../../lib/i18n/dictionaries'
 import { getFrontendRequestContext } from '../../lib/requestContext'
-import { getSchoolPageData } from '../../lib/cmsData'
+import { getSchoolPageData, STATIC_PARAMS_PLACEHOLDER_SLUG } from '../../lib/cmsData'
 
 async function SchoolPageContent({
   params,
@@ -14,6 +14,10 @@ async function SchoolPageContent({
   params: Promise<{ slug: string }>
 }) {
   const [{ slug }, { locale, t }] = await Promise.all([params, getFrontendRequestContext()])
+  if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
+    notFound()
+  }
+
   const data = await getSchoolPageData(slug)
 
   if (!data) {
