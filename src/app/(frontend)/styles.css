@@ -14,9 +14,6 @@
 }
 
 :root {
-  --font-headline: 'Noto Serif SC';
-  --font-body: 'Noto Sans SC';
-  --font-label: 'Manrope';
   --font-mono: 'Roboto Mono', monospace;
   --floating-toolbar-top: 1rem;
   --floating-toolbar-height: 2.25rem;
@@ -384,4 +381,3 @@ svg {
   border-radius: 1.5rem;
   margin: 1.5rem 0;
 }
-

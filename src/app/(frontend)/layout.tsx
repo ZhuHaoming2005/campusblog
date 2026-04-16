@@ -1,4 +1,5 @@
 import React from 'react'
+import { Manrope, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google'
 import { headers as getHeaders } from 'next/headers.js'
 import { cookies as getCookies } from 'next/headers.js'
 
@@ -9,6 +10,24 @@ import { getDictionary } from './lib/i18n/dictionaries'
 import { resolveRequestLocale } from './lib/i18n/locale'
 import { getActiveSchools } from './lib/cmsData'
 import './styles.css'
+
+const headlineFont = Noto_Serif_SC({
+  variable: '--font-headline',
+  weight: ['700'],
+  preload: false,
+})
+
+const bodyFont = Noto_Sans_SC({
+  variable: '--font-body',
+  weight: ['400', '500'],
+  preload: false,
+})
+
+const labelFont = Manrope({
+  subsets: ['latin'],
+  variable: '--font-label',
+  weight: ['400', '600', '800'],
+})
 
 export async function generateMetadata() {
   const headers = await getHeaders()
@@ -47,7 +66,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }))
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={`${headlineFont.variable} ${bodyFont.variable} ${labelFont.variable}`}>
       <body className="bg-campus-surface font-body text-campus-on-surface antialiased">
         <TooltipProvider delayDuration={300}>
           <FrontendChrome
