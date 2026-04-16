@@ -5,6 +5,7 @@ import { withPayload } from '@payloadcms/next/withPayload'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const drizzleKitPackages = new Set(['drizzle-kit', 'drizzle-kit/api'])
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -37,4 +38,32 @@ const nextConfig = {
   },
 }
 
-export default withPayload(nextConfig, { devBundleServerPackages: false })
+const payloadNextConfig = withPayload(nextConfig, { devBundleServerPackages: false })
+const originalWebpack = payloadNextConfig.webpack
+
+payloadNextConfig.serverExternalPackages = (payloadNextConfig.serverExternalPackages ?? []).filter(
+  (pkg) => !drizzleKitPackages.has(pkg),
+)
+
+payloadNextConfig.webpack = (webpackConfig, webpackOptions) => {
+  const config = originalWebpack ? originalWebpack(webpackConfig, webpackOptions) : webpackConfig
+  const externals = Array.isArray(config.externals)
+    ? config.externals.filter(
+        (entry) => typeof entry !== 'string' || !drizzleKitPackages.has(entry),
+      )
+    : config.externals
+
+  return {
+    ...config,
+    externals,
+    resolve: {
+      ...(config.resolve ?? {}),
+      alias: {
+        ...(config.resolve?.alias ?? {}),
+        'drizzle-kit/api': path.resolve(__dirname, 'src/shims/drizzle-kit-api.js'),
+      },
+    },
+  }
+}
+
+export default payloadNextConfig
