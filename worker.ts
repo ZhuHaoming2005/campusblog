@@ -1,3 +1,4 @@
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
 import openNextWorker from './.open-next/worker.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
