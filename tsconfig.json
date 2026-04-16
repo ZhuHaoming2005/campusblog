@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -12,7 +16,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -20,12 +24,24 @@
       }
     ],
     "paths": {
-      "@/components": ["./src/app/(frontend)/components"],
-      "@/components/*": ["./src/app/(frontend)/components/*"],
-      "@/lib": ["./src/app/(frontend)/lib"],
-      "@/lib/*": ["./src/app/(frontend)/lib/*"],
-      "@/*": ["./src/*"],
-      "@payload-config": ["./src/payload.config.ts"]
+      "@/components": [
+        "./src/app/(frontend)/components"
+      ],
+      "@/components/*": [
+        "./src/app/(frontend)/components/*"
+      ],
+      "@/lib": [
+        "./src/app/(frontend)/lib"
+      ],
+      "@/lib/*": [
+        "./src/app/(frontend)/lib/*"
+      ],
+      "@/*": [
+        "./src/*"
+      ],
+      "@payload-config": [
+        "./src/payload.config.ts"
+      ]
     },
     "target": "ES2022"
   },
@@ -36,5 +52,7 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

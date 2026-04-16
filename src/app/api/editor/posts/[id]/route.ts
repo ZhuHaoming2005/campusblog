@@ -161,9 +161,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const post = await payload.update<PostDoc>('posts', postId, data)
 
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-by-school', 'max')
+    revalidateTag('posts-by-school-channel', 'max')
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
@@ -214,9 +214,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
 
     const post = await payload.delete<PostDoc>('posts', postId)
 
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-by-school', 'max')
+    revalidateTag('posts-by-school-channel', 'max')
 
     after(() => {
       console.info(`[editor-posts:delete] id=${post.id} slug=${post.slug}`)

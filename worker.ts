@@ -5,7 +5,7 @@ import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
 
 type WorkerEnv = Record<string, unknown>
 
-export default {
+const worker = {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext) {
     return openNextWorker.fetch(request, env, ctx)
   },
@@ -25,3 +25,5 @@ export default {
     }
   },
 }
+
+export default worker

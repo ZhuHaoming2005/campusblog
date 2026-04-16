@@ -140,9 +140,9 @@ export async function POST(request: Request) {
 
     const post = await payload.create<PostDoc>('posts', data)
 
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-by-school', 'max')
+    revalidateTag('posts-by-school-channel', 'max')
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
