@@ -28,7 +28,6 @@
   "vars": {
     // Non-sensitive runtime vars. For sensitive values (e.g. PAYLOAD_SECRET),
     // use `wrangler secret put` instead of committing to this file.
-    "APP_ENV": "production",
     "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
   },
   "d1_databases": [
@@ -83,7 +82,6 @@
     "dev": {
       "name": "campusblog-dev",
       "vars": {
-        "APP_ENV": "dev",
         "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
       },
       "d1_databases": [
