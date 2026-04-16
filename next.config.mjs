@@ -6,6 +6,8 @@ import { withPayload } from '@payloadcms/next/withPayload'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const drizzleKitPackages = new Set(['drizzle-kit', 'drizzle-kit/api'])
+const drizzleKitShimPath = path.resolve(__dirname, 'src/shims/drizzle-kit-api.js')
+const drizzleKitShimSpecifier = './src/shims/drizzle-kit-api.js'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -45,6 +47,15 @@ payloadNextConfig.serverExternalPackages = (payloadNextConfig.serverExternalPack
   (pkg) => !drizzleKitPackages.has(pkg),
 )
 
+payloadNextConfig.turbopack = {
+  ...(payloadNextConfig.turbopack ?? {}),
+  resolveAlias: {
+    ...(payloadNextConfig.turbopack?.resolveAlias ?? {}),
+    'drizzle-kit': drizzleKitShimSpecifier,
+    'drizzle-kit/api': drizzleKitShimSpecifier,
+  },
+}
+
 payloadNextConfig.webpack = (webpackConfig, webpackOptions) => {
   const config = originalWebpack ? originalWebpack(webpackConfig, webpackOptions) : webpackConfig
   const externals = Array.isArray(config.externals)
@@ -60,7 +71,7 @@ payloadNextConfig.webpack = (webpackConfig, webpackOptions) => {
       ...(config.resolve ?? {}),
       alias: {
         ...(config.resolve?.alias ?? {}),
-        'drizzle-kit/api': path.resolve(__dirname, 'src/shims/drizzle-kit-api.js'),
+        'drizzle-kit/api': drizzleKitShimPath,
       },
     },
   }
