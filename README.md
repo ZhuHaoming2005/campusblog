@@ -2,7 +2,7 @@
 
 > This project is currently in active development (WIP).
 >
-> see demo at <https://campusblog.zhuhaoming.workers.dev>
+> see demo at <https://campusblog.net>
 
 ## Quick Start
 
