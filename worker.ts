@@ -1,4 +1,5 @@
-// @ts-expect-error OpenNext generates this file during the Cloudflare build step.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
 import openNextWorker from './.open-next/worker.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
