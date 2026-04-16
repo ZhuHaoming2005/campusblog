@@ -1,7 +1,6 @@
-﻿import type { Metadata } from 'next'
+import React, { Suspense } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { cookies as getCookies } from 'next/headers.js'
-import { headers as getHeaders } from 'next/headers.js'
 import { notFound } from 'next/navigation'
 import { IconChevronRight, IconClockHour4, IconMapPin, IconSchool } from '@tabler/icons-react'
 import type { JSONContent } from '@tiptap/core'
@@ -12,14 +11,15 @@ import PostBackButton from '@/components/PostBackButton'
 import PostFeed from '@/components/PostFeed'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { DEFAULT_LOCALE } from '../../lib/i18n/config'
 import { getDictionary } from '../../lib/i18n/dictionaries'
-import { resolveRequestLocale } from '../../lib/i18n/locale'
 import {
   getPublishedPostBySlug,
   getPublishedPosts,
   getPublishedPostsBySchool,
   getPublishedPostsBySchoolAndChannel,
 } from '../../lib/cmsData'
+import { getFrontendRequestContext } from '../../lib/requestContext'
 import {
   estimatePostReadingMinutes,
   getPostAuthor,
@@ -66,12 +66,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const [headers, cookies] = await Promise.all([getHeaders(), getCookies()])
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
+  const t = getDictionary(DEFAULT_LOCALE)
   const post = await getPublishedPostBySlug(slug)
 
   if (!post) {
@@ -86,15 +81,9 @@ export async function generateMetadata({
   }
 }
 
-export default async function PostDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+async function PostDetailPageContent({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
+  const { locale, t } = await getFrontendRequestContext()
   const post = await getPublishedPostBySlug(slug)
 
   if (!post) {
@@ -204,9 +193,7 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
                     <div className="font-label text-sm font-semibold text-foreground/80">
                       {author?.displayName ?? t.common.anonymous}
                     </div>
-                    <div className="text-xs text-campus-text-soft">
-                      {t.post.author}
-                    </div>
+                    <div className="text-xs text-campus-text-soft">{t.post.author}</div>
                   </div>
                 </div>
 
@@ -317,5 +304,42 @@ export default async function PostDetailPage({ params }: { params: Promise<{ slu
         ) : null}
       </div>
     </article>
+  )
+}
+
+export default function PostDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const fallbackLocale = DEFAULT_LOCALE
+  const fallbackDictionary = getDictionary(fallbackLocale)
+
+  return (
+    <Suspense
+      fallback={
+        <article className="bg-gradient-to-b from-campus-page via-campus-panel-soft/30 to-campus-page px-4 py-8 sm:px-5 lg:px-6">
+          <div className="space-y-8">
+            <div className="flex flex-col gap-4">
+              <nav className="flex flex-wrap items-center gap-2 text-sm font-label text-campus-text-soft">
+                <Link href="/" className="transition-colors hover:text-campus-primary">
+                  {fallbackDictionary.post.discover}
+                </Link>
+              </nav>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-campus-primary/10 px-3 py-1.5 text-xs font-label font-semibold text-campus-primary/70">
+                {fallbackDictionary.post.back}
+              </span>
+            </div>
+
+            <div className="flex min-h-[40vh] flex-col items-center justify-center rounded-[2rem] border border-dashed border-campus-border-soft bg-gradient-to-br from-campus-panel to-campus-panel-soft/70 p-10 text-center shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-campus-panel-strong text-campus-primary shadow-[0_10px_24px_rgba(27,75,122,0.08)]">
+                <IconSchool size={46} />
+              </div>
+              <p className="font-label text-base text-campus-text-soft">
+                {fallbackDictionary.common.appTagline}
+              </p>
+            </div>
+          </div>
+        </article>
+      }
+    >
+      <PostDetailPageContent params={params} />
+    </Suspense>
   )
 }

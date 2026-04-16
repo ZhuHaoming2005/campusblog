@@ -1,21 +1,30 @@
-﻿import { cookies as getCookies } from 'next/headers.js'
-import { headers as getHeaders } from 'next/headers.js'
+import React, { Suspense } from 'react'
 
 import DiscoverHomepage from '@/components/discover/DiscoverHomepage'
 
-import { getPublishedPosts } from './lib/cmsData'
+import { getDiscoverPageData } from './lib/cmsData'
+import { DEFAULT_LOCALE } from './lib/i18n/config'
 import { getDictionary } from './lib/i18n/dictionaries'
-import { resolveRequestLocale } from './lib/i18n/locale'
+import { getFrontendRequestContext } from './lib/requestContext'
 
-export default async function DiscoverPage() {
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
-  const posts = await getPublishedPosts()
+async function DiscoverPageContent() {
+  const [{ locale, t }, { posts }] = await Promise.all([
+    getFrontendRequestContext(),
+    getDiscoverPageData(),
+  ])
 
   return <DiscoverHomepage posts={posts} locale={locale} t={t} />
+}
+
+export default function DiscoverPage() {
+  const fallbackLocale = DEFAULT_LOCALE
+  const fallbackDictionary = getDictionary(fallbackLocale)
+
+  return (
+    <Suspense
+      fallback={<DiscoverHomepage posts={[]} locale={fallbackLocale} t={fallbackDictionary} />}
+    >
+      <DiscoverPageContent />
+    </Suspense>
+  )
 }

@@ -6,9 +6,6 @@ import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 
-export const runtime = 'nodejs'
-export const maxDuration = 15
-
 type PostRequestBody = {
   title?: string
   content?: unknown

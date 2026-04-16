@@ -5,9 +5,6 @@ import { hasAdminRole } from '@/access/admin'
 import config from '@/payload.config'
 import { cleanupAllOrphanMedia } from '@/media/orphanCleanup'
 
-export const runtime = 'nodejs'
-export const maxDuration = 60
-
 function getBearerToken(authorization: string | null): string | null {
   if (!authorization) return null
   const match = authorization.match(/^Bearer\s+(.+)$/i)

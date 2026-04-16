@@ -1,14 +1,13 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { Manrope, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google'
-import { headers as getHeaders } from 'next/headers.js'
-import { cookies as getCookies } from 'next/headers.js'
 
 import FrontendChrome from '@/components/layout/FrontendChrome'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getCurrentFrontendUser, toSidebarUser } from '@/lib/frontendSession'
+import { DEFAULT_LOCALE } from './lib/i18n/config'
 import { getDictionary } from './lib/i18n/dictionaries'
-import { resolveRequestLocale } from './lib/i18n/locale'
 import { getActiveSchools } from './lib/cmsData'
+import { getFrontendRequestContext } from './lib/requestContext'
 import './styles.css'
 
 const headlineFont = Noto_Serif_SC({
@@ -30,13 +29,7 @@ const labelFont = Manrope({
 })
 
 export async function generateMetadata() {
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
+  const t = getDictionary(DEFAULT_LOCALE)
 
   return {
     title: t.common.appName,
@@ -44,20 +37,18 @@ export async function generateMetadata() {
   }
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const githubUrl = process.env.GITHUB_URL
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
-
-  const [schools, currentUser] = await Promise.all([
+async function RootLayoutContent({
+  children,
+  githubUrl,
+}: {
+  children: React.ReactNode
+  githubUrl?: string
+}) {
+  const [{ headers, locale, t }, schools] = await Promise.all([
+    getFrontendRequestContext(),
     getActiveSchools(),
-    getCurrentFrontendUser(headers),
   ])
+  const currentUser = await getCurrentFrontendUser(headers)
 
   const schoolItems = schools.map((s) => ({
     id: s.id,
@@ -66,18 +57,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   }))
 
   return (
-    <html lang={locale} className={`${headlineFont.variable} ${bodyFont.variable} ${labelFont.variable}`}>
+    <FrontendChrome
+      schools={schoolItems}
+      locale={locale}
+      t={t}
+      currentUser={toSidebarUser(currentUser)}
+      githubUrl={githubUrl}
+    >
+      {children}
+    </FrontendChrome>
+  )
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const githubUrl = process.env.GITHUB_URL
+  const fallbackLocale = DEFAULT_LOCALE
+
+  return (
+    <html
+      lang={fallbackLocale}
+      className={`${headlineFont.variable} ${bodyFont.variable} ${labelFont.variable}`}
+    >
       <body className="bg-campus-surface font-body text-campus-on-surface antialiased">
         <TooltipProvider delayDuration={300}>
-          <FrontendChrome
-            schools={schoolItems}
-            locale={locale}
-            t={t}
-            currentUser={toSidebarUser(currentUser)}
-            githubUrl={githubUrl}
+          <Suspense
+            fallback={<div className="min-h-screen bg-campus-surface" aria-hidden="true" />}
           >
-            {children}
-          </FrontendChrome>
+            <RootLayoutContent githubUrl={githubUrl}>{children}</RootLayoutContent>
+          </Suspense>
         </TooltipProvider>
       </body>
     </html>

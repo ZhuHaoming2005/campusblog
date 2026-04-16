@@ -1,11 +1,11 @@
-// @ts-ignore OpenNext generates this file during the Cloudflare build step.
+// @ts-expect-error OpenNext generates this file during the Cloudflare build step.
 import openNextWorker from './.open-next/worker.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
 
 type WorkerEnv = Record<string, unknown>
 
-export default {
+const worker = {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext) {
     return openNextWorker.fetch(request, env, ctx)
   },
@@ -25,3 +25,5 @@ export default {
     }
   },
 }
+
+export default worker

@@ -8,7 +8,6 @@ import type { SidebarUser } from './sessionTypes'
 
 declare global {
   // Reuse the same Payload instance in dev to avoid repeated logger/init side effects.
-  // eslint-disable-next-line no-var
   var __campusblogFrontendPayloadPromise: ReturnType<typeof getPayload> | undefined
 }
 

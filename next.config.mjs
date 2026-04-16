@@ -1,6 +1,7 @@
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+import { initOpenNextCloudflareForDev } from '@opennextjs/cloudflare'
 import { withPayload } from '@payloadcms/next/withPayload'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,6 +12,7 @@ const drizzleKitShimSpecifier = './src/shims/drizzle-kit-api.js'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  cacheComponents: true,
   images: {
     localPatterns: [
       {
@@ -75,6 +77,12 @@ payloadNextConfig.webpack = (webpackConfig, webpackOptions) => {
       },
     },
   }
+}
+
+if (process.env.NODE_ENV === 'development') {
+  await initOpenNextCloudflareForDev({
+    environment: process.env.CLOUDFLARE_ENV,
+  })
 }
 
 export default payloadNextConfig

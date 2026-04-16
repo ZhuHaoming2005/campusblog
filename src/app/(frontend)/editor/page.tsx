@@ -1,15 +1,11 @@
-import { headers as getHeaders } from 'next/headers.js'
-import { cookies as getCookies } from 'next/headers.js'
+import React, { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { getPayload } from 'payload'
 import type { JSONContent } from '@tiptap/core'
 
-import config from '@/payload.config'
 import type { Post } from '@/payload-types'
 import EditorForm from '@/components/editor/EditorForm'
-import { getCurrentFrontendUser } from '@/lib/frontendSession'
-import { getDictionary } from '../lib/i18n/dictionaries'
-import { resolveRequestLocale } from '../lib/i18n/locale'
+import { getCurrentFrontendUser, getFrontendPayload } from '@/lib/frontendSession'
+import { getFrontendRequestContext } from '../lib/requestContext'
 
 function toNumericId(value: string | number | undefined): number | undefined {
   if (value === undefined || value === '') return undefined
@@ -44,27 +40,22 @@ function toEditorContent(content: Post['content']): JSONContent | null {
   return content as JSONContent
 }
 
-export default async function EditorPage({
+async function EditorPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ draft?: string }>
 }) {
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
+  const [{ headers, t }, { draft }] = await Promise.all([
+    getFrontendRequestContext(),
+    searchParams,
+  ])
   const currentUser = await getCurrentFrontendUser(headers)
-  const { draft } = await searchParams
 
   if (!currentUser) {
     redirect('/login?next=%2Feditor')
   }
 
-  const payloadConfig = await config
-  const payload = await getPayload({ config: payloadConfig })
+  const payload = await getFrontendPayload()
 
   const draftId = toNumericId(draft)
   const [schoolsResult, subChannelsResult, tagsResult, initialPostResult] = await Promise.all([
@@ -111,7 +102,10 @@ export default async function EditorPage({
     id: ch.id,
     name: ch.name,
     slug: ch.slug,
-    school: typeof ch.school === 'object' && ch.school !== null ? (ch.school as { id: string | number }).id : ch.school as string | number,
+    school:
+      typeof ch.school === 'object' && ch.school !== null
+        ? (ch.school as { id: string | number }).id
+        : (ch.school as string | number),
   }))
 
   const tags = tagsResult.docs.map((tag) => ({
@@ -149,5 +143,17 @@ export default async function EditorPage({
       t={t}
       initialPost={initialPost}
     />
+  )
+}
+
+export default function EditorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ draft?: string }>
+}) {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh]" aria-hidden="true" />}>
+      <EditorPageContent searchParams={searchParams} />
+    </Suspense>
   )
 }

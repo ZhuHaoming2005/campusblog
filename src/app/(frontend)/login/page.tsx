@@ -1,29 +1,20 @@
-import { headers as getHeaders } from 'next/headers.js'
-import { cookies as getCookies } from 'next/headers.js'
+import React, { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 
 import AuthExperience from '@/components/auth/AuthExperience'
 import { sanitizeNextPath } from '@/lib/authNavigation'
 import { getCurrentFrontendUser } from '@/lib/frontendSession'
-import { getDictionary } from '../lib/i18n/dictionaries'
-import { resolveRequestLocale } from '../lib/i18n/locale'
+import { getFrontendRequestContext } from '../lib/requestContext'
 
-export default async function LoginPage({
+async function LoginPageContent({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>
 }) {
-  const [headers, cookies, rawSearchParams] = await Promise.all([
-    getHeaders(),
-    getCookies(),
+  const [{ headers, t }, rawSearchParams] = await Promise.all([
+    getFrontendRequestContext(),
     searchParams,
   ])
-
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
   const nextPath = sanitizeNextPath(rawSearchParams.next, '/user/me')
   const currentUser = await getCurrentFrontendUser(headers)
 
@@ -32,4 +23,16 @@ export default async function LoginPage({
   }
 
   return <AuthExperience initialMode="login" nextPath={nextPath} t={t} />
+}
+
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
+  return (
+    <Suspense fallback={<div className="min-h-[40vh]" aria-hidden="true" />}>
+      <LoginPageContent searchParams={searchParams} />
+    </Suspense>
+  )
 }
