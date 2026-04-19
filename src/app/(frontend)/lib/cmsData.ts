@@ -7,8 +7,6 @@ import { getFrontendPayload } from './frontendSession'
 
 const POST_LIST_LIMIT = 20
 const SCHOOL_LIST_LIMIT = 50
-export const STATIC_PARAMS_PLACEHOLDER_SLUG = '__placeholder__'
-export const STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG = '__placeholder_channel__'
 
 type DiscoverPageData = {
   posts: Post[]
@@ -274,43 +272,4 @@ export async function getChannelPageData(
     channel,
     posts,
   }
-}
-
-export async function getActiveSchoolParams() {
-  const schools = await getActiveSchools()
-
-  if (schools.length === 0) {
-    return [{ slug: STATIC_PARAMS_PLACEHOLDER_SLUG }]
-  }
-
-  return schools.map((school) => ({
-    slug: school.slug,
-  }))
-}
-
-export async function getActiveSchoolChannelParams() {
-  const schools = await getActiveSchools()
-  const schoolChannels = await Promise.all(
-    schools.map(async (school) => {
-      const subChannels = await getSubChannelsBySchool(school.id)
-
-      return subChannels.map((channel) => ({
-        slug: school.slug,
-        channelSlug: channel.slug,
-      }))
-    }),
-  )
-
-  const params = schoolChannels.flat()
-
-  if (params.length === 0) {
-    return [
-      {
-        slug: STATIC_PARAMS_PLACEHOLDER_SLUG,
-        channelSlug: STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG,
-      },
-    ]
-  }
-
-  return params
 }
