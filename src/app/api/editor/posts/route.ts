@@ -6,9 +6,6 @@ import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 
-export const runtime = 'nodejs'
-export const maxDuration = 15
-
 type PostRequestBody = {
   title?: string
   content?: unknown
@@ -140,9 +137,9 @@ export async function POST(request: Request) {
 
     const post = await payload.create<PostDoc>('posts', data)
 
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
+    revalidateTag('posts', 'max')
+    revalidateTag('posts-by-school', 'max')
+    revalidateTag('posts-by-school-channel', 'max')
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''

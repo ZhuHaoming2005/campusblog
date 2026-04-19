@@ -5,7 +5,7 @@ import { seedTestAdmin, cleanupTestAdmin, testAdmin } from '../helpers/seedAdmin
 test.describe('Admin Panel', () => {
   let page: Page
 
-  test.beforeAll(async ({ browser }, testInfo) => {
+  test.beforeAll(async ({ browser }) => {
     await seedTestAdmin()
 
     const context = await browser.newContext()
