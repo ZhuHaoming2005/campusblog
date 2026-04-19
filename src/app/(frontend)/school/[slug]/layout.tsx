@@ -2,8 +2,16 @@ import React, { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 
 import SchoolTopBar from '@/components/layout/SchoolTopBar'
-import { getSchoolLayoutData } from '../../lib/cmsData'
+import {
+  getActiveSchoolParams,
+  getSchoolLayoutData,
+  STATIC_PARAMS_PLACEHOLDER_SLUG,
+} from '../../lib/cmsData'
 import { getFrontendRequestContext } from '../../lib/requestContext'
+
+export async function generateStaticParams() {
+  return getActiveSchoolParams()
+}
 
 async function SchoolLayoutContent({
   children,
@@ -13,6 +21,10 @@ async function SchoolLayoutContent({
   params: Promise<{ slug: string }>
 }) {
   const [{ slug }, { t }] = await Promise.all([params, getFrontendRequestContext()])
+  if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
+    notFound()
+  }
+
   const data = await getSchoolLayoutData(slug)
 
   if (!data) {

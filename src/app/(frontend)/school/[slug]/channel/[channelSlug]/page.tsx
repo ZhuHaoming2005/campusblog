@@ -3,10 +3,19 @@ import { notFound } from 'next/navigation'
 import { IconSchool } from '@tabler/icons-react'
 
 import PostFeed from '@/components/PostFeed'
-import { getChannelPageData } from '../../../../lib/cmsData'
+import {
+  getActiveSchoolChannelParams,
+  getChannelPageData,
+  STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG,
+  STATIC_PARAMS_PLACEHOLDER_SLUG,
+} from '../../../../lib/cmsData'
 import { DEFAULT_LOCALE } from '../../../../lib/i18n/config'
 import { getDictionary } from '../../../../lib/i18n/dictionaries'
 import { getFrontendRequestContext } from '../../../../lib/requestContext'
+
+export async function generateStaticParams() {
+  return getActiveSchoolChannelParams()
+}
 
 async function SubChannelPageContent({
   params,
@@ -17,6 +26,13 @@ async function SubChannelPageContent({
     params,
     getFrontendRequestContext(),
   ])
+  if (
+    slug === STATIC_PARAMS_PLACEHOLDER_SLUG ||
+    channelSlug === STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG
+  ) {
+    notFound()
+  }
+
   const data = await getChannelPageData(slug, channelSlug)
 
   if (!data) {
