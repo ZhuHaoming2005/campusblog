@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url'
 import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
 import { r2Storage } from '@payloadcms/storage-r2'
+import { resolvePayloadSecret } from './utils/payloadSecret'
 
 import { Posts } from './collections/Posts'
 import { SchoolSubChannels } from './collections/SchoolSubChannels'
@@ -67,7 +68,10 @@ export default buildConfig({
       zh,
     },
   },
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: resolvePayloadSecret({
+    processEnv: process.env,
+    cloudflareEnv: cloudflare.env,
+  }),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
