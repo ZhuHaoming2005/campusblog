@@ -49,7 +49,7 @@ test.describe('Frontend auth', () => {
 
     await page.getByRole('button', { name: logoutLabel }).click()
 
-    await expect(page).toHaveURL('http://localhost:3000/user/me')
+    await expect(page).toHaveURL('http://localhost:3000/')
 
     await page.goto('http://localhost:3000/user/me')
 
