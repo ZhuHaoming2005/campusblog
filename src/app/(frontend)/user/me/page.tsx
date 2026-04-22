@@ -137,7 +137,7 @@ async function UserCenterPageContent() {
   }
 
   const payload = await getFrontendPayload()
-  const [draftPostsResult, publishedPostsResult] = await Promise.all([
+  const [draftPostsResult, publishedPostsResult, hiddenPostsResult] = await Promise.all([
     payload.find({
       collection: 'posts',
       where: {
@@ -160,10 +160,21 @@ async function UserCenterPageContent() {
       user: currentUser,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'posts',
+      where: {
+        and: [{ author: { equals: currentUser.id } }, { status: { equals: 'hidden' } }],
+      },
+      sort: '-updatedAt',
+      depth: 1,
+      limit: 50,
+      user: currentUser,
+      overrideAccess: false,
+    }),
   ])
   const postUsageBytes = await getPostUsageBytesMap({
     payload,
-    posts: [...draftPostsResult.docs, ...publishedPostsResult.docs],
+    posts: [...draftPostsResult.docs, ...publishedPostsResult.docs, ...hiddenPostsResult.docs],
   })
 
   const quotaBytes = currentUser.quotaBytes ?? 0
@@ -305,6 +316,26 @@ async function UserCenterPageContent() {
               locale={locale}
               metaLabel={null}
               posts={publishedPostsResult.docs}
+              postUsageBytes={postUsageBytes}
+              t={t}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+          <CardHeader className="border-b border-campus-border-soft/70 py-5">
+            <CardTitle className="font-headline text-2xl text-campus-primary">
+              {t.userCenter.hiddenTitle}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-5 py-5">
+            <UserPostList
+              actionHref={(post) => `/post/${post.slug}`}
+              emptyLabel={t.userCenter.emptyHidden}
+              hrefLabel={t.userCenter.previewHiddenPost}
+              locale={locale}
+              metaLabel={t.userCenter.updatedAt}
+              posts={hiddenPostsResult.docs}
               postUsageBytes={postUsageBytes}
               t={t}
             />
