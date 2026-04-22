@@ -30,7 +30,7 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - Add a custom Payload `email` adapter backed by Cloudflare Email Service.
   - Follow Payload's official email integration path by configuring the `email` property in `payload.config.ts`.
 - Use Cloudflare KV to accelerate request throttling and short-lived auth workflow state.
-  - KV will back rate limiting counters and cooldown windows for high-frequency auth operations.
+  - KV will back coarse-grained, best-effort rate limiting counters and cooldown windows for high-frequency auth operations.
 
 **Architecture**
 
@@ -50,7 +50,8 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - `POST /api/auth/forgot-password`
   - `POST /api/auth/reset-password`
 - These routes will be the only frontend-facing auth entrypoints.
-- They will call Payload operations or the Payload REST auth endpoints and normalize all user-visible behavior.
+- They will use one explicit implementation path per auth action and normalize all user-visible behavior.
+- Add a shared server-side helper such as `requireFrontendAuth({ requireVerified, requireAuthorAccess })` so protected frontend pages and route handlers do not open-code auth checks.
 
 3. Email delivery layer
 - Add a lightweight custom Payload email adapter that sends email through Cloudflare Email Service.
@@ -58,6 +59,8 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - auth verification emails
   - forgot-password emails
   - future transactional auth notifications
+- The default transport path is the Workers `send_email` binding.
+- REST API delivery is only an optional fallback for environments where the Workers binding is unavailable.
 - The adapter will accept HTML and text content from Payload and translate it into the Cloudflare Email Service request body.
 
 4. KV-backed acceleration layer
@@ -68,6 +71,7 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - forgot-password by normalized email + IP
   - resend-verification by normalized email + IP
 - Optionally store short-lived debug metadata for development-only inspection of the most recent auth emails.
+- KV is not a source of truth for account state, verification state, or precise auth lockouts.
 
 **Behavior**
 
@@ -81,9 +85,12 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - safe `next` path handling
 - The route enforces KV-backed rate limiting before touching Payload.
 - The route creates the user through a server-side Payload Local API path with curated defaults:
+- This is an intentionally privileged Local API create.
   - default role remains `user`
   - `isActive` defaults to `true`
   - email verification required
+- The route must only whitelist `displayName`, `email`, and `password`.
+- The route must not accept or forward `roles`, `isActive`, `quotaBytes`, or `usedBytes`.
 - Success response does not sign the user into the full application.
 - The user is redirected to a verification-pending screen that explains next steps and offers resend verification.
 
@@ -91,12 +98,12 @@ Upgrade the current frontend login and registration flow into a complete, secure
 
 - Frontend login submits to `POST /api/auth/login`.
 - The route enforces KV-backed rate limiting before calling Payload.
-- Payload remains responsible for core login attempt accounting and lockout.
-- The route adds project-specific checks after auth:
-  - block users whose email is not verified
-  - block users whose `isActive` is `false`
+- The login route uses a single session-issuance path so cookies are only set once.
+- Payload remains responsible for core email-verification enforcement, login attempt accounting, and lockout.
+- Project-specific checks that affect whether a frontend session is allowed must happen before any cookie-setting login call.
+- `isActive` is not treated as a global login ban.
 - Login failures return normalized messages that do not leak whether the email exists.
-- Verified and active users receive the normal auth cookie and redirect to a sanitized `next` target.
+- Verified users receive the normal auth cookie and redirect to a sanitized `next` target.
 
 **Email Verification**
 
@@ -131,8 +138,9 @@ Upgrade the current frontend login and registration flow into a complete, secure
 **Profile And Author Flows**
 
 - Existing authenticated profile and editor flows remain server-protected.
-- Any auth-sensitive frontend action that depends on a current user should additionally respect the account's verified and active status.
-- Author-facing pages should treat "signed in but not verified" as an incomplete auth state and redirect to the verification-pending experience when needed.
+- Any auth-sensitive frontend action that depends on a current user should flow through the shared `requireFrontendAuth(...)` helper instead of doing ad-hoc checks.
+- `isActive` keeps its current meaning: it controls access to frontend author features, not Payload Admin login.
+- Author-facing pages should require a verified user and, where relevant, author access via `isActive`.
 
 **Payload Changes**
 
@@ -151,6 +159,7 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - Preserve existing roles and admin restrictions.
 - Remove public collection create access so direct `POST /api/users` registration is no longer allowed from the frontend.
 - Allow new user creation only through the project-owned registration route, which uses server-side Local API with explicit field whitelisting.
+- Keep `isActive` field copy aligned with its retained author-access semantics.
 
 **`src/payload.config.ts`**
 
@@ -161,6 +170,7 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - default from address
   - debug mode flags
 - Add explicit CSRF allow-listing for expected frontend origins.
+- Add Cloudflare Email Service binding-aware configuration, with `send_email` as the primary transport.
 
 **Frontend Pages**
 
@@ -180,7 +190,8 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - The adapter will:
   - accept Payload email args
   - construct the Cloudflare Email Service request
-  - call the REST API with the configured API token and account ID
+  - call the Workers `send_email` binding by default
+  - optionally fall back to the REST API only when binding-based delivery is unavailable
   - return normalized delivery metadata
 - It will support both HTML and text bodies.
 - It will fail loudly in production for missing configuration.
@@ -191,20 +202,21 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - Add a debug mode controlled by environment variables.
 - In debug mode:
   - the adapter logs a structured, redacted record for every auth email
-  - local development may skip real delivery and log the rendered verification/reset URL
+  - local development may skip real delivery and print the full verification/reset URL only to the local terminal session
   - the most recent debug records can be written into KV with a short TTL for inspection
 - Debug records include:
   - template type
   - recipient
   - subject
   - masked token preview
-  - destination URL
+  - redacted destination URL or opaque debug ID
   - Cloudflare request status or skip reason
+- KV debug records must never store full tokens or raw verification/reset URLs.
 - Production debug logging must never emit full tokens or raw password-reset URLs into long-lived logs.
 
 **KV Strategy**
 
-- Use KV for fast, low-write-complexity controls around auth traffic, not as the source of truth for identity.
+- Use KV for fast, low-write-complexity, best-effort controls around auth traffic, not as the source of truth for identity.
 - Use the Cloudflare `KV` binding for auth throttling and debug caches, not the internal `payload_kv` table.
 - Proposed KV key families:
   - `auth:rate:register:<ip-hash>`
@@ -215,6 +227,7 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - Values store compact JSON with count, window start, and last-seen timestamps.
 - TTLs remain short and operation-specific.
 - Hash normalized email and IP before using them in keys to avoid plain-text sensitive data in KV namespaces.
+- Payload `maxLoginAttempts` and `lockTime` remain the authoritative lockout mechanism.
 
 **Validation And Security Rules**
 
@@ -223,11 +236,13 @@ Upgrade the current frontend login and registration flow into a complete, secure
 - Use uniform success messages for forgot-password and resend-verification to prevent account enumeration.
 - Keep error messages for login generic enough that email existence is not revealed.
 - Validate password strength server-side, not only in the client.
-- Keep the profile update and editor APIs behind authenticated checks and review them for active/verified account enforcement.
+- Keep the profile update and editor APIs behind authenticated checks and move them onto the shared auth gate.
+- Any Local API operation that carries a user context must explicitly use `overrideAccess: false`.
+- Any privileged Local API registration create must be field-whitelisted and intentionally bypass collection create access.
 - Add structured auth logging for:
   - registration attempts
   - rate-limit denials
-  - login denials due to unverified or inactive accounts
+  - login denials due to pre-session project policy checks
   - email delivery failures
 - Do not log raw passwords, raw verification tokens, or raw reset tokens.
 
@@ -248,16 +263,19 @@ Upgrade the current frontend login and registration flow into a complete, secure
   - login with unverified account shows the expected blocked state
   - verified account can enter `/user/me`
   - forgot-password and reset-password happy path
-- Run `tsc --noEmit` before completion.
+- Run `pnpm run generate:types` after schema changes.
+- Run `pnpm exec tsc --noEmit` before completion.
 
 **Operational Requirements**
 
 - Add required env/binding documentation for:
-  - Cloudflare Email Service account ID
-  - Cloudflare Email Service API token
   - default from address
   - app public base URL
   - email debug mode flag
+- Add required Cloudflare binding documentation for:
+  - `send_email` binding name
+  - local debug behavior
+  - optional REST fallback secrets if that fallback is enabled
 - Extend `wrangler.jsonc` documentation and types if additional vars are required.
 - Keep local development safe by default:
   - debug mode on
