@@ -13,7 +13,6 @@
 .cursor/
 .codex/
 .superpowers/
-docs
 
 # testing
 /coverage
