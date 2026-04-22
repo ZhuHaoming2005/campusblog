@@ -11,6 +11,7 @@ import PostBackButton from '@/components/PostBackButton'
 import PostFeed from '@/components/PostFeed'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { getCurrentFrontendUser } from '@/lib/frontendSession'
 import { DEFAULT_LOCALE } from '../../lib/i18n/config'
 import { getDictionary } from '../../lib/i18n/dictionaries'
 import {
@@ -18,6 +19,7 @@ import {
   getPublishedPosts,
   getPublishedPostsBySchool,
   getPublishedPostsBySchoolAndChannel,
+  getVisiblePostBySlug,
 } from '../../lib/cmsData'
 import { getFrontendRequestContext } from '../../lib/requestContext'
 import {
@@ -83,8 +85,9 @@ export async function generateMetadata({
 
 async function PostDetailPageContent({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const { locale, t } = await getFrontendRequestContext()
-  const post = await getPublishedPostBySlug(slug)
+  const { headers, locale, t } = await getFrontendRequestContext()
+  const currentUser = await getCurrentFrontendUser(headers)
+  const post = await getVisiblePostBySlug(slug, currentUser)
 
   if (!post) {
     notFound()

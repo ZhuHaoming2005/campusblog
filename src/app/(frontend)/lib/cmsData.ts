@@ -2,7 +2,7 @@ import 'server-only'
 
 import { cacheLife, cacheTag } from 'next/cache'
 
-import type { Post, School, SchoolSubChannel } from '@/payload-types'
+import type { Post, School, SchoolSubChannel, User } from '@/payload-types'
 import { getFrontendPayload } from './frontendSession'
 
 const POST_LIST_LIMIT = 20
@@ -145,6 +145,41 @@ export async function getPublishedPostBySlug(slug: string) {
     },
     limit: 1,
     depth: 2,
+  })
+
+  return (docs[0] as Post | undefined) ?? null
+}
+
+export async function getVisiblePostBySlug(slug: string, user: User | null) {
+  const payload = await getPayloadClient()
+
+  const where = user
+    ? {
+        and: [
+          { slug: { equals: slug } },
+          {
+            or: [
+              { status: { equals: 'published' } },
+              {
+                and: [
+                  { status: { equals: 'hidden' } },
+                  { author: { equals: user.id } },
+                ],
+              },
+            ],
+          },
+        ],
+      }
+    : {
+        and: [{ slug: { equals: slug } }, { status: { equals: 'published' } }],
+      }
+
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where,
+    limit: 1,
+    depth: 2,
+    ...(user ? { user, overrideAccess: false } : {}),
   })
 
   return (docs[0] as Post | undefined) ?? null
