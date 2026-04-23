@@ -2,6 +2,7 @@ import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 
 import { hasAdminRole } from '@/access/admin'
+import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
 import config from '@/payload.config'
 import { cleanupAllOrphanMedia } from '@/media/orphanCleanup'
 
@@ -12,7 +13,11 @@ function getBearerToken(authorization: string | null): string | null {
 }
 
 export async function POST(request: Request) {
-  const cleanupSecret = process.env.MEDIA_CLEANUP_SECRET?.trim()
+  const cleanupSecret = (
+    await readCloudflareRuntimeEnvString('MEDIA_CLEANUP_SECRET', {
+      processEnv: process.env,
+    })
+  ).trim()
   const bearerToken = getBearerToken(request.headers.get('authorization'))
   const isSecretAuthorized = Boolean(cleanupSecret && bearerToken === cleanupSecret)
 

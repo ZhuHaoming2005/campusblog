@@ -10,6 +10,7 @@ import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
 import { GetPlatformProxyOptions } from 'wrangler'
 import { r2Storage } from '@payloadcms/storage-r2'
 
+import { readRuntimeEnvFlag, readRuntimeEnvString } from './cloudflare/runtimeEnv'
 import { Posts } from './collections/Posts'
 import { SchoolSubChannels } from './collections/SchoolSubChannels'
 import { Schools } from './collections/Schools'
@@ -66,19 +67,42 @@ const cloudflare =
 const cloudflareEnv = cloudflare.env as CloudflareEnv & {
   EMAIL?: EmailBindingLike
 }
-const readRuntimeEnv = (key: string) =>
-  String((cloudflareEnv as unknown as Record<string, unknown>)[key] ?? process.env[key] ?? '')
-const publicAppURL = readRuntimeEnv('NEXT_PUBLIC_SITE_URL') || 'http://localhost:3000'
-const authEmailDebugValue = readRuntimeEnv('AUTH_EMAIL_DEBUG')
-const authEmailDebug =
-  authEmailDebugValue === 'true' || (!isProduction && authEmailDebugValue !== 'false')
-const authEmailDebugDeliver = readRuntimeEnv('AUTH_EMAIL_DEBUG_DELIVER') === 'true'
-const authEmailDebugPrintURLs = readRuntimeEnv('AUTH_EMAIL_DEBUG_PRINT_URLS') === 'true'
-const authEmailFromAddress = readRuntimeEnv('AUTH_EMAIL_FROM_ADDRESS')
-const authEmailFromName = readRuntimeEnv('AUTH_EMAIL_FROM_NAME') || 'CampusBlog'
+const publicAppURL =
+  readRuntimeEnvString('NEXT_PUBLIC_SITE_URL', {
+    bindings: cloudflareEnv,
+    processEnv: process.env,
+  }) || 'http://localhost:3000'
+const authEmailDebug = readRuntimeEnvFlag('AUTH_EMAIL_DEBUG', {
+  bindings: cloudflareEnv,
+  fallback: !isProduction,
+  processEnv: process.env,
+})
+const authEmailDebugDeliver = readRuntimeEnvFlag('AUTH_EMAIL_DEBUG_DELIVER', {
+  bindings: cloudflareEnv,
+  processEnv: process.env,
+})
+const authEmailDebugPrintURLs = readRuntimeEnvFlag('AUTH_EMAIL_DEBUG_PRINT_URLS', {
+  bindings: cloudflareEnv,
+  processEnv: process.env,
+})
+const authEmailFromAddress = readRuntimeEnvString('AUTH_EMAIL_FROM_ADDRESS', {
+  bindings: cloudflareEnv,
+  processEnv: process.env,
+})
+const authEmailFromName =
+  readRuntimeEnvString('AUTH_EMAIL_FROM_NAME', {
+    bindings: cloudflareEnv,
+    processEnv: process.env,
+  }) || 'CampusBlog'
 const csrfOrigins = Array.from(
   new Set(
-    [publicAppURL, readRuntimeEnv('PAYLOAD_PUBLIC_SERVER_URL')]
+    [
+      publicAppURL,
+      readRuntimeEnvString('PAYLOAD_PUBLIC_SERVER_URL', {
+        bindings: cloudflareEnv,
+        processEnv: process.env,
+      }),
+    ]
       .map((value) => value.trim())
       .filter(Boolean),
   ),
@@ -109,8 +133,15 @@ export default buildConfig({
     emailBinding: cloudflareEnv.EMAIL,
     kv: cloudflareEnv.KV,
   }),
-  secret: readRuntimeEnv('PAYLOAD_SECRET'),
-  serverURL: readRuntimeEnv('PAYLOAD_PUBLIC_SERVER_URL') || publicAppURL,
+  secret: readRuntimeEnvString('PAYLOAD_SECRET', {
+    bindings: cloudflareEnv,
+    processEnv: process.env,
+  }),
+  serverURL:
+    readRuntimeEnvString('PAYLOAD_PUBLIC_SERVER_URL', {
+      bindings: cloudflareEnv,
+      processEnv: process.env,
+    }) || publicAppURL,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

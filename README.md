@@ -12,7 +12,7 @@
 pnpm install
 ```
 
-2. Configure local environment variables (based on `.env.example`)
+2. Configure local environment variables for non-Cloudflare-only settings (based on `.env.example`)
 
 ```bash
 cp .env.example .env
@@ -49,4 +49,27 @@ pnpm run generate:types
 
 # 4) Regenerate import map if admin components/paths changed
 pnpm run generate:importmap
+```
+
+## Environment Structure
+
+- `wrangler.jsonc` is the source of truth for Cloudflare runtime `vars` and bindings.
+- Sensitive runtime values such as `PAYLOAD_SECRET` should be configured with `wrangler secret put`.
+- The build scripts load the selected `wrangler.jsonc` environment into the Node build process before running `next build` or `opennextjs-cloudflare build`.
+- Use `CLOUDFLARE_ENV=dev` to target the `env.dev` block.
+
+## Common Commands
+
+```bash
+# OpenNext Cloudflare build for dev
+pnpm run build:dev
+
+# OpenNext Cloudflare build for production
+pnpm run build:production
+
+# Deploy production worker + assets
+pnpm run deploy:production
+
+# Deploy dev worker + assets
+pnpm run deploy:dev
 ```

@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react'
 import { Manrope, Noto_Sans_SC, Noto_Serif_SC } from 'next/font/google'
 
+import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
 import FrontendChrome from '@/components/layout/FrontendChrome'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { getCurrentFrontendUser, toSidebarUser } from '@/lib/frontendSession'
@@ -39,13 +40,14 @@ export async function generateMetadata() {
 
 async function RootLayoutContent({
   children,
-  githubUrl,
 }: {
   children: React.ReactNode
-  githubUrl?: string
 }) {
-  const [{ headers, locale, t }, schools] = await Promise.all([
+  const [{ headers, locale, t }, githubUrl, schools] = await Promise.all([
     getFrontendRequestContext(),
+    readCloudflareRuntimeEnvString('GITHUB_URL', {
+      processEnv: process.env,
+    }),
     getActiveSchools(),
   ])
   const currentUser = await getCurrentFrontendUser(headers)
@@ -70,7 +72,6 @@ async function RootLayoutContent({
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const githubUrl = process.env.GITHUB_URL
   const fallbackLocale = DEFAULT_LOCALE
 
   return (
@@ -83,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense
             fallback={<div className="min-h-screen bg-campus-surface" aria-hidden="true" />}
           >
-            <RootLayoutContent githubUrl={githubUrl}>{children}</RootLayoutContent>
+            <RootLayoutContent>{children}</RootLayoutContent>
           </Suspense>
         </TooltipProvider>
       </body>

@@ -1,6 +1,7 @@
 import { maybeSanitizeNextPath } from '@/lib/authNavigation'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { DEFAULT_LOCALE, type AppLocale } from '@/app/(frontend)/lib/i18n/config'
+import { readRuntimeEnvList, readRuntimeEnvString } from '@/cloudflare/runtimeEnv'
 
 type PayloadEmailLike = {
   email: {
@@ -40,7 +41,11 @@ type AuthRequestLike =
 type AuthEmailAction = 'resetPassword' | 'verifyEmail'
 
 const getPublicAppURL = (req?: AuthRequestLike) =>
-  process.env.NEXT_PUBLIC_SITE_URL || req?.payload?.config?.serverURL || 'http://localhost:3000'
+  readRuntimeEnvString('NEXT_PUBLIC_SITE_URL', {
+    processEnv: process.env,
+  }) ||
+  req?.payload?.config?.serverURL ||
+  'http://localhost:3000'
 
 function normalizeOrigin(value: string | null | undefined) {
   if (!value) return null
@@ -60,7 +65,9 @@ function getTrustedEmailOrigins(req?: AuthRequestLike) {
     origins.add(configuredOrigin)
   }
 
-  for (const value of (process.env.AUTH_EMAIL_ALLOWED_ORIGINS ?? '').split(',')) {
+  for (const value of readRuntimeEnvList('AUTH_EMAIL_ALLOWED_ORIGINS', {
+    processEnv: process.env,
+  })) {
     const origin = normalizeOrigin(value.trim())
     if (origin) {
       origins.add(origin)
