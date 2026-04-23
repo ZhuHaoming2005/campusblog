@@ -30,8 +30,10 @@ vi.mock('@/app/api/auth/_lib/payloadVerificationEmail', () => ({
 }))
 
 describe('auth password and verification routes', () => {
+  const testEnv = process.env as Record<string, string | undefined>
+
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_SITE_URL = 'https://fallback.example.com'
+    testEnv.NEXT_PUBLIC_SITE_URL = 'https://fallback.example.com'
     process.env.AUTH_EMAIL_ALLOWED_ORIGINS = 'https://preview.example.com'
     getFrontendPayloadMock.mockReset()
     checkAuthCooldownMock.mockReset()
@@ -55,7 +57,7 @@ describe('auth password and verification routes', () => {
     if (originalSiteURL === undefined) {
       delete process.env.NEXT_PUBLIC_SITE_URL
     } else {
-      process.env.NEXT_PUBLIC_SITE_URL = originalSiteURL
+      testEnv.NEXT_PUBLIC_SITE_URL = originalSiteURL
     }
 
     if (originalAllowedOrigins === undefined) {

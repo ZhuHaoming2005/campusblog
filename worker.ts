@@ -1,6 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore OpenNext generates this file during the Cloudflare build step.
 import openNextWorker from './.open-next/worker.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
+export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
 

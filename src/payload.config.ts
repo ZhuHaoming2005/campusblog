@@ -66,7 +66,8 @@ const cloudflare =
 const cloudflareEnv = cloudflare.env as CloudflareEnv & {
   EMAIL?: EmailBindingLike
 }
-const readRuntimeEnv = (key: keyof CloudflareEnv) => String(cloudflareEnv[key] ?? process.env[key] ?? '')
+const readRuntimeEnv = (key: string) =>
+  String((cloudflareEnv as unknown as Record<string, unknown>)[key] ?? process.env[key] ?? '')
 const publicAppURL = readRuntimeEnv('NEXT_PUBLIC_SITE_URL') || 'http://localhost:3000'
 const authEmailDebugValue = readRuntimeEnv('AUTH_EMAIL_DEBUG')
 const authEmailDebug =

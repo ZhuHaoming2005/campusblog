@@ -42,13 +42,32 @@
       "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
       "remote": true,
     },
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "campusblog",
+      "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
+      "remote": true,
+    },
   ],
   "services": [
-    // The service should match the "name" of your worker
-    // {
-    //   "binding": "WORKER_SELF_REFERENCE",
-    //   "service": "my-app"
-    // },
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "campusblog",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "NEXT_CACHE_DO_QUEUE",
+        "class_name": "DOQueueHandler",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DOQueueHandler"],
+    },
   ],
   "r2_buckets": [
     {
@@ -56,11 +75,11 @@
       "bucket_name": "campusblog",
       "preview_bucket_name": "campusblog",
     },
-    // Create a R2 binding with the binding name "NEXT_INC_CACHE_R2_BUCKET"
-    // {
-    //   "binding": "NEXT_INC_CACHE_R2_BUCKET",
-    //   "bucket_name": "<BUCKET_NAME>",
-    // },
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "campusblog-cache",
+      "preview_bucket_name": "campusblog-cache",
+    },
   ],
   "kv_namespaces": [
     {
@@ -108,13 +127,43 @@
           "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
           "remote": true,
         },
+        {
+          "binding": "NEXT_TAG_CACHE_D1",
+          "database_name": "campusblog-dev",
+          "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
+          "remote": true,
+        },
       ],
-      "services": [],
+      "services": [
+        {
+          "binding": "WORKER_SELF_REFERENCE",
+          "service": "campusblog-dev",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "NEXT_CACHE_DO_QUEUE",
+            "class_name": "DOQueueHandler",
+          },
+        ],
+      },
+      "migrations": [
+        {
+          "tag": "v1",
+          "new_sqlite_classes": ["DOQueueHandler"],
+        },
+      ],
       "r2_buckets": [
         {
           "binding": "R2",
           "bucket_name": "campusblog-dev",
           "preview_bucket_name": "campusblog-dev",
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "campusblog-dev-cache",
+          "preview_bucket_name": "campusblog-dev-cache",
         },
       ],
       "kv_namespaces": [
