@@ -5,9 +5,9 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "build": "pnpm run build:production",
+    "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" node ./scripts/with-wrangler-env.mjs next build --webpack",
     "build:dev": "cross-env CLOUDFLARE_ENV=dev node ./scripts/with-wrangler-env.mjs opennextjs-cloudflare build --env=dev",
-    "build:production": "node ./scripts/with-wrangler-env.mjs opennextjs-cloudflare build",
+    "build:production": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" node ./scripts/with-wrangler-env.mjs opennextjs-cloudflare build",
     "deploy": "pnpm run deploy:database && pnpm run deploy:app",
     "deploy:app": "pnpm run build:production && opennextjs-cloudflare deploy",
     "deploy:app:dev": "pnpm run build:dev && opennextjs-cloudflare deploy --env=dev",
