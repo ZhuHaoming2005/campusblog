@@ -17,6 +17,18 @@ import { Comments } from './collections/Comments'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import { createCloudflareEmailAdapter } from './email/cloudflareEmailAdapter'
+
+type EmailBindingLike = {
+  send: (message: {
+    content?: string
+    from: string
+    html?: string
+    subject: string
+    text?: string
+    to: string
+  }) => Promise<unknown>
+}
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -26,6 +38,20 @@ const isCLI = process.argv.some(
   (value) => realpath(value)?.endsWith(path.join('payload', 'bin.js')) ?? false,
 )
 const isProduction = process.env.NODE_ENV === 'production'
+const publicAppURL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+const authEmailDebug =
+  process.env.AUTH_EMAIL_DEBUG === 'true' || (!isProduction && process.env.AUTH_EMAIL_DEBUG !== 'false')
+const authEmailDebugDeliver = process.env.AUTH_EMAIL_DEBUG_DELIVER === 'true'
+const authEmailDebugPrintURLs = process.env.AUTH_EMAIL_DEBUG_PRINT_URLS === 'true'
+const authEmailFromAddress = process.env.AUTH_EMAIL_FROM_ADDRESS || ''
+const authEmailFromName = process.env.AUTH_EMAIL_FROM_NAME || 'CampusBlog'
+const csrfOrigins = Array.from(
+  new Set(
+    [publicAppURL, process.env.PAYLOAD_PUBLIC_SERVER_URL || '']
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ),
+)
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
@@ -51,6 +77,9 @@ const cloudflare =
   isCLI || !isProduction
     ? await getCloudflareContextFromWrangler()
     : await getCloudflareContext({ async: true })
+const cloudflareEnv = cloudflare.env as CloudflareEnv & {
+  EMAIL?: EmailBindingLike
+}
 
 export default buildConfig({
   admin: {
@@ -60,6 +89,7 @@ export default buildConfig({
     },
   },
   collections: [Users, Media, Schools, SchoolSubChannels, Tags, Posts, Comments],
+  csrf: csrfOrigins,
   i18n: {
     fallbackLanguage: 'zh',
     supportedLanguages: {
@@ -67,11 +97,21 @@ export default buildConfig({
       zh,
     },
   },
+  email: createCloudflareEmailAdapter({
+    allowRealDelivery: isProduction || authEmailDebugDeliver,
+    debug: authEmailDebug,
+    debugPrintFullURLs: !isProduction && authEmailDebugPrintURLs,
+    defaultFromAddress: authEmailFromAddress,
+    defaultFromName: authEmailFromName,
+    emailBinding: cloudflareEnv.EMAIL,
+    kv: cloudflareEnv.KV,
+  }),
   secret: process.env.PAYLOAD_SECRET || '',
+  serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL || publicAppURL,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: sqliteD1Adapter({ binding: cloudflare.env.D1 }),
+  db: sqliteD1Adapter({ binding: cloudflareEnv.D1 }),
   logger: isProduction ? cloudflareLogger : undefined,
   plugins: [
     r2Storage({

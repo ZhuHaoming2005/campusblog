@@ -35,6 +35,15 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
+    env: {
+      ...process.env,
+      AUTH_EMAIL_DEBUG: process.env.AUTH_EMAIL_DEBUG ?? 'false',
+      AUTH_EMAIL_FROM_ADDRESS:
+        process.env.AUTH_EMAIL_FROM_ADDRESS ?? 'noreply@mail.campusblog.net',
+      AUTH_EMAIL_FROM_NAME: process.env.AUTH_EMAIL_FROM_NAME ?? 'CampusBlog',
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+      PAYLOAD_PUBLIC_SERVER_URL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3000',
+    },
     reuseExistingServer: true,
     url: 'http://localhost:3000',
   },

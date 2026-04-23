@@ -1,10 +1,12 @@
 ﻿'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { IconCamera, IconLoader2 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PrimaryActionButton } from '@/components/ui/primary-action-button'
@@ -23,6 +25,7 @@ type UserProfileEditorProps = {
     noBio: string
     profileError: string
     profileSaved: string
+    resetPassword: string
     saveProfile: string
     savingProfile: string
   }
@@ -212,7 +215,15 @@ export default function UserProfileEditor({
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-3">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="h-11 rounded-full border-campus-border-soft bg-campus-panel px-5 font-label text-sm font-semibold text-campus-primary hover:bg-campus-panel-soft"
+        >
+          <Link href="/forgot-password?next=%2Fuser%2Fme">{copy.resetPassword}</Link>
+        </Button>
         <PrimaryActionButton
           type="submit"
           data-testid="save-profile-button"

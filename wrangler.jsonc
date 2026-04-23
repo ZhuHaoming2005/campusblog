@@ -29,6 +29,11 @@
     // Non-sensitive runtime vars. For sensitive values (e.g. PAYLOAD_SECRET),
     // use `wrangler secret put` instead of committing to this file.
     "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
+    "NEXT_PUBLIC_SITE_URL": "https://campusblog.net",
+    "PAYLOAD_PUBLIC_SERVER_URL": "https://campusblog.net",
+    "AUTH_EMAIL_FROM_ADDRESS": "noreply@mail.campusblog.net",
+    "AUTH_EMAIL_FROM_NAME": "CampusBlog",
+    "AUTH_EMAIL_DEBUG": "false",
   },
   "d1_databases": [
     {
@@ -63,6 +68,13 @@
       "id": "031e28dcedc94d33bc2bf357aebb88cf",
     },
   ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
+      "remote": true,
+    },
+  ],
   "observability": {
     "enabled": false,
     "head_sampling_rate": 1,
@@ -83,6 +95,11 @@
       "name": "campusblog-dev",
       "vars": {
         "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
+        "NEXT_PUBLIC_SITE_URL": "https://campusblog.net",
+        "PAYLOAD_PUBLIC_SERVER_URL": "https://campusblog.net",
+        "AUTH_EMAIL_FROM_ADDRESS": "noreply@mail.campusblog.net",
+        "AUTH_EMAIL_FROM_NAME": "CampusBlog",
+        "AUTH_EMAIL_DEBUG": "true",
       },
       "d1_databases": [
         {
@@ -104,6 +121,13 @@
         {
           "binding": "KV",
           "id": "aabe3ed93f7c474f8accd5954fde760e",
+        },
+      ],
+      "send_email": [
+        {
+          "name": "EMAIL",
+          "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
+          "remote": true,
         },
       ],
     },

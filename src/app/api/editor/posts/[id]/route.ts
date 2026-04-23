@@ -3,6 +3,7 @@ import { after } from 'next/server'
 
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
+import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 
@@ -63,6 +64,17 @@ function formatBytes(value: number, locale: string): string {
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireFrontendAuth({
+      headers: request.headers,
+      nextPath: '/editor',
+      requireAuthorAccess: true,
+      requireVerified: true,
+    })
+
+    if (auth.ok === false) {
+      return toAuthFailureResponse(auth)
+    }
+
     const locale = resolveRequestLocale({
       acceptLanguage: request.headers.get('accept-language'),
     })
@@ -89,12 +101,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     const payload = createPayloadRESTClient(request)
-    const authUser = await payload.auth<{ id: number | string }>()
-
-    if (!authUser) {
-      return Response.json({ error: t.editor.authRequired }, { status: 401 })
-    }
-
+    const authUser = auth.user
     const [currentUser, existingPost] = await Promise.all([
       payload.findByID<UserDoc>('users', authUser.id, { depth: 0 }),
       payload.findByID<PostDoc>('posts', postId, { depth: 0 }),
@@ -202,13 +209,18 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       return Response.json({ error: t.post.notFoundTitle }, { status: 400 })
     }
 
-    const payload = createPayloadRESTClient(request)
-    const authUser = await payload.auth<{ id: number | string }>()
+    const auth = await requireFrontendAuth({
+      headers: request.headers,
+      nextPath: '/editor',
+      requireAuthorAccess: true,
+      requireVerified: true,
+    })
 
-    if (!authUser) {
-      return Response.json({ error: t.editor.authRequired }, { status: 401 })
+    if (auth.ok === false) {
+      return toAuthFailureResponse(auth)
     }
 
+    const payload = createPayloadRESTClient(request)
     const post = await payload.delete<PostDoc>('posts', postId)
 
     revalidateTag('posts', 'max')

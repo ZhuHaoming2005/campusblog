@@ -22,7 +22,7 @@ export default function LogoutButton({ label, pendingLabel, className }: LogoutB
     setIsSubmitting(true)
 
     try {
-      await fetch('/api/users/logout', {
+      await fetch('/api/auth/logout', {
         method: 'POST',
       })
     } finally {
@@ -49,7 +49,6 @@ export default function LogoutButton({ label, pendingLabel, className }: LogoutB
     </Button>
   )
 }
-
 
 
 

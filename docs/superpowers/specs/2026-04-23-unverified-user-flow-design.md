@@ -1,159 +1,148 @@
-# Unverified User Flow Design
+# Payload Official Verification Flow Design
+
+**Status**
+
+- This spec replaces the earlier unverified-session design.
+- The current target is the standard Payload verification flow only.
+- Any design that gives unverified users a usable session, allows `/user/me` before verification, or moves verification recovery into the user center is explicitly out of scope.
 
 **Goal**
 
-Adjust the current auth UX so unverified users keep a valid Payload login session but are treated like guests everywhere except the user center, remove resend-verification entrypoints from login and registration screens, lower password requirements to a minimum of 8 characters, and fix development-time verification links so the emailed URL verifies successfully against the active local origin.
+Keep the product aligned with Payload's recommended auth behavior:
 
-**Scope**
+- registration creates the user and sends a verification email
+- unverified users cannot complete login
+- verification recovery is handled only on verification-specific pages
+- verified-only pages continue to require a verified Payload session
+- password creation and reset require a minimum of 8 characters
+- auth email action links prefer the active trusted request origin in development
 
-- `src/app/(frontend)/components/auth/LoginForm.tsx`
-- `src/app/(frontend)/components/auth/RegisterForm.tsx`
-- `src/app/(frontend)/user/me/page.tsx`
-- `src/app/(frontend)/verify/pending/page.tsx`
-- `src/app/(frontend)/verify/page.tsx`
-- `src/app/(frontend)/lib/frontendSession.ts`
-- `src/app/api/auth/_lib/authInput.ts`
-- `src/app/api/auth/_lib/frontendAuth.ts`
-- `src/app/api/auth/register/route.ts`
-- `src/app/api/auth/login/route.ts`
-- `src/app/api/auth/resend-verification/route.ts`
-- `src/app/api/auth/verify-email/route.ts`
-- `src/email/authEmailTemplates.ts`
-- auth-related locale files and focused auth tests
+**Source Of Truth**
 
-**Current Problems**
+- Payload remains the source of truth for:
+  - users
+  - verification state
+  - verification tokens
+  - auth cookies
+  - login lockout
+  - password reset session issuance
+- Next.js auth routes are thin wrappers only. They may normalize response shapes for the frontend, but they must not replace Payload's auth semantics.
 
-- Login and registration screens still advertise resend verification directly, which encourages an auth-screen recovery path that the product no longer wants.
-- Unverified users are currently redirected away from `/user/me`, which prevents the user center from acting as the canonical place to explain verification status and trigger resend.
-- Frontend auth gating currently treats unverified users as fully blocked from any authenticated user surface, instead of preserving a limited logged-in state.
-- Password validation requires strong-password rules with a 12-character minimum, which is stricter than the new requirement.
-- Verification emails are generated from `NEXT_PUBLIC_SITE_URL`, so development links can point at the wrong host or origin and fail when clicked locally.
+**Core User Flow**
 
-**Chosen Approach**
+**Registration**
 
-- Keep Payload as the source of truth for login sessions, verification tokens, and verification state.
-- Model an unverified account as a limited frontend session state rather than as a failed login.
-- Centralize all unverified-user behavior in the shared frontend auth gate and the user center instead of scattering resend actions across login/register/verify pages.
-- Generate auth action URLs from the live request origin when available, with environment fallback only when request context is missing.
+- `POST /api/auth/register` creates the `users` record through Payload.
+- Payload's configured verify-email pipeline sends the verification email.
+- Successful registration is treated as `verification_pending`, not as a logged-in session.
+- The frontend redirects to `/verify/pending?email=...&next=...`.
 
-**Behavior**
+**Login**
 
-**Unverified Session Model**
+- Verified users log in through Payload's normal login flow and receive the normal Payload auth cookie.
+- Unverified users do not receive a session.
+- When Payload reports an unverified login attempt, the frontend login route returns:
+  - HTTP `403`
+  - code `email_verification_required`
+  - a `location` pointing to `/verify/pending?email=...&next=...`
+- Login must preserve Payload lockout behavior and must not collapse locked accounts into generic invalid credentials.
 
-- Unverified users can log in successfully and retain the Payload auth cookie.
-- Outside the user center, unverified users are treated like guests for product behavior and visible navigation.
-- The existence of a session does not grant verified-only capabilities such as editor access or verified-user redirects.
-- The frontend auth layer remains responsible only for capability checks and redirects; Payload still owns login state.
-- When the product needs to actively guide an unverified user somewhere, the canonical destination is `/user/me`, because that is the only surface that exposes the resend-verification action.
+**Verification Recovery**
 
-**Global UI**
+- `/verify/pending` is the only primary resend-verification surface.
+- `/verify` displays verification success or verification failure results.
+- Login and registration screens do not expose resend-verification entrypoints.
+- The user center does not act as a verification recovery surface.
 
-- Global navigation and other non-user-center public surfaces should render the same affordances shown to guests when the current user exists but `_verified === false`.
-- This means unverified users do not get the normal authenticated shortcut experience outside `/user/me`.
-- The limited-session rule applies to server-rendered navigation, page-level redirects, and any helper that turns the current user into display state for public UI.
+**Protected Frontend Access**
 
-**User Center**
+- `/user/me` requires a verified authenticated session.
+- `/editor` and other verified-only routes also require a verified authenticated session.
+- Unverified users are treated like logged-out users for frontend access because they do not receive a Payload session.
 
-- `/user/me` remains authentication-protected but no longer requires verification.
-- If the current user is unverified, the page shows a prominent verification status panel near the top of the page.
-- That panel includes:
-  - a short explanation that the email address must be verified
-  - the current account email
-  - a button or form action that posts to `POST /api/auth/resend-verification`
-- Verified users do not see this panel.
-- Unverified users can still view the user center and manage baseline account information there.
-- Authoring actions exposed from the user center, such as “Write article”, must remain unavailable or redirected through verified-only gating.
+**Password Rules**
 
-**Login And Registration Screens**
+- Registration requires a minimum password length of 8 characters.
+- Reset-password uses the same minimum password length of 8 characters.
+- There is no extra uppercase/lowercase/digit composition rule.
 
-- Remove resend-verification links from the login form.
-- Remove resend-verification links from the registration form.
-- Login continues to recognize Payload’s unverified-account response, but the recovery destination becomes `/user/me` rather than an auth-screen resend flow.
-- Registration success may still land on `/verify/pending` once as a post-registration instruction screen.
-- `/verify/pending` remains a valid deep link, but it is no longer promoted from login or registration UI.
+**Auth Email Links**
 
-**Frontend Capability Gates**
+- Verification and reset-password links prefer a trusted origin derived from the active request.
+- If the request origin is missing or untrusted, link generation falls back to `NEXT_PUBLIC_SITE_URL`.
+- This must keep local development links usable without weakening host validation.
 
-- `requireFrontendAuth(...)` will distinguish between:
-  - authentication required
-  - verification required for a specific capability
-  - author access required
-- `/user/me` will request authentication only.
-- `/editor` and author-facing APIs will continue to require both a verified user and author access where relevant.
-- When an unverified user reaches a verified-only route, the gate should not turn that user into a generic authenticated success. It should return a failure that the caller can translate into guest-like behavior or redirect.
-- For protected author routes, unverified users should be redirected to `/user/me` so the verification prompt is reachable immediately.
-- For public-facing behavior and navigation, the response should remain equivalent to how the product handles a guest, while still preserving the actual underlying session cookie.
-
-**Password Validation**
-
-- Registration passwords must require a minimum length of 8 characters.
-- Reset-password submissions must use the same minimum length of 8 characters.
-- Uppercase, lowercase, and numeric composition requirements are removed unless another existing business rule still depends on them.
-- Validation copy and tests must be updated to match the new requirement exactly.
-
-**Verification Email Links**
-
-- Auth action URLs used in verification and reset emails must prefer the active request origin when a request context is available.
-- The request-origin priority order is:
-  1. the current request’s origin derived from the route handling the auth action
-  2. an explicit origin from a locally created Payload request object
-  3. `NEXT_PUBLIC_SITE_URL` as a final fallback
-- This keeps production links stable while making local development links point back to the actual local host that generated the email.
-- Verification and reset-password flows must share the same URL-origin logic so dev behavior stays consistent.
-
-**Route-Level Changes**
-
-**`POST /api/auth/login`**
-
-- Preserve the current fix for Payload verification and lockout semantics.
-- Continue normalizing `403` unverified failures into the project error code.
-- Do not add resend-verification UI coupling back into login responses.
+**Route Expectations**
 
 **`POST /api/auth/register`**
 
-- Keep using Payload’s built-in verification email pipeline.
-- Update input validation to accept passwords with a minimum length of 8.
+- Uses Payload create on the `users` collection.
+- Relies on Payload verify-email configuration for email generation and delivery.
+- Returns success as `verification_pending`.
+
+**`POST /api/auth/login`**
+
+- Preserves Payload success cookies for verified login.
+- Maps unverified login failures to `email_verification_required`.
+- Preserves lockout semantics.
 
 **`POST /api/auth/resend-verification`**
 
-- Keep reusing the existing `_verificationToken` when present.
-- This route becomes the user-center-owned verification recovery path.
-- The response contract stays generic to avoid account enumeration.
+- Reuses the existing `_verificationToken` when available.
+- Generates a new `_verificationToken` only when one does not exist.
+- Returns an enumeration-safe success shape.
+
+**`POST /api/auth/reset-password`**
+
+- Proxies or forwards Payload reset-password behavior.
+- Preserves Payload `Set-Cookie` semantics.
+- Does not replace Payload's session issuance with local custom logic.
 
 **`GET /api/auth/verify-email`**
 
-- Keep redirecting to the frontend verification result page.
-- The primary bug fix is not in verification itself, but in generating the correct frontend verification URL in the email.
+- Calls Payload verification.
+- Redirects into the frontend verification result page.
+- Preserves sanitized `next`.
 
-**Data And Security Constraints**
+**Security Constraints**
 
-- Public pages must not leak whether an account exists or whether a resend target was valid.
-- Unverified users must not gain editor or author APIs.
-- The user center resend action must only trigger email sending through the existing generic-response route.
-- No new auth state should be persisted outside Payload’s own verification fields and session cookie.
+- No project-owned auth cookie is introduced.
+- No reduced or limited session is introduced for unverified users.
+- Public resend-verification remains enumeration-safe.
+- Local API calls that pass `user` must continue to set `overrideAccess: false`.
+- Unverified users must never gain `/user/me`, editor, author, or other verified-only access.
 
-**Testing**
+**UI Constraints**
 
-- Update login and registration component tests to assert resend-verification links are gone.
-- Add or update user-center tests to assert:
-  - authenticated unverified users can access `/user/me`
-  - the verification warning panel is present
-  - the resend-verification action is rendered there
-- Update frontend auth-gate tests so:
-  - `/user/me` passes for unverified authenticated users
-  - verified-only routes still fail for unverified users
-- Update auth-input tests for the 8-character minimum and removal of composition requirements.
-- Add or update email-template tests so auth URLs prefer request origin in development-like contexts.
-- Update E2E auth coverage so unverified users are treated like guests outside the user center and can resend verification from `/user/me`.
+- Login and registration remain focused on authentication only.
+- Verification resend stays on verification-specific pages.
+- Password reset continues to use the existing forgot-password and reset-password flow.
+- User-center profile actions may link into the existing password reset flow, but must not create a parallel custom password-change backend.
 
-**Implementation Notes**
+**Testing Requirements**
 
-- Prefer adapting existing helpers such as `getCurrentFrontendUser`, `requireFrontendAuth`, and `readAuthNextPathFromReq` instead of introducing new auth-state abstractions.
-- Keep the UI change set narrow: remove resend links from auth forms, add one verification panel to the user center, and avoid inventing a second verification-management surface.
-- Reuse the existing resend-verification route rather than creating a new user-center-specific endpoint.
+- Integration tests must cover:
+  - verified login preserving Payload cookies
+  - unverified login returning `email_verification_required`
+  - locked login preserving lockout semantics
+  - resend-verification token reuse
+  - reset-password cookie forwarding
+- Frontend tests must cover:
+  - login and registration screens not rendering resend-verification links
+  - verification pages rendering resend-verification entrypoints
+  - password reset and verification flows using the expected endpoints
+- E2E must cover:
+  - registration landing on `/verify/pending`
+  - unverified login redirecting to `/verify/pending?email=...&next=...`
+  - unverified login not reaching `/user/me`
+  - resend-verification preserving `next`
+  - verify-email success returning the user to the login flow
+  - forgot-password and reset-password end to end
 
 **Out Of Scope**
 
-- Changing Payload Admin auth behavior
-- Reworking registration success messaging beyond the removal of auth-screen resend links
-- Adding a brand-new email-template system or replacing the current Cloudflare adapter
+- Admin auth redesign
+- Pre-registration staging records
+- Limited sessions for unverified users
+- Moving verification recovery into the user center
+- Replacing the Cloudflare email adapter

@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation'
 import type { JSONContent } from '@tiptap/core'
 
 import type { Post } from '@/payload-types'
+import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import EditorForm from '@/components/editor/EditorForm'
-import { getCurrentFrontendUser, getFrontendPayload } from '@/lib/frontendSession'
+import { getFrontendPayload } from '@/lib/frontendSession'
 import { getFrontendRequestContext } from '../lib/requestContext'
 
 function toNumericId(value: string | number | undefined): number | undefined {
@@ -49,11 +50,17 @@ async function EditorPageContent({
     getFrontendRequestContext(),
     searchParams,
   ])
-  const currentUser = await getCurrentFrontendUser(headers)
+  const auth = await requireFrontendAuth({
+    headers,
+    nextPath: '/editor',
+    requireAuthorAccess: true,
+    requireVerified: true,
+  })
 
-  if (!currentUser) {
-    redirect('/login?next=%2Feditor')
+  if (auth.ok === false) {
+    redirect(auth.location)
   }
+  const currentUser = auth.user
 
   const payload = await getFrontendPayload()
 
