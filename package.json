@@ -11,7 +11,7 @@
     "build:cloudflare:production": "pnpm run build:cloudflare",
     "deploy": "pnpm run deploy:database && pnpm run deploy:app",
     "deploy:app": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
-    "deploy:app:dev": "cross-env CLOUDFLARE_ENV=dev opennextjs-cloudflare build --env=dev && opennextjs-cloudflare upload --env=dev",
+    "deploy:app:dev": "cross-env CLOUDFLARE_ENV=dev opennextjs-cloudflare build --env=dev && opennextjs-cloudflare deploy --env=dev",
     "deploy:app:production": "pnpm run deploy:app",
     "deploy:cache-db": "wrangler d1 execute D1 --command \"CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, stale INTEGER, expire INTEGER DEFAULT NULL, UNIQUE(tag) ON CONFLICT REPLACE)\" --remote",
     "deploy:cache-db:dev": "wrangler d1 execute D1 --command \"CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, stale INTEGER, expire INTEGER DEFAULT NULL, UNIQUE(tag) ON CONFLICT REPLACE)\" --env=dev --remote",
