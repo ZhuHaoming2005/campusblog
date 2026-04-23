@@ -4,8 +4,9 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
-import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
+import { getPostRevalidationTags } from '@/lib/cacheTags'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
+import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 
 type PostRequestBody = {
   title?: string
@@ -26,9 +27,13 @@ type UserDoc = {
 type PostDoc = {
   coverImage?: number | string | { id?: number | string | null } | null
   id: number | string
+  school?: RelationValue
   slug: string
   status: string
+  subChannel?: RelationValue
 }
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
 const EMPTY_TIPTAP_DOC = {
   type: 'doc',
@@ -45,7 +50,7 @@ function toNumericId(value: string | number | undefined | null): number | undefi
   return Number.isFinite(num) ? num : undefined
 }
 
-function toRelationId(value: PostDoc['coverImage']): number | string | null {
+function toRelationId(value: RelationValue): number | string | null {
   if (typeof value === 'number' || typeof value === 'string') return value
   if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
   return null
@@ -165,9 +170,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const post = await payload.update<PostDoc>('posts', postId, data)
 
-    revalidateTag('posts', 'max')
-    revalidateTag('posts-by-school', 'max')
-    revalidateTag('posts-by-school-channel', 'max')
+    for (const tag of getPostRevalidationTags(
+      {
+        schoolId,
+        slug: post.slug,
+        subChannelId,
+      },
+      {
+        schoolId: toRelationId(existingPost.school),
+        slug: existingPost.slug,
+        subChannelId: toRelationId(existingPost.subChannel),
+      },
+    )) {
+      revalidateTag(tag, 'max')
+    }
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
@@ -223,9 +239,13 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     const payload = createPayloadRESTClient(request)
     const post = await payload.delete<PostDoc>('posts', postId)
 
-    revalidateTag('posts', 'max')
-    revalidateTag('posts-by-school', 'max')
-    revalidateTag('posts-by-school-channel', 'max')
+    for (const tag of getPostRevalidationTags({
+      schoolId: toRelationId(post.school),
+      slug: post.slug,
+      subChannelId: toRelationId(post.subChannel),
+    })) {
+      revalidateTag(tag, 'max')
+    }
 
     after(() => {
       console.info(`[editor-posts:delete] id=${post.id} slug=${post.slug}`)

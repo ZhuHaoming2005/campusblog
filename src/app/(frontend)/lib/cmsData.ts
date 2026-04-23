@@ -3,6 +3,16 @@ import 'server-only'
 import { cacheLife, cacheTag } from 'next/cache'
 
 import type { Post, School, SchoolSubChannel, User } from '@/payload-types'
+import {
+  CMS_CONTENT_CACHE_LIFE,
+  CMS_STRUCTURE_CACHE_LIFE,
+  POST_LIST_CACHE_TAG,
+  SCHOOL_SUB_CHANNELS_CACHE_TAG,
+  SCHOOLS_CACHE_TAG,
+  postCacheTag,
+  postsBySchoolCacheTag,
+  postsBySchoolChannelCacheTag,
+} from './cacheTags'
 import { getFrontendPayload } from './frontendSession'
 
 const POST_LIST_LIMIT = 20
@@ -36,8 +46,8 @@ async function getPayloadClient() {
 export async function getActiveSchools() {
   'use cache'
 
-  cacheLife({ stale: 300, revalidate: 60 * 30, expire: 60 * 60 * 24 })
-  cacheTag('schools')
+  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
+  cacheTag(SCHOOLS_CACHE_TAG)
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -54,8 +64,8 @@ export async function getActiveSchools() {
 export async function getSchoolBySlug(slug: string) {
   'use cache'
 
-  cacheLife({ stale: 300, revalidate: 60 * 10, expire: 60 * 60 })
-  cacheTag('schools')
+  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
+  cacheTag(SCHOOLS_CACHE_TAG)
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -73,8 +83,8 @@ export async function getSchoolBySlug(slug: string) {
 export async function getSubChannelsBySchool(schoolId: number) {
   'use cache'
 
-  cacheLife({ stale: 300, revalidate: 60 * 10, expire: 60 * 60 })
-  cacheTag('school-sub-channels')
+  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
+  cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -93,8 +103,8 @@ export async function getSubChannelsBySchool(schoolId: number) {
 export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: string) {
   'use cache'
 
-  cacheLife({ stale: 300, revalidate: 60 * 10, expire: 60 * 60 })
-  cacheTag('school-sub-channels')
+  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
+  cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -116,8 +126,8 @@ export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: s
 export async function getPublishedPosts() {
   'use cache'
 
-  cacheLife('minutes')
-  cacheTag('posts')
+  cacheLife(CMS_CONTENT_CACHE_LIFE)
+  cacheTag(POST_LIST_CACHE_TAG)
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -134,8 +144,8 @@ export async function getPublishedPosts() {
 export async function getPublishedPostBySlug(slug: string) {
   'use cache'
 
-  cacheLife('minutes')
-  cacheTag('posts')
+  cacheLife(CMS_CONTENT_CACHE_LIFE)
+  cacheTag(postCacheTag(slug))
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -188,9 +198,8 @@ export async function getVisiblePostBySlug(slug: string, user: User | null) {
 export async function getPublishedPostsBySchool(schoolId: number) {
   'use cache'
 
-  cacheLife('minutes')
-  cacheTag('posts')
-  cacheTag('posts-by-school')
+  cacheLife(CMS_CONTENT_CACHE_LIFE)
+  cacheTag(postsBySchoolCacheTag(schoolId))
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -209,9 +218,8 @@ export async function getPublishedPostsBySchool(schoolId: number) {
 export async function getPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
   'use cache'
 
-  cacheLife('minutes')
-  cacheTag('posts')
-  cacheTag('posts-by-school-channel')
+  cacheLife(CMS_CONTENT_CACHE_LIFE)
+  cacheTag(postsBySchoolChannelCacheTag(schoolId, channelId))
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -232,23 +240,12 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
 }
 
 export async function getDiscoverPageData(): Promise<DiscoverPageData> {
-  'use cache'
-
-  cacheLife('minutes')
-  cacheTag('posts')
-
   return {
     posts: await getPublishedPosts(),
   }
 }
 
 export async function getSchoolLayoutData(slug: string): Promise<SchoolLayoutData | null> {
-  'use cache'
-
-  cacheLife({ stale: 300, revalidate: 60 * 10, expire: 60 * 60 })
-  cacheTag('schools')
-  cacheTag('school-sub-channels')
-
   const school = await getSchoolBySlug(slug)
   if (!school) return null
 
@@ -261,14 +258,6 @@ export async function getSchoolLayoutData(slug: string): Promise<SchoolLayoutDat
 }
 
 export async function getSchoolPageData(slug: string): Promise<SchoolPageData | null> {
-  'use cache'
-
-  cacheLife('minutes')
-  cacheTag('schools')
-  cacheTag('school-sub-channels')
-  cacheTag('posts')
-  cacheTag('posts-by-school')
-
   const school = await getSchoolBySlug(slug)
   if (!school) return null
 
@@ -288,14 +277,6 @@ export async function getChannelPageData(
   slug: string,
   channelSlug: string,
 ): Promise<ChannelPageData | null> {
-  'use cache'
-
-  cacheLife('minutes')
-  cacheTag('schools')
-  cacheTag('school-sub-channels')
-  cacheTag('posts')
-  cacheTag('posts-by-school-channel')
-
   const school = await getSchoolBySlug(slug)
   if (!school) return null
 

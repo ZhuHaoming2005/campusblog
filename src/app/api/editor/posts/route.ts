@@ -4,8 +4,9 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
-import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
+import { getPostRevalidationTags } from '@/lib/cacheTags'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
+import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
 
 type PostRequestBody = {
   title?: string
@@ -144,9 +145,13 @@ export async function POST(request: Request) {
 
     const post = await payload.create<PostDoc>('posts', data)
 
-    revalidateTag('posts', 'max')
-    revalidateTag('posts-by-school', 'max')
-    revalidateTag('posts-by-school-channel', 'max')
+    for (const tag of getPostRevalidationTags({
+      schoolId,
+      slug: post.slug,
+      subChannelId,
+    })) {
+      revalidateTag(tag, 'max')
+    }
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
