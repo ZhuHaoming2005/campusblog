@@ -25,12 +25,18 @@ type AuthRequestLike =
             ['x-forwarded-proto']?: unknown
           }
         | null
+      payload?: {
+        config?: {
+          serverURL?: string | null
+        } | null
+      } | null
       url?: string | null
     }
   | null
   | undefined
 
-const getPublicAppURL = () => process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+const getPublicAppURL = (req?: AuthRequestLike) =>
+  req?.payload?.config?.serverURL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
 
 function normalizeOrigin(value: string | null | undefined) {
   if (!value) return null
@@ -42,9 +48,9 @@ function normalizeOrigin(value: string | null | undefined) {
   }
 }
 
-function getTrustedEmailOrigins() {
+function getTrustedEmailOrigins(req?: AuthRequestLike) {
   const origins = new Set<string>()
-  const configuredOrigin = normalizeOrigin(getPublicAppURL())
+  const configuredOrigin = normalizeOrigin(getPublicAppURL(req))
 
   if (configuredOrigin) {
     origins.add(configuredOrigin)
@@ -91,7 +97,7 @@ function readHeader(
 }
 
 function readRequestOrigin(req: AuthRequestLike) {
-  const trustedOrigins = getTrustedEmailOrigins()
+  const trustedOrigins = getTrustedEmailOrigins(req)
   const pickTrustedOrigin = (value: string | null) => {
     const origin = normalizeOrigin(value)
     return origin && trustedOrigins.has(origin) ? origin : null
@@ -143,7 +149,7 @@ export function buildAuthActionURL(args: {
   req?: AuthRequestLike
   token: string
 }) {
-  const url = new URL(args.pathname, readRequestOrigin(args.req) ?? getPublicAppURL())
+  const url = new URL(args.pathname, readRequestOrigin(args.req) ?? getPublicAppURL(args.req))
   url.searchParams.set('token', args.token)
 
   if (args.next) {

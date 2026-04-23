@@ -38,20 +38,6 @@ const isCLI = process.argv.some(
   (value) => realpath(value)?.endsWith(path.join('payload', 'bin.js')) ?? false,
 )
 const isProduction = process.env.NODE_ENV === 'production'
-const publicAppURL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-const authEmailDebug =
-  process.env.AUTH_EMAIL_DEBUG === 'true' || (!isProduction && process.env.AUTH_EMAIL_DEBUG !== 'false')
-const authEmailDebugDeliver = process.env.AUTH_EMAIL_DEBUG_DELIVER === 'true'
-const authEmailDebugPrintURLs = process.env.AUTH_EMAIL_DEBUG_PRINT_URLS === 'true'
-const authEmailFromAddress = process.env.AUTH_EMAIL_FROM_ADDRESS || ''
-const authEmailFromName = process.env.AUTH_EMAIL_FROM_NAME || 'CampusBlog'
-const csrfOrigins = Array.from(
-  new Set(
-    [publicAppURL, process.env.PAYLOAD_PUBLIC_SERVER_URL || '']
-      .map((value) => value.trim())
-      .filter(Boolean),
-  ),
-)
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
@@ -80,6 +66,22 @@ const cloudflare =
 const cloudflareEnv = cloudflare.env as CloudflareEnv & {
   EMAIL?: EmailBindingLike
 }
+const readRuntimeEnv = (key: keyof CloudflareEnv) => String(cloudflareEnv[key] ?? process.env[key] ?? '')
+const publicAppURL = readRuntimeEnv('NEXT_PUBLIC_SITE_URL') || 'http://localhost:3000'
+const authEmailDebugValue = readRuntimeEnv('AUTH_EMAIL_DEBUG')
+const authEmailDebug =
+  authEmailDebugValue === 'true' || (!isProduction && authEmailDebugValue !== 'false')
+const authEmailDebugDeliver = readRuntimeEnv('AUTH_EMAIL_DEBUG_DELIVER') === 'true'
+const authEmailDebugPrintURLs = readRuntimeEnv('AUTH_EMAIL_DEBUG_PRINT_URLS') === 'true'
+const authEmailFromAddress = readRuntimeEnv('AUTH_EMAIL_FROM_ADDRESS')
+const authEmailFromName = readRuntimeEnv('AUTH_EMAIL_FROM_NAME') || 'CampusBlog'
+const csrfOrigins = Array.from(
+  new Set(
+    [publicAppURL, readRuntimeEnv('PAYLOAD_PUBLIC_SERVER_URL')]
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ),
+)
 
 export default buildConfig({
   admin: {
@@ -106,8 +108,8 @@ export default buildConfig({
     emailBinding: cloudflareEnv.EMAIL,
     kv: cloudflareEnv.KV,
   }),
-  secret: process.env.PAYLOAD_SECRET || '',
-  serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL || publicAppURL,
+  secret: readRuntimeEnv('PAYLOAD_SECRET'),
+  serverURL: readRuntimeEnv('PAYLOAD_PUBLIC_SERVER_URL') || publicAppURL,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },

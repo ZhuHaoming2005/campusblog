@@ -95,8 +95,8 @@
       "name": "campusblog-dev",
       "vars": {
         "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
-        "NEXT_PUBLIC_SITE_URL": "https://campusblog.net",
-        "PAYLOAD_PUBLIC_SERVER_URL": "https://campusblog.net",
+        "NEXT_PUBLIC_SITE_URL": "https://campusblog-dev.zhuhaoming.workers.dev",
+        "PAYLOAD_PUBLIC_SERVER_URL": "https://campusblog-dev.zhuhaoming.workers.dev",
         "AUTH_EMAIL_FROM_ADDRESS": "noreply@mail.campusblog.net",
         "AUTH_EMAIL_FROM_NAME": "CampusBlog",
         "AUTH_EMAIL_DEBUG": "true",
