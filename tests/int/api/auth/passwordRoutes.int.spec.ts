@@ -212,7 +212,7 @@ describe('auth password and verification routes', () => {
     expect(response.status).toBe(200)
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
     expect(sendEmailMock.mock.calls[0]?.[0]?.html).toContain(
-      'https://preview.example.com/reset-password?token=token&next=%2Feditor',
+      'https://preview.example.com/reset-password?token=token&amp;next=%2Feditor',
     )
     expect(sendEmailMock.mock.calls[0]?.[0]?.html).not.toContain(
       'https://fallback.example.com/reset-password?token=token&next=%2Feditor',
@@ -250,7 +250,7 @@ describe('auth password and verification routes', () => {
     expect(response.status).toBe(200)
     expect(sendEmailMock).toHaveBeenCalledTimes(1)
     expect(sendEmailMock.mock.calls[0]?.[0]?.html).toContain(
-      'https://fallback.example.com/reset-password?token=token&next=%2Feditor',
+      'https://fallback.example.com/reset-password?token=token&amp;next=%2Feditor',
     )
     expect(sendEmailMock.mock.calls[0]?.[0]?.html).not.toContain(
       'https://evil.example.com/reset-password?token=token&next=%2Feditor',

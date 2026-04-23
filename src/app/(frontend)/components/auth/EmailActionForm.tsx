@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { extractApiError } from '@/app/(frontend)/lib/authClient'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ type EmailActionDictionary = {
 
 type EmailActionFormProps = {
   action: '/api/auth/forgot-password' | '/api/auth/resend-verification'
+  autoSubmitOnMount?: boolean
   buttonLabel: string
   cooldownButtonLabel: string
   cooldownSeconds: number
@@ -34,6 +35,7 @@ function buildCooldownLabel(prefix: string, seconds: number) {
 
 export default function EmailActionForm({
   action,
+  autoSubmitOnMount = false,
   buttonLabel,
   cooldownButtonLabel,
   cooldownSeconds,
@@ -49,6 +51,7 @@ export default function EmailActionForm({
   const [success, setSuccess] = useState(status === 'success')
   const [secondsRemaining, setSecondsRemaining] = useState(Math.max(0, cooldownSeconds))
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const autoSubmitAttempted = useRef(false)
 
   useEffect(() => {
     setValue(email)
@@ -83,15 +86,7 @@ export default function EmailActionForm({
       ? buildCooldownLabel(cooldownButtonLabel, secondsRemaining)
       : buttonLabel
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const normalizedEmail = value.trim().toLowerCase()
-    if (!normalizedEmail) {
-      setErrorMessage(t.auth.missingEmail)
-      return
-    }
-
+  const submitEmail = useCallback(async (normalizedEmail: string) => {
     setIsSubmitting(true)
     setErrorMessage('')
 
@@ -132,6 +127,28 @@ export default function EmailActionForm({
     } finally {
       setIsSubmitting(false)
     }
+  }, [action, error, nextPath])
+
+  useEffect(() => {
+    if (autoSubmitAttempted.current || !autoSubmitOnMount || secondsRemaining > 0) return
+
+    const normalizedEmail = value.trim().toLowerCase()
+    if (!normalizedEmail) return
+
+    autoSubmitAttempted.current = true
+    void submitEmail(normalizedEmail)
+  }, [autoSubmitOnMount, secondsRemaining, submitEmail, value])
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const normalizedEmail = value.trim().toLowerCase()
+    if (!normalizedEmail) {
+      setErrorMessage(t.auth.missingEmail)
+      return
+    }
+
+    await submitEmail(normalizedEmail)
   }
 
   return (

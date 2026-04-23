@@ -167,7 +167,7 @@ describe('Frontend auth verification pages', () => {
     })
 
     expect(replaceMock).toHaveBeenCalledWith(
-      '/verify/pending?email=writer%40example.com&next=%2Fuser%2Fme',
+      '/verify/pending?email=writer%40example.com&next=%2Fuser%2Fme&status=resent',
     )
     expect(refreshMock).toHaveBeenCalled()
     expect(screen.queryByRole('link', { name: dictionary.auth.resendVerification })).toBeNull()
@@ -428,6 +428,50 @@ describe('Frontend auth verification pages', () => {
     expect(
       screen
         .getByRole('button', { name: `${dictionary.auth.resendVerificationCooldownPrefix} 59s` })
+        .hasAttribute('disabled'),
+    ).toBe(true)
+  })
+
+  it('automatically sends verification email and starts countdown when first landing on pending page', async () => {
+    vi.useFakeTimers()
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ code: 'verification_resent' }),
+      headers: new Headers(),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { default: VerificationPendingForm } = await import('@/components/auth/VerificationPendingForm')
+
+    render(
+      <VerificationPendingForm
+        autoSubmitOnMount
+        cooldownSeconds={0}
+        email="reader@example.com"
+        error=""
+        nextPath="/editor"
+        status="idle"
+        t={dictionary}
+      />,
+    )
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/resend-verification',
+      expect.objectContaining({
+        body: JSON.stringify({
+          email: 'reader@example.com',
+          next: '/editor',
+        }),
+        method: 'POST',
+      }),
+    )
+    expect(
+      screen
+        .getByRole('button', { name: `${dictionary.auth.resendVerificationCooldownPrefix} 60s` })
         .hasAttribute('disabled'),
     ).toBe(true)
   })

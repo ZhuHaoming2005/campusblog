@@ -36,7 +36,7 @@ type AuthRequestLike =
   | undefined
 
 const getPublicAppURL = (req?: AuthRequestLike) =>
-  req?.payload?.config?.serverURL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  process.env.NEXT_PUBLIC_SITE_URL || req?.payload?.config?.serverURL || 'http://localhost:3000'
 
 function normalizeOrigin(value: string | null | undefined) {
   if (!value) return null
@@ -174,14 +174,48 @@ export function renderAuthActionEmail(args: {
     req: args.req,
     token: args.token,
   })
+  const escapedActionLabel = escapeHtml(args.actionLabel)
+  const escapedActionURL = escapeHtml(actionURL)
+  const escapedIntro = escapeHtml(args.intro)
+  const escapedUserEmail = args.userEmail ? escapeHtml(args.userEmail) : null
 
-  return [
-    `<p>${args.intro}</p>`,
-    args.userEmail ? `<p>${escapeHtml(args.userEmail)}</p>` : '',
-    `<p><a href="${actionURL}">${args.actionLabel}</a></p>`,
-  ]
-    .filter(Boolean)
-    .join('')
+  return `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#f4f7fb;color:#17324d;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapedIntro}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;border-radius:18px;overflow:hidden;background:#ffffff;border:1px solid #dbe6f1;">
+            <tr>
+              <td style="background:#0d3b66;padding:24px 28px;color:#ffffff;">
+                <div style="font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#b8d8e8;">CampusBlog</div>
+                <h1 style="margin:12px 0 0;font-size:26px;line-height:1.25;font-weight:700;">${escapedActionLabel}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;">
+                <p style="margin:0;color:#314f6b;font-size:16px;line-height:1.7;">${escapedIntro}</p>
+                ${
+                  escapedUserEmail
+                    ? `<p style="margin:18px 0 0;color:#5e7892;font-size:14px;line-height:1.6;">Account: <strong style="color:#17324d;">${escapedUserEmail}</strong></p>`
+                    : ''
+                }
+                <p style="margin:28px 0 0;">
+                  <a href="${escapedActionURL}" style="display:inline-block;border-radius:12px;background:#1b7f79;color:#ffffff;font-size:15px;font-weight:700;line-height:1;text-decoration:none;padding:15px 22px;">${escapedActionLabel}</a>
+                </p>
+                <p style="margin:24px 0 0;color:#5e7892;font-size:13px;line-height:1.7;">If the button does not work, copy and paste this URL into your browser:</p>
+                <p style="margin:8px 0 0;word-break:break-all;color:#0d3b66;font-size:13px;line-height:1.6;">
+                  <a href="${escapedActionURL}" style="color:#0d3b66;">${escapedActionURL}</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
 }
 
 export async function sendAuthActionEmail(args: {

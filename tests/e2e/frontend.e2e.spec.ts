@@ -141,16 +141,19 @@ test.describe('Frontend auth', () => {
       verified: false,
     })
 
+    const resendResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/auth/resend-verification') &&
+        response.request().method() === 'POST',
+    )
+
     await page.goto(
       `http://localhost:3000/verify/pending?email=${encodeURIComponent(unverifiedUser.email)}&next=%2Feditor`,
     )
+    expect((await resendResponsePromise).status()).toBe(200)
 
-    await page.locator('form button[type="submit"]').click()
-
-    await expect(page).toHaveURL(
-      new RegExp(`/verify/pending\\?email=${encodeURIComponent(unverifiedUser.email)}.*status=resent`),
-    )
     await expect(page.locator('input[name="next"]')).toHaveValue('/editor')
+    await expect(page.locator('form button[type="submit"]')).toBeDisabled()
 
     await deleteFrontendUserByEmail(unverifiedUser.email)
   })

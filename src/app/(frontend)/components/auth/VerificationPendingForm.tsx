@@ -14,6 +14,7 @@ type VerificationPendingDictionary = {
 }
 
 type VerificationPendingFormProps = {
+  autoSubmitOnMount?: boolean
   cooldownSeconds: number
   email: string
   error: string
@@ -26,6 +27,7 @@ export default function VerificationPendingForm(props: VerificationPendingFormPr
   return (
     <EmailActionForm
       action="/api/auth/resend-verification"
+      autoSubmitOnMount={props.autoSubmitOnMount}
       buttonLabel={props.t.auth.resendVerificationButton}
       cooldownButtonLabel={props.t.auth.resendVerificationCooldownPrefix}
       cooldownSeconds={props.cooldownSeconds}

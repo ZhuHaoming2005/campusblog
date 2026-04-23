@@ -114,6 +114,7 @@ export default function RegisterForm({
       if (nextPath !== '/verify/pending') {
         pendingParams.set('next', nextPath)
       }
+      pendingParams.set('status', 'resent')
 
       router.replace(`/verify/pending?${pendingParams.toString()}`)
       router.refresh()

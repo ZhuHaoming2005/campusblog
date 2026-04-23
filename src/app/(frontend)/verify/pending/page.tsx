@@ -49,6 +49,7 @@ export default async function VerificationPendingPage({
           </div>
         ) : null}
         <VerificationPendingForm
+          autoSubmitOnMount={Boolean(email && !error && !isResent)}
           cooldownSeconds={cooldownSeconds}
           email={email}
           error={error}
