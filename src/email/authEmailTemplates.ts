@@ -1,4 +1,6 @@
 import { maybeSanitizeNextPath } from '@/lib/authNavigation'
+import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
+import { DEFAULT_LOCALE, type AppLocale } from '@/app/(frontend)/lib/i18n/config'
 
 type PayloadEmailLike = {
   email: {
@@ -34,6 +36,8 @@ type AuthRequestLike =
     }
   | null
   | undefined
+
+type AuthEmailAction = 'resetPassword' | 'verifyEmail'
 
 const getPublicAppURL = (req?: AuthRequestLike) =>
   process.env.NEXT_PUBLIC_SITE_URL || req?.payload?.config?.serverURL || 'http://localhost:3000'
@@ -94,6 +98,73 @@ function readHeader(
 
   const value = (headers as { [key: string]: unknown })[name]
   return typeof value === 'string' ? value : null
+}
+
+function readCookieValue(cookieHeader: string | null, name: string) {
+  if (!cookieHeader) return null
+
+  for (const cookie of cookieHeader.split(';')) {
+    const [rawName, ...rawValueParts] = cookie.split('=')
+    if (rawName?.trim() !== name) continue
+
+    const rawValue = rawValueParts.join('=').trim()
+    if (!rawValue) return null
+
+    try {
+      return decodeURIComponent(rawValue)
+    } catch {
+      return rawValue
+    }
+  }
+
+  return null
+}
+
+function normalizeAuthEmailLocale(value: string | null | undefined): AppLocale | null {
+  const normalized = value?.trim().toLowerCase()
+  if (!normalized) return null
+
+  if (normalized === 'en' || normalized === 'en-us' || normalized.startsWith('en-')) {
+    return 'en-US'
+  }
+
+  if (normalized === 'zh' || normalized === 'zh-cn' || normalized.startsWith('zh-')) {
+    return 'zh-CN'
+  }
+
+  return null
+}
+
+export function resolveAuthEmailLocale(req?: AuthRequestLike): AppLocale {
+  const cookieLocale = normalizeAuthEmailLocale(
+    readCookieValue(readHeader(req?.headers ?? null, 'cookie'), 'locale'),
+  )
+  if (cookieLocale) return cookieLocale
+
+  const acceptLanguage = readHeader(req?.headers ?? null, 'accept-language')
+  for (const entry of (acceptLanguage ?? '').split(',')) {
+    const locale = normalizeAuthEmailLocale(entry.split(';')[0])
+    if (locale) return locale
+  }
+
+  return DEFAULT_LOCALE
+}
+
+function getAuthEmailCopy(action: AuthEmailAction, req?: AuthRequestLike) {
+  const locale = resolveAuthEmailLocale(req)
+  const dictionary = getDictionary(locale)
+  const template = dictionary.auth.emailTemplates[action]
+
+  return {
+    ...template,
+    accountLabel: dictionary.auth.emailTemplates.accountLabel,
+    fallbackURLLabel: dictionary.auth.emailTemplates.fallbackURLLabel,
+    lang: locale,
+  }
+}
+
+export function getAuthEmailSubject(action: AuthEmailAction, req?: AuthRequestLike) {
+  return getAuthEmailCopy(action, req).subject
 }
 
 function readRequestOrigin(req: AuthRequestLike) {
@@ -160,8 +231,9 @@ export function buildAuthActionURL(args: {
 }
 
 export function renderAuthActionEmail(args: {
-  actionLabel: string
-  intro: string
+  action?: AuthEmailAction
+  actionLabel?: string
+  intro?: string
   next?: string | null
   pathname: string
   req?: AuthRequestLike
@@ -174,13 +246,22 @@ export function renderAuthActionEmail(args: {
     req: args.req,
     token: args.token,
   })
-  const escapedActionLabel = escapeHtml(args.actionLabel)
+  const copy = args.action ? getAuthEmailCopy(args.action, args.req) : null
+  const actionLabel = copy?.actionLabel ?? args.actionLabel ?? ''
+  const intro = copy?.intro ?? args.intro ?? ''
+  const fallbackURLLabel =
+    copy?.fallbackURLLabel ?? 'If the button does not work, copy and paste this URL into your browser:'
+  const accountLabel = copy?.accountLabel ?? 'Account:'
+  const lang = copy?.lang ?? 'en'
+  const escapedActionLabel = escapeHtml(actionLabel)
   const escapedActionURL = escapeHtml(actionURL)
-  const escapedIntro = escapeHtml(args.intro)
+  const escapedFallbackURLLabel = escapeHtml(fallbackURLLabel)
+  const escapedIntro = escapeHtml(intro)
+  const escapedAccountLabel = escapeHtml(accountLabel)
   const escapedUserEmail = args.userEmail ? escapeHtml(args.userEmail) : null
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}">
   <body style="margin:0;background:#f4f7fb;color:#17324d;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapedIntro}</div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb;padding:32px 16px;">
@@ -198,13 +279,13 @@ export function renderAuthActionEmail(args: {
                 <p style="margin:0;color:#314f6b;font-size:16px;line-height:1.7;">${escapedIntro}</p>
                 ${
                   escapedUserEmail
-                    ? `<p style="margin:18px 0 0;color:#5e7892;font-size:14px;line-height:1.6;">Account: <strong style="color:#17324d;">${escapedUserEmail}</strong></p>`
+                    ? `<p style="margin:18px 0 0;color:#5e7892;font-size:14px;line-height:1.6;">${escapedAccountLabel} <strong style="color:#17324d;">${escapedUserEmail}</strong></p>`
                     : ''
                 }
                 <p style="margin:28px 0 0;">
                   <a href="${escapedActionURL}" style="display:inline-block;border-radius:12px;background:#1b7f79;color:#ffffff;font-size:15px;font-weight:700;line-height:1;text-decoration:none;padding:15px 22px;">${escapedActionLabel}</a>
                 </p>
-                <p style="margin:24px 0 0;color:#5e7892;font-size:13px;line-height:1.7;">If the button does not work, copy and paste this URL into your browser:</p>
+                <p style="margin:24px 0 0;color:#5e7892;font-size:13px;line-height:1.7;">${escapedFallbackURLLabel}</p>
                 <p style="margin:8px 0 0;word-break:break-all;color:#0d3b66;font-size:13px;line-height:1.6;">
                   <a href="${escapedActionURL}" style="color:#0d3b66;">${escapedActionURL}</a>
                 </p>
@@ -219,19 +300,21 @@ export function renderAuthActionEmail(args: {
 }
 
 export async function sendAuthActionEmail(args: {
-  actionLabel: string
-  intro: string
+  action?: AuthEmailAction
+  actionLabel?: string
+  intro?: string
   next?: string | null
   pathname: string
   payload: PayloadEmailLike
   req?: AuthRequestLike
-  subject: string
+  subject?: string
   to: string
   token: string
 }) {
   await args.payload.email.sendEmail({
     from: `"${args.payload.email.defaultFromName}" <${args.payload.email.defaultFromAddress}>`,
     html: renderAuthActionEmail({
+      action: args.action,
       actionLabel: args.actionLabel,
       intro: args.intro,
       next: args.next,
@@ -240,7 +323,7 @@ export async function sendAuthActionEmail(args: {
       token: args.token,
       userEmail: args.to,
     }),
-    subject: args.subject,
+    subject: args.subject ?? (args.action ? getAuthEmailSubject(args.action, args.req) : ''),
     to: args.to,
   })
 }

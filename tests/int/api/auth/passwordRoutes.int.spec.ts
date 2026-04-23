@@ -219,6 +219,41 @@ describe('auth password and verification routes', () => {
     )
   })
 
+  it('sends forgot-password mail in the selected Chinese locale', async () => {
+    const forgotPasswordMock = vi.fn().mockResolvedValue('token')
+    const sendEmailMock = vi.fn().mockResolvedValue(undefined)
+    getFrontendPayloadMock.mockResolvedValue({
+      email: {
+        defaultFromAddress: 'noreply@example.com',
+        defaultFromName: 'CampusBlog',
+        sendEmail: sendEmailMock,
+      },
+      forgotPassword: forgotPasswordMock,
+    })
+
+    const { POST } = await import('@/app/api/auth/forgot-password/route')
+
+    const response = await POST(
+      new Request('https://preview.example.com/api/auth/forgot-password', {
+        body: JSON.stringify({ email: 'user@example.com', next: '/editor' }),
+        headers: {
+          'content-type': 'application/json',
+          cookie: 'locale=zh-CN',
+          'x-forwarded-for': '127.0.0.1',
+        },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    expect(sendEmailMock).toHaveBeenCalledTimes(1)
+    expect(sendEmailMock.mock.calls[0]?.[0]?.subject).toBe('重置你的 CampusBlog 密码')
+    expect(sendEmailMock.mock.calls[0]?.[0]?.html).toContain('重置你的密码')
+    expect(sendEmailMock.mock.calls[0]?.[0]?.html).toContain(
+      '如果按钮无法打开，请复制以下链接到浏览器：',
+    )
+  })
+
   it('falls back to the configured site origin for forgot-password emails when request origin is untrusted', async () => {
     const forgotPasswordMock = vi.fn().mockResolvedValue('token')
     const sendEmailMock = vi.fn().mockResolvedValue(undefined)

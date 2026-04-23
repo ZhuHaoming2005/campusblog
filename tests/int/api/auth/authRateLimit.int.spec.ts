@@ -83,6 +83,34 @@ describe('authRateLimit', () => {
     )
   })
 
+  it('does not write a KV expiration TTL below Cloudflare minimum near the end of a window', async () => {
+    const kv = {
+      get: vi.fn(async () =>
+        JSON.stringify({
+          count: 2,
+          startedAt: 1_700_000_000_000,
+        }),
+      ),
+      put: vi.fn(async () => undefined),
+    }
+
+    const { checkAuthRateLimit } = await import('@/app/api/auth/_lib/authRateLimit')
+
+    await checkAuthRateLimit({
+      action: 'resendVerification',
+      email: 'user@example.com',
+      ip: '127.0.0.1',
+      kv,
+      now: 1_700_000_570_000,
+    })
+
+    expect(kv.put).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({ expirationTtl: 60 }),
+    )
+  })
+
   it('blocks repeated email-send attempts within a 60 second cooldown window', async () => {
     const store = new Map<string, string>()
     const kv = {

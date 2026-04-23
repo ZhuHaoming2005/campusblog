@@ -6,7 +6,11 @@ import {
   cleanupDetachedUserMediaAfterDelete,
 } from '@/hooks/cleanupDetachedUserMedia'
 import { preventAdminPasswordChange } from '@/hooks/preventAdminPasswordChange'
-import { readAuthNextPathFromReq, renderAuthActionEmail } from '@/email/authEmailTemplates'
+import {
+  getAuthEmailSubject,
+  readAuthNextPathFromReq,
+  renderAuthActionEmail,
+} from '@/email/authEmailTemplates'
 
 const AUTH_TOKEN_TTL_MS = 1000 * 60 * 60
 const AUTH_LOCK_TIME_MS = 1000 * 60 * 15
@@ -40,30 +44,28 @@ export const Users: CollectionConfig = {
       expiration: AUTH_TOKEN_TTL_MS,
       generateEmailHTML: ({ req, token, user }) =>
         renderAuthActionEmail({
-          actionLabel: 'Reset your password',
-          intro: 'Use the secure link below to reset your CampusBlog password.',
+          action: 'resetPassword',
           next: readAuthNextPathFromReq(req),
           pathname: '/reset-password',
           req,
           token,
           userEmail: user?.email,
         }),
-      generateEmailSubject: () => 'Reset your CampusBlog password',
+      generateEmailSubject: ({ req }) => getAuthEmailSubject('resetPassword', req),
     },
     lockTime: AUTH_LOCK_TIME_MS,
     maxLoginAttempts: AUTH_MAX_LOGIN_ATTEMPTS,
     verify: {
       generateEmailHTML: ({ req, token, user }) =>
         renderAuthActionEmail({
-          actionLabel: 'Verify your email',
-          intro: 'Verify your email address to activate CampusBlog sign-in.',
+          action: 'verifyEmail',
           next: readAuthNextPathFromReq(req),
           pathname: '/api/auth/verify-email',
           req,
           token,
           userEmail: user?.email,
         }),
-      generateEmailSubject: () => 'Verify your CampusBlog email',
+      generateEmailSubject: ({ req }) => getAuthEmailSubject('verifyEmail', req),
     },
   },
   access: {

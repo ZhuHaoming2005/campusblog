@@ -101,6 +101,70 @@ describe('authEmailTemplates', () => {
     expect(html).toContain('copy and paste this URL')
   })
 
+  it('renders Chinese auth email copy when the selected locale cookie is zh-CN', async () => {
+    const { renderAuthActionEmail } = await import('@/email/authEmailTemplates')
+
+    const html = renderAuthActionEmail({
+      action: 'verifyEmail',
+      next: '/editor',
+      pathname: '/api/auth/verify-email',
+      req: {
+        headers: new Headers({
+          cookie: 'locale=zh-CN',
+        }),
+      },
+      token: 'verify-token',
+      userEmail: 'user@example.com',
+    })
+
+    expect(html).toContain('<html lang="zh-CN">')
+    expect(html).toContain('验证你的邮箱')
+    expect(html).toContain('账户：')
+    expect(html).toContain('如果按钮无法打开，请复制以下链接到浏览器：')
+  })
+
+  it('renders English auth email copy when the selected locale cookie is en-US', async () => {
+    const { renderAuthActionEmail } = await import('@/email/authEmailTemplates')
+
+    const html = renderAuthActionEmail({
+      action: 'resetPassword',
+      pathname: '/reset-password',
+      req: {
+        headers: new Headers({
+          cookie: 'locale=en-US',
+          'accept-language': 'zh-CN,zh;q=0.9',
+        }),
+      },
+      token: 'reset-token',
+      userEmail: 'user@example.com',
+    })
+
+    expect(html).toContain('<html lang="en-US">')
+    expect(html).toContain('Reset your password')
+    expect(html).toContain('Account:')
+    expect(html).toContain('If the button does not work, copy and paste this URL into your browser:')
+  })
+
+  it('uses Accept-Language for auth email copy when no locale cookie is selected', async () => {
+    const { resolveAuthEmailLocale } = await import('@/email/authEmailTemplates')
+
+    expect(
+      resolveAuthEmailLocale({
+        headers: new Headers({
+          'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }),
+      }),
+    ).toBe('zh-CN')
+
+    expect(
+      resolveAuthEmailLocale({
+        headers: new Headers({
+          'accept-language': 'en-US,en;q=0.9,zh;q=0.8',
+        }),
+      }),
+    ).toBe('en-US')
+  })
+
   it('falls back to the configured site origin when request-derived origin is not trusted', async () => {
     const { buildAuthActionURL } = await import('@/email/authEmailTemplates')
 

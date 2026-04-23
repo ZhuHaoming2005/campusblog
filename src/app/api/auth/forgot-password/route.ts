@@ -110,13 +110,11 @@ export async function POST(request: Request) {
 
     if (typeof token === 'string' && token.length > 0) {
       await sendAuthActionEmail({
-        actionLabel: 'Reset your password',
-        intro: 'Use the secure link below to reset your CampusBlog password.',
+        action: 'resetPassword',
         next: input.next,
         pathname: '/reset-password',
         payload,
         req: request,
-        subject: 'Reset your CampusBlog password',
         to: input.email,
         token,
       })

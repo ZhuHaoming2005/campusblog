@@ -24,6 +24,7 @@ const RATE_LIMITS: Record<AuthAction, { limit: number; windowMs: number }> = {
 }
 
 const EMAIL_SEND_COOLDOWN_MS = 60 * 1000
+const MIN_KV_EXPIRATION_TTL_SECONDS = 60
 
 async function sha256(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value)
@@ -87,7 +88,10 @@ export async function checkAuthRateLimit(args: {
       : { count: 1, startedAt: now }
 
     const windowExpiresAt = inWindow ? existing.startedAt + settings.windowMs : now + settings.windowMs
-    const ttlSeconds = Math.max(1, Math.ceil((windowExpiresAt - now) / 1000))
+    const ttlSeconds = Math.max(
+      MIN_KV_EXPIRATION_TTL_SECONDS,
+      Math.ceil((windowExpiresAt - now) / 1000),
+    )
 
     await kv.put(key, JSON.stringify(nextState), { expirationTtl: ttlSeconds })
 
@@ -156,7 +160,10 @@ export async function recordAuthCooldown(args: {
   try {
     const now = args.now ?? Date.now()
     await kv.put(await buildCooldownKey(args), JSON.stringify({ startedAt: now }), {
-      expirationTtl: Math.max(1, Math.ceil(EMAIL_SEND_COOLDOWN_MS / 1000)),
+      expirationTtl: Math.max(
+        MIN_KV_EXPIRATION_TTL_SECONDS,
+        Math.ceil(EMAIL_SEND_COOLDOWN_MS / 1000),
+      ),
     })
   } catch {
     return

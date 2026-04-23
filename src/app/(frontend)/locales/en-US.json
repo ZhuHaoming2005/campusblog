@@ -161,7 +161,21 @@
     "resetPasswordSubtitle": "Set a new password for your account using the reset link you received.",
     "resetPasswordButton": "Update password",
     "resetPasswordSuccess": "Your password has been reset. You can sign in with the new password now.",
-    "resetPasswordTokenError": "This reset link is missing or invalid. Request a new password reset email."
+    "resetPasswordTokenError": "This reset link is missing or invalid. Request a new password reset email.",
+    "emailTemplates": {
+      "accountLabel": "Account:",
+      "fallbackURLLabel": "If the button does not work, copy and paste this URL into your browser:",
+      "resetPassword": {
+        "actionLabel": "Reset your password",
+        "intro": "Use the secure link below to reset your CampusBlog password.",
+        "subject": "Reset your CampusBlog password"
+      },
+      "verifyEmail": {
+        "actionLabel": "Verify your email",
+        "intro": "Verify your email address to activate CampusBlog sign-in.",
+        "subject": "Verify your CampusBlog email"
+      }
+    }
   },
   "userCenter": {
     "pageTitle": "My Dashboard",

@@ -161,7 +161,21 @@
     "resetPasswordSubtitle": "使用邮件中的重置链接，为你的账号设置一个新密码。",
     "resetPasswordButton": "更新密码",
     "resetPasswordSuccess": "密码已重置成功，现在可以使用新密码登录。",
-    "resetPasswordTokenError": "当前重置链接缺失或无效，请重新申请密码重置邮件。"
+    "resetPasswordTokenError": "当前重置链接缺失或无效，请重新申请密码重置邮件。",
+    "emailTemplates": {
+      "accountLabel": "账户：",
+      "fallbackURLLabel": "如果按钮无法打开，请复制以下链接到浏览器：",
+      "resetPassword": {
+        "actionLabel": "重置你的密码",
+        "intro": "请使用下面的安全链接重置你的 CampusBlog 密码。",
+        "subject": "重置你的 CampusBlog 密码"
+      },
+      "verifyEmail": {
+        "actionLabel": "验证你的邮箱",
+        "intro": "请验证你的邮箱地址，以启用 CampusBlog 登录。",
+        "subject": "验证你的 CampusBlog 邮箱"
+      }
+    }
   },
   "userCenter": {
     "pageTitle": "我的主页",
