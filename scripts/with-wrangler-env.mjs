@@ -1,6 +1,4 @@
-import { spawn } from 'node:child_process'
-import path from 'node:path'
-import { readWranglerEnvironmentVars } from './lib/wrangler-env.mjs'
+import { runWithWranglerEnv } from './lib/run-with-wrangler-env.mjs'
 
 const [command, ...args] = process.argv.slice(2)
 
@@ -9,18 +7,7 @@ if (!command) {
   process.exit(1)
 }
 
-const environment = process.env.CLOUDFLARE_ENV || undefined
-const wranglerConfigPath = path.resolve(process.cwd(), 'wrangler.jsonc')
-const wranglerVars = readWranglerEnvironmentVars(wranglerConfigPath, environment)
-
-const child = spawn(command, args, {
-  env: {
-    ...process.env,
-    ...wranglerVars,
-  },
-  shell: process.platform === 'win32',
-  stdio: 'inherit',
-})
+const child = runWithWranglerEnv(command, args)
 
 child.on('exit', (code, signal) => {
   if (signal) {
