@@ -9,6 +9,10 @@ import {
   syncUserPostQuotaAfterChange,
   syncUserPostQuotaAfterDelete,
 } from '@/hooks/syncUserPostQuota'
+import {
+  revalidatePostCacheAfterChange,
+  revalidatePostCacheAfterDelete,
+} from '@/hooks/revalidateFrontendCache'
 import { validatePostChannelRelation } from '@/hooks/validatePostChannelRelation'
 
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
@@ -34,8 +38,8 @@ export const Posts: CollectionConfig = {
   hooks: {
     beforeValidate: [setCurrentAuthor, validatePostChannelRelation],
     beforeChange: [setPublishedAt],
-    afterChange: [syncUserPostQuotaAfterChange],
-    afterDelete: [syncUserPostQuotaAfterDelete],
+    afterChange: [syncUserPostQuotaAfterChange, revalidatePostCacheAfterChange],
+    afterDelete: [syncUserPostQuotaAfterDelete, revalidatePostCacheAfterDelete],
   },
   fields: [
     {

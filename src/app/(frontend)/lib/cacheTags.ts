@@ -1,13 +1,13 @@
 export const CMS_CONTENT_CACHE_LIFE = {
   stale: 300,
-  revalidate: 60 * 60 * 24,
-  expire: 60 * 60 * 24 * 7,
+  revalidate: Infinity,
+  expire: Infinity,
 } as const
 
 export const CMS_STRUCTURE_CACHE_LIFE = {
   stale: 300,
-  revalidate: 60 * 60,
-  expire: 60 * 60 * 24,
+  revalidate: Infinity,
+  expire: Infinity,
 } as const
 
 export const POST_LIST_CACHE_TAG = 'posts:list'

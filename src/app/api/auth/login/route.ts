@@ -7,7 +7,6 @@ import {
   jsonAuthSuccess,
   sanitizeAuthNextPath,
 } from '../_lib/authResponses'
-import { getFrontendLoginLockState } from '../_lib/limitedFrontendSession'
 
 type UpstreamAuthErrorPayload = {
   errors?: Array<{
@@ -73,6 +72,7 @@ export async function POST(request: Request) {
       }
 
       if (upstream.status === 401) {
+        const { getFrontendLoginLockState } = await import('../_lib/limitedFrontendSession')
         const lockState = await getFrontendLoginLockState({
           email: input.email,
           request,

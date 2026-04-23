@@ -7,6 +7,7 @@ import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 const replaceMock = vi.fn()
 const refreshMock = vi.fn()
 const redirectMock = vi.fn()
+const connectionMock = vi.fn()
 const getCurrentFrontendUserMock = vi.fn()
 const authExperienceMock = vi.fn()
 
@@ -28,6 +29,10 @@ vi.mock('next/navigation', () => ({
     refresh: refreshMock,
     replace: replaceMock,
   }),
+}))
+
+vi.mock('next/server', () => ({
+  connection: connectionMock,
 }))
 
 vi.mock('next/headers.js', () => ({
@@ -66,6 +71,8 @@ describe('Frontend auth verification pages', () => {
     replaceMock.mockReset()
     refreshMock.mockReset()
     redirectMock.mockReset()
+    connectionMock.mockReset()
+    connectionMock.mockResolvedValue(undefined)
     getCurrentFrontendUserMock.mockReset()
     authExperienceMock.mockReset()
   })
@@ -537,6 +544,7 @@ describe('Frontend auth verification pages', () => {
     cleanup()
     authExperienceMock.mockClear()
     getCurrentFrontendUserMock.mockResolvedValueOnce({
+      _verified: true,
       email: 'reader@example.com',
       id: 1,
     })
@@ -550,5 +558,30 @@ describe('Frontend auth verification pages', () => {
     await waitFor(() => {
       expect(redirectMock).toHaveBeenCalledWith('/editor')
     })
+  })
+
+  it('keeps unverified sessions on the login page instead of redirecting to protected pages', async () => {
+    const { LoginPageContent } = await import('@/app/(frontend)/login/LoginPageContent')
+
+    getCurrentFrontendUserMock.mockResolvedValueOnce({
+      _verified: false,
+      email: 'pending@example.com',
+      id: 1,
+    })
+
+    render(await LoginPageContent({
+      searchParams: Promise.resolve({
+        next: '/user/me',
+      }),
+    }))
+
+    expect(connectionMock).toHaveBeenCalled()
+    expect(redirectMock).not.toHaveBeenCalled()
+    expect(authExperienceMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialMode: 'login',
+        nextPath: '/user/me',
+      }),
+    )
   })
 })

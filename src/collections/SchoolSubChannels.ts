@@ -2,6 +2,10 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
+import {
+  revalidateSchoolSubChannelCacheAfterChange,
+  revalidateSchoolSubChannelCacheAfterDelete,
+} from '@/hooks/revalidateFrontendCache'
 
 export const SchoolSubChannels: CollectionConfig = {
   slug: 'school-sub-channels',
@@ -14,6 +18,10 @@ export const SchoolSubChannels: CollectionConfig = {
     create: adminOnly,
     update: adminOnly,
     delete: adminOnly,
+  },
+  hooks: {
+    afterChange: [revalidateSchoolSubChannelCacheAfterChange],
+    afterDelete: [revalidateSchoolSubChannelCacheAfterDelete],
   },
   defaultSort: 'sortOrder',
   fields: [

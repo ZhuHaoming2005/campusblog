@@ -1,10 +1,8 @@
-import { revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
-import { getPostRevalidationTags } from '@/lib/cacheTags'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 
@@ -170,21 +168,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
     const post = await payload.update<PostDoc>('posts', postId, data)
 
-    for (const tag of getPostRevalidationTags(
-      {
-        schoolId,
-        slug: post.slug,
-        subChannelId,
-      },
-      {
-        schoolId: toRelationId(existingPost.school),
-        slug: existingPost.slug,
-        subChannelId: toRelationId(existingPost.subChannel),
-      },
-    )) {
-      revalidateTag(tag, 'max')
-    }
-
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
       console.info(
@@ -238,14 +221,6 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
 
     const payload = createPayloadRESTClient(request)
     const post = await payload.delete<PostDoc>('posts', postId)
-
-    for (const tag of getPostRevalidationTags({
-      schoolId: toRelationId(post.school),
-      slug: post.slug,
-      subChannelId: toRelationId(post.subChannel),
-    })) {
-      revalidateTag(tag, 'max')
-    }
 
     after(() => {
       console.info(`[editor-posts:delete] id=${post.id} slug=${post.slug}`)

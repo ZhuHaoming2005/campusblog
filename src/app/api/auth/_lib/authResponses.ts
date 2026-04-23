@@ -73,6 +73,17 @@ export function appendSetCookieHeaders(source: Headers, target: Headers) {
     return
   }
 
+  const getAll = (source as Headers & { getAll?: (name: string) => string[] }).getAll
+  const workersCookies =
+    typeof getAll === 'function' ? getAll.call(source, 'Set-Cookie') : []
+
+  if (workersCookies.length > 0) {
+    for (const value of workersCookies) {
+      target.append('set-cookie', value)
+    }
+    return
+  }
+
   const combined = source.get('set-cookie')
   if (combined) {
     for (const value of splitSetCookieHeader(combined)) {

@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { connection } from 'next/server'
 
 import AuthExperience from '@/components/auth/AuthExperience'
 import { sanitizeNextPath } from '@/lib/authNavigation'
@@ -11,6 +12,8 @@ async function RegisterPageContent({
 }: {
   searchParams: Promise<{ next?: string }>
 }) {
+  await connection()
+
   const [{ headers, t }, rawSearchParams] = await Promise.all([
     getFrontendRequestContext(),
     searchParams,
@@ -18,7 +21,7 @@ async function RegisterPageContent({
   const nextPath = sanitizeNextPath(rawSearchParams.next, '/user/me')
   const currentUser = await getCurrentFrontendUser(headers)
 
-  if (currentUser) {
+  if (currentUser?._verified === true) {
     redirect(nextPath === '/login' || nextPath === '/register' ? '/user/me' : nextPath)
   }
 

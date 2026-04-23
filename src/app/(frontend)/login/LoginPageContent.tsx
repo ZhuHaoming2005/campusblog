@@ -1,5 +1,6 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
+import { connection } from 'next/server'
 
 import AuthExperience from '@/components/auth/AuthExperience'
 import { sanitizeNextPath } from '@/lib/authNavigation'
@@ -11,6 +12,8 @@ export async function LoginPageContent({
 }: {
   searchParams: Promise<{ next?: string; status?: string }>
 }) {
+  await connection()
+
   const [{ headers, t }, rawSearchParams] = await Promise.all([
     getFrontendRequestContext(),
     searchParams,
@@ -20,7 +23,7 @@ export async function LoginPageContent({
     rawSearchParams.status === 'password-reset' ? t.auth.resetPasswordSuccess : null
   const currentUser = await getCurrentFrontendUser(headers)
 
-  if (currentUser) {
+  if (currentUser?._verified === true) {
     redirect(nextPath === '/login' || nextPath === '/register' ? '/user/me' : nextPath)
   }
 

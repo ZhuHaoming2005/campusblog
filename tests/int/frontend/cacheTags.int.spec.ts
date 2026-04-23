@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CMS_CONTENT_CACHE_LIFE,
+  CMS_STRUCTURE_CACHE_LIFE,
   POST_LIST_CACHE_TAG,
   getPostRevalidationTags,
   postCacheTag,
@@ -9,6 +11,17 @@ import {
 } from '@/lib/cacheTags'
 
 describe('cache tag helpers', () => {
+  it('keeps CMS caches tag-driven instead of scheduling time-based revalidation', () => {
+    expect(CMS_CONTENT_CACHE_LIFE).toMatchObject({
+      revalidate: Infinity,
+      expire: Infinity,
+    })
+    expect(CMS_STRUCTURE_CACHE_LIFE).toMatchObject({
+      revalidate: Infinity,
+      expire: Infinity,
+    })
+  })
+
   it('builds scoped post tags for list, detail, school, and channel caches', () => {
     expect(postCacheTag('hello-world')).toBe('post:hello-world')
     expect(postsBySchoolCacheTag(12)).toBe('posts:school:12')
