@@ -12,16 +12,16 @@ import PostFeed from '@/components/PostFeed'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { getCurrentFrontendUser } from '@/lib/frontendSession'
-import { DEFAULT_LOCALE } from '../../lib/i18n/config'
-import { getDictionary } from '../../lib/i18n/dictionaries'
+import { DEFAULT_LOCALE } from '@/lib/i18n/config'
+import { getDictionary } from '@/lib/i18n/dictionaries'
 import {
   getPublishedPostBySlug,
   getPublishedPosts,
   getPublishedPostsBySchool,
   getPublishedPostsBySchoolAndChannel,
   getVisiblePostBySlug,
-} from '../../lib/cmsData'
-import { getFrontendRequestContext } from '../../lib/requestContext'
+} from '@/lib/cmsData'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 import {
   estimatePostReadingMinutes,
   getPostAuthor,
@@ -30,7 +30,7 @@ import {
   getPostPublishedLabel,
   getPostSchool,
   getPostSubChannel,
-} from '../../lib/postPresentation'
+} from '@/lib/postPresentation'
 
 function dedupePosts(posts: Post[]): Post[] {
   const seen = new Set<number>()

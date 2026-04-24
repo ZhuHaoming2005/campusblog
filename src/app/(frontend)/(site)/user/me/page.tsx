@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 
-import { DEFAULT_LOCALE } from '../../lib/i18n/config'
-import { getDictionary } from '../../lib/i18n/dictionaries'
+import { DEFAULT_LOCALE } from '@/lib/i18n/config'
+import { getDictionary } from '@/lib/i18n/dictionaries'
 import { UserCenterPageContent } from './UserCenterPageContent'
 
 function UserCenterPageFallback() {

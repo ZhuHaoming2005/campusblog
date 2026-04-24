@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { buildAuthHref, sanitizeNextPath } from '@/lib/authNavigation'
 
-import { getFrontendRequestContext } from '../lib/requestContext'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 function buildVerificationPendingHref(email: string | undefined, nextPath: string) {
   const params = new URLSearchParams()

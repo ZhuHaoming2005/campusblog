@@ -5,7 +5,7 @@ import { connection } from 'next/server'
 import AuthExperience from '@/components/auth/AuthExperience'
 import { sanitizeNextPath } from '@/lib/authNavigation'
 import { getCurrentFrontendUser } from '@/lib/frontendSession'
-import { getFrontendRequestContext } from '../lib/requestContext'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 export async function LoginPageContent({
   searchParams,

@@ -9,6 +9,7 @@ import {
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
+  getPostRelationshipCacheTags,
   postCacheTag,
   postsBySchoolCacheTag,
   postsBySchoolChannelCacheTag,
@@ -41,6 +42,16 @@ type ChannelPageData = {
 
 async function getPayloadClient() {
   return getFrontendPayload()
+}
+
+function cachePostRelationshipTags(
+  posts: Post | Post[] | null,
+  options?: Parameters<typeof getPostRelationshipCacheTags>[1],
+) {
+  const relationshipTags = getPostRelationshipCacheTags(posts, options)
+  if (relationshipTags.length > 0) {
+    cacheTag(...relationshipTags)
+  }
 }
 
 export async function getActiveSchools() {
@@ -138,7 +149,10 @@ export async function getPublishedPosts() {
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getPublishedPostBySlug(slug: string) {
@@ -157,7 +171,10 @@ export async function getPublishedPostBySlug(slug: string) {
     depth: 2,
   })
 
-  return (docs[0] as Post | undefined) ?? null
+  const post = (docs[0] as Post | undefined) ?? null
+  cachePostRelationshipTags(post, { includeAllPostTags: true })
+
+  return post
 }
 
 export async function getVisiblePostBySlug(slug: string, user: User | null) {
@@ -171,10 +188,7 @@ export async function getVisiblePostBySlug(slug: string, user: User | null) {
             or: [
               { status: { equals: 'published' } },
               {
-                and: [
-                  { status: { equals: 'hidden' } },
-                  { author: { equals: user.id } },
-                ],
+                and: [{ status: { equals: 'hidden' } }, { author: { equals: user.id } }],
               },
             ],
           },
@@ -212,7 +226,10 @@ export async function getPublishedPostsBySchool(schoolId: number) {
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
@@ -236,7 +253,10 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getDiscoverPageData(): Promise<DiscoverPageData> {

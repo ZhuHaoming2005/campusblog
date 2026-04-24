@@ -1,30 +1,22 @@
 import Link from 'next/link'
 
 import { buildAuthHref, sanitizeNextPath } from '@/lib/authNavigation'
-import VerificationPendingForm from '@/components/auth/VerificationPendingForm'
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm'
 
-import { getFrontendRequestContext } from '../../lib/requestContext'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
-function maskEmail(email: string) {
-  const [localPart = '', domainPart = ''] = email.split('@')
-  if (!localPart || !domainPart) return email
-
-  const visibleLocal = localPart.length <= 2 ? localPart[0] ?? '' : `${localPart.slice(0, 2)}***`
-  return `${visibleLocal}@${domainPart}`
-}
-
-export default async function VerificationPendingPage({
+export default async function ForgotPasswordPage({
   searchParams,
 }: {
   searchParams: Promise<{ email?: string; error?: string; next?: string; status?: string }>
 }) {
   const [{ t }, rawSearchParams] = await Promise.all([getFrontendRequestContext(), searchParams])
-  const email = rawSearchParams.email?.trim().toLowerCase() ?? ''
-  const error = rawSearchParams.error?.trim() ?? ''
   const nextPath = sanitizeNextPath(rawSearchParams.next, '/user/me')
   const loginHref = buildAuthHref('/login', nextPath)
-  const isResent = rawSearchParams.status === 'resent'
-  const cooldownSeconds = isResent ? 60 : 0
+  const email = rawSearchParams.email?.trim().toLowerCase() ?? ''
+  const error = rawSearchParams.error?.trim() ?? ''
+  const isSuccess = rawSearchParams.status === 'sent'
+  const cooldownSeconds = isSuccess ? 60 : 0
 
   return (
     <section className="relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10 lg:px-8">
@@ -34,27 +26,18 @@ export default async function VerificationPendingPage({
           {t.common.appName}
         </p>
         <h1 className="mt-3 font-headline text-3xl font-bold text-campus-primary sm:text-4xl">
-          {t.auth.verifyPendingTitle}
+          {t.auth.forgotPasswordTitle}
         </h1>
         <p className="mt-3 text-sm leading-7 text-foreground/62 sm:text-[0.95rem]">
-          {t.auth.verifyPendingSubtitle}
+          {t.auth.forgotPasswordSubtitle}
         </p>
 
-        {email ? (
-          <div className="mt-4 rounded-2xl border border-campus-border-soft/80 bg-white/80 px-4 py-3">
-            <p className="text-xs font-label uppercase tracking-[0.18em] text-foreground/45">
-              {t.auth.verifyPendingEmailLabel}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-campus-primary">{maskEmail(email)}</p>
-          </div>
-        ) : null}
-        <VerificationPendingForm
-          autoSubmitOnMount={Boolean(email && !error && !isResent)}
+        <ForgotPasswordForm
           cooldownSeconds={cooldownSeconds}
           email={email}
           error={error}
           nextPath={nextPath}
-          status={isResent ? 'success' : 'idle'}
+          status={isSuccess ? 'success' : 'idle'}
           t={t}
         />
 

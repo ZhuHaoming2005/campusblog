@@ -262,7 +262,9 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders the pending verification page with masked email, resend status, and a sanitized next target', async () => {
-    const { default: VerificationPendingPage } = await import('@/app/(frontend)/verify/pending/page')
+    const { default: VerificationPendingPage } = await import(
+      '@/app/(frontend)/(auth)/verify/pending/page'
+    )
 
     const view = await VerificationPendingPage({
       searchParams: Promise.resolve({
@@ -289,7 +291,7 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders verification results with resend recovery only for failed attempts', async () => {
-    const { default: VerificationPage } = await import('@/app/(frontend)/verify/page')
+    const { default: VerificationPage } = await import('@/app/(frontend)/(auth)/verify/page')
 
     const successView = await VerificationPage({
       searchParams: Promise.resolve({
@@ -326,8 +328,8 @@ describe('Frontend auth verification pages', () => {
 
   it('renders forgot-password and reset-password forms against the auth endpoints and handles missing reset tokens', async () => {
     const [{ default: ForgotPasswordPage }, { default: ResetPasswordPage }] = await Promise.all([
-      import('@/app/(frontend)/forgot-password/page'),
-      import('@/app/(frontend)/reset-password/page'),
+      import('@/app/(frontend)/(auth)/forgot-password/page'),
+      import('@/app/(frontend)/(auth)/reset-password/page'),
     ])
 
     const forgotView = await ForgotPasswordPage({
@@ -520,7 +522,9 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders the login page through auth experience and redirects authenticated sessions away at runtime', async () => {
-    const { LoginPageContent } = await import('@/app/(frontend)/login/LoginPageContent')
+    const { LoginPageContent } = await import(
+      '@/app/(frontend)/(auth)/login/LoginPageContent'
+    )
 
     getCurrentFrontendUserMock.mockResolvedValueOnce(null)
 
@@ -561,7 +565,9 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('keeps unverified sessions on the login page instead of redirecting to protected pages', async () => {
-    const { LoginPageContent } = await import('@/app/(frontend)/login/LoginPageContent')
+    const { LoginPageContent } = await import(
+      '@/app/(frontend)/(auth)/login/LoginPageContent'
+    )
 
     getCurrentFrontendUserMock.mockResolvedValueOnce({
       _verified: false,

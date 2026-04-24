@@ -7,6 +7,10 @@ import {
 } from '@/hooks/cleanupDetachedUserMedia'
 import { preventAdminPasswordChange } from '@/hooks/preventAdminPasswordChange'
 import {
+  revalidateUserCacheAfterChange,
+  revalidateUserCacheAfterDelete,
+} from '@/hooks/revalidateFrontendCache'
+import {
   getAuthEmailSubject,
   readAuthNextPathFromReq,
   renderAuthActionEmail,
@@ -77,8 +81,8 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [preventAdminPasswordChange],
-    afterChange: [cleanupDetachedUserMediaAfterChange],
-    afterDelete: [cleanupDetachedUserMediaAfterDelete],
+    afterChange: [cleanupDetachedUserMediaAfterChange, revalidateUserCacheAfterChange],
+    afterDelete: [cleanupDetachedUserMediaAfterDelete, revalidateUserCacheAfterDelete],
   },
   fields: [
     {

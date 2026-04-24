@@ -1,5 +1,9 @@
 import type { CollectionConfig } from 'payload'
 
+import {
+  revalidateMediaCacheAfterChange,
+  revalidateMediaCacheAfterDelete,
+} from '@/hooks/revalidateFrontendCache'
 import { syncMediaQuotaAfterChange, syncMediaQuotaAfterDelete } from '@/hooks/syncMediaQuota'
 
 export const Media: CollectionConfig = {
@@ -8,8 +12,8 @@ export const Media: CollectionConfig = {
     read: () => true,
   },
   hooks: {
-    afterChange: [syncMediaQuotaAfterChange],
-    afterDelete: [syncMediaQuotaAfterDelete],
+    afterChange: [syncMediaQuotaAfterChange, revalidateMediaCacheAfterChange],
+    afterDelete: [syncMediaQuotaAfterDelete, revalidateMediaCacheAfterDelete],
   },
   fields: [
     {

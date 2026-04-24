@@ -6,8 +6,8 @@ import {
   getActiveSchoolParams,
   getSchoolLayoutData,
   STATIC_PARAMS_PLACEHOLDER_SLUG,
-} from '../../lib/cmsData'
-import { getFrontendRequestContext } from '../../lib/requestContext'
+} from '@/lib/cmsData'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 export async function generateStaticParams() {
   return getActiveSchoolParams()

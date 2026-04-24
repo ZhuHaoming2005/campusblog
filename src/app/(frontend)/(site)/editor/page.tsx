@@ -6,7 +6,7 @@ import type { Post } from '@/payload-types'
 import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import EditorForm from '@/components/editor/EditorForm'
 import { getFrontendPayload } from '@/lib/frontendSession'
-import { getFrontendRequestContext } from '../lib/requestContext'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 function toNumericId(value: string | number | undefined): number | undefined {
   if (value === undefined || value === '') return undefined

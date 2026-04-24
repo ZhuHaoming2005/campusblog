@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { buildAuthHref, sanitizeNextPath } from '@/lib/authNavigation'
 import PasswordInput from '@/components/auth/PasswordInput'
 
-import { getFrontendRequestContext } from '../lib/requestContext'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 export default async function ResetPasswordPage({
   searchParams,

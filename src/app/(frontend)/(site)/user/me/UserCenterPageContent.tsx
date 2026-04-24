@@ -13,8 +13,8 @@ import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import { getFrontendPayload } from '@/lib/frontendSession'
 import { getPostSchool, getPostSubChannel } from '@/lib/postPresentation'
 import { getPostUsageBytesMap } from '@/quota/postQuota'
-import { getDictionary } from '../../lib/i18n/dictionaries'
-import { getFrontendRequestContext } from '../../lib/requestContext'
+import { getDictionary } from '@/lib/i18n/dictionaries'
+import { getFrontendRequestContext } from '@/lib/requestContext'
 
 function formatBytes(value: number, locale: string): string {
   const formatter = new Intl.NumberFormat(locale, {
