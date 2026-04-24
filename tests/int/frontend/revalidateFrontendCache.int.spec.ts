@@ -1,9 +1,15 @@
-import { describe, expect, it } from 'vitest'
+import { revalidateTag } from 'next/cache'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('next/cache', () => ({
+  revalidateTag: vi.fn(),
+}))
 
 import {
   getPostCacheInvalidationTags,
   getSchoolCacheInvalidationTags,
   getSchoolSubChannelCacheInvalidationTags,
+  revalidatePostCacheAfterChange,
 } from '@/hooks/revalidateFrontendCache'
 
 describe('frontend cache invalidation hooks', () => {
@@ -41,5 +47,30 @@ describe('frontend cache invalidation hooks', () => {
       'school-sub-channels',
       'posts:list',
     ])
+  })
+
+  it('does not fail a post mutation when Next cache revalidation throws', async () => {
+    const doc = {
+      id: 1,
+      school: 12,
+      slug: 'cache-failure',
+      subChannel: 34,
+    }
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.mocked(revalidateTag).mockImplementationOnce(() => {
+      throw new Error('cache unavailable')
+    })
+
+    try {
+      await expect(
+        revalidatePostCacheAfterChange({
+          doc,
+          previousDoc: null,
+        } as never),
+      ).resolves.toBe(doc)
+      expect(warnSpy).toHaveBeenCalled()
+    } finally {
+      warnSpy.mockRestore()
+    }
   })
 })

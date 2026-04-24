@@ -24,7 +24,14 @@ function getRelationId(value: RelationValue): number | string | null {
 
 function revalidateTags(tags: string[]) {
   for (const tag of tags) {
-    revalidateTag(tag, 'max')
+    try {
+      revalidateTag(tag, 'max')
+    } catch (error) {
+      console.warn('Unable to revalidate frontend cache tag.', {
+        error: error instanceof Error ? error.message : error,
+        tag,
+      })
+    }
   }
 }
 
