@@ -77,7 +77,7 @@ describe('getVisiblePostBySlug', () => {
   })
 })
 
-describe('build-time CMS structure fallback', () => {
+describe('build-time CMS query skipping', () => {
   const originalNextPhase = process.env.NEXT_PHASE
 
   beforeEach(() => {
@@ -92,9 +92,7 @@ describe('build-time CMS structure fallback', () => {
     process.env.NEXT_PHASE = originalNextPhase
   })
 
-  it('uses placeholder school params when local D1 schema is absent during static generation', async () => {
-    findMock.mockRejectedValueOnce(new Error('D1_ERROR: no such table: schools: SQLITE_ERROR'))
-
+  it('uses placeholder school params without querying CMS during static generation', async () => {
     const { STATIC_PARAMS_PLACEHOLDER_SLUG, getActiveSchoolParams } = await import('@/lib/cmsData')
 
     await expect(getActiveSchoolParams()).resolves.toEqual([
@@ -103,9 +101,7 @@ describe('build-time CMS structure fallback', () => {
     expect(getFrontendPayloadMock).not.toHaveBeenCalled()
   })
 
-  it('uses empty post data when local D1 posts schema is absent during static generation', async () => {
-    findMock.mockRejectedValue(new Error('D1_ERROR: no such table: posts: SQLITE_ERROR'))
-
+  it('uses empty post data without querying CMS during static generation', async () => {
     const { getDiscoverPageData, getPublishedPostBySlug } = await import('@/lib/cmsData')
 
     await expect(getDiscoverPageData()).resolves.toEqual({ posts: [] })

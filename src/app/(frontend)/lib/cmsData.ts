@@ -40,26 +40,11 @@ type ChannelPageData = {
   posts: Post[]
 }
 
-function isBuildTimeStaticGeneration() {
-  return process.env.NEXT_PHASE === 'phase-production-build' || process.env.npm_lifecycle_event === 'build'
-}
-
-function isMissingLocalD1SchemaError(error: unknown) {
-  let current: unknown = error
-
-  while (current && typeof current === 'object') {
-    const message = 'message' in current ? String(current.message) : ''
-    if (message.includes('D1_ERROR') && message.includes('no such table')) {
-      return true
-    }
-    current = 'cause' in current ? current.cause : null
-  }
-
-  return false
-}
-
-function shouldUseBuildTimeCmsFallback(error: unknown) {
-  return isBuildTimeStaticGeneration() && isMissingLocalD1SchemaError(error)
+function shouldSkipCmsQueriesDuringStaticGeneration() {
+  return (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.npm_lifecycle_event === 'build'
+  )
 }
 
 async function getPayloadClient() {
@@ -82,28 +67,18 @@ export async function getActiveSchools() {
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOLS_CACHE_TAG)
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'schools',
-      where: { isActive: { equals: true } },
-      sort: 'sortOrder',
-      limit: SCHOOL_LIST_LIMIT,
-      depth: 0,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return []
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'schools',
+    where: { isActive: { equals: true } },
+    sort: 'sortOrder',
+    limit: SCHOOL_LIST_LIMIT,
+    depth: 0,
+  })
 
   return docs as School[]
 }
@@ -114,29 +89,19 @@ export async function getSchoolBySlug(slug: string) {
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOLS_CACHE_TAG)
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return null
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'schools',
-      where: {
-        and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
-      },
-      limit: 1,
-      depth: 0,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return null
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'schools',
+    where: {
+      and: [{ slug: { equals: slug } }, { isActive: { equals: true } }],
+    },
+    limit: 1,
+    depth: 0,
+  })
 
   return (docs[0] as School | undefined) ?? null
 }
@@ -147,30 +112,20 @@ export async function getSubChannelsBySchool(schoolId: number) {
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'school-sub-channels',
-      where: {
-        and: [{ school: { equals: schoolId } }, { isActive: { equals: true } }],
-      },
-      sort: 'sortOrder',
-      limit: SCHOOL_LIST_LIMIT,
-      depth: 0,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return []
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'school-sub-channels',
+    where: {
+      and: [{ school: { equals: schoolId } }, { isActive: { equals: true } }],
+    },
+    sort: 'sortOrder',
+    limit: SCHOOL_LIST_LIMIT,
+    depth: 0,
+  })
 
   return docs as SchoolSubChannel[]
 }
@@ -181,33 +136,23 @@ export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: s
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return null
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'school-sub-channels',
-      where: {
-        and: [
-          { school: { equals: schoolId } },
-          { slug: { equals: channelSlug } },
-          { isActive: { equals: true } },
-        ],
-      },
-      limit: 1,
-      depth: 0,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return null
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'school-sub-channels',
+    where: {
+      and: [
+        { school: { equals: schoolId } },
+        { slug: { equals: channelSlug } },
+        { isActive: { equals: true } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+  })
 
   return (docs[0] as SchoolSubChannel | undefined) ?? null
 }
@@ -218,28 +163,18 @@ export async function getPublishedPosts() {
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(POST_LIST_CACHE_TAG)
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'posts',
-      where: { status: { equals: 'published' } },
-      sort: '-publishedAt',
-      limit: POST_LIST_LIMIT,
-      depth: 2,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return []
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where: { status: { equals: 'published' } },
+    sort: '-publishedAt',
+    limit: POST_LIST_LIMIT,
+    depth: 2,
+  })
 
   const posts = docs as Post[]
   cachePostRelationshipTags(posts)
@@ -253,29 +188,19 @@ export async function getPublishedPostBySlug(slug: string) {
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postCacheTag(slug))
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return null
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'posts',
-      where: {
-        and: [{ slug: { equals: slug } }, { status: { equals: 'published' } }],
-      },
-      limit: 1,
-      depth: 2,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return null
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where: {
+      and: [{ slug: { equals: slug } }, { status: { equals: 'published' } }],
+    },
+    limit: 1,
+    depth: 2,
+  })
 
   const post = (docs[0] as Post | undefined) ?? null
   cachePostRelationshipTags(post, { includeAllPostTags: true })
@@ -284,7 +209,7 @@ export async function getPublishedPostBySlug(slug: string) {
 }
 
 export async function getVisiblePostBySlug(slug: string, user: User | null) {
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return null
   }
 
@@ -308,23 +233,13 @@ export async function getVisiblePostBySlug(slug: string, user: User | null) {
         and: [{ slug: { equals: slug } }, { status: { equals: 'published' } }],
       }
 
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'posts',
-      where,
-      limit: 1,
-      depth: 2,
-      ...(user ? { user, overrideAccess: false } : {}),
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return null
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where,
+    limit: 1,
+    depth: 2,
+    ...(user ? { user, overrideAccess: false } : {}),
+  })
 
   return (docs[0] as Post | undefined) ?? null
 }
@@ -335,30 +250,20 @@ export async function getPublishedPostsBySchool(schoolId: number) {
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postsBySchoolCacheTag(schoolId))
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'posts',
-      where: {
-        and: [{ school: { equals: schoolId } }, { status: { equals: 'published' } }],
-      },
-      sort: '-publishedAt',
-      limit: POST_LIST_LIMIT,
-      depth: 2,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return []
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where: {
+      and: [{ school: { equals: schoolId } }, { status: { equals: 'published' } }],
+    },
+    sort: '-publishedAt',
+    limit: POST_LIST_LIMIT,
+    depth: 2,
+  })
 
   const posts = docs as Post[]
   cachePostRelationshipTags(posts)
@@ -372,34 +277,24 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postsBySchoolChannelCacheTag(schoolId, channelId))
 
-  if (isBuildTimeStaticGeneration()) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
   const payload = await getPayloadClient()
-  let docs: unknown[]
-
-  try {
-    const result = await payload.find({
-      collection: 'posts',
-      where: {
-        and: [
-          { school: { equals: schoolId } },
-          { subChannel: { equals: channelId } },
-          { status: { equals: 'published' } },
-        ],
-      },
-      sort: '-publishedAt',
-      limit: POST_LIST_LIMIT,
-      depth: 2,
-    })
-    docs = result.docs
-  } catch (error) {
-    if (shouldUseBuildTimeCmsFallback(error)) {
-      return []
-    }
-    throw error
-  }
+  const { docs } = await payload.find({
+    collection: 'posts',
+    where: {
+      and: [
+        { school: { equals: schoolId } },
+        { subChannel: { equals: channelId } },
+        { status: { equals: 'published' } },
+      ],
+    },
+    sort: '-publishedAt',
+    limit: POST_LIST_LIMIT,
+    depth: 2,
+  })
 
   const posts = docs as Post[]
   cachePostRelationshipTags(posts)

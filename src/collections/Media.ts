@@ -5,7 +5,6 @@ import {
   revalidateMediaCacheAfterChange,
   revalidateMediaCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
-import { syncMediaQuotaAfterChange, syncMediaQuotaAfterDelete } from '@/hooks/syncMediaQuota'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -16,8 +15,8 @@ export const Media: CollectionConfig = {
     update: adminOnly,
   },
   hooks: {
-    afterChange: [syncMediaQuotaAfterChange, revalidateMediaCacheAfterChange],
-    afterDelete: [syncMediaQuotaAfterDelete, revalidateMediaCacheAfterDelete],
+    afterChange: [revalidateMediaCacheAfterChange],
+    afterDelete: [revalidateMediaCacheAfterDelete],
   },
   fields: [
     {
