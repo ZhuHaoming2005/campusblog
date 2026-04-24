@@ -1,10 +1,15 @@
 import type { CollectionConfig } from 'payload'
 
-import { adminOrAuthor, adminOrPublishedOrAuthor, authenticated } from '@/access/admin'
+import {
+  adminOrPublishedOrAuthor,
+  adminOrVerifiedActiveAuthor,
+  adminOrVerifiedActiveUser,
+} from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
 import { tiptapJsonAdminComponents } from '@/fields/tiptapJsonAdmin'
 import { setCurrentAuthor } from '@/hooks/setCurrentAuthor'
 import { setPublishedAt } from '@/hooks/setPublishedAt'
+import { validatePostQuota } from '@/hooks/validatePostQuota'
 import {
   syncUserPostQuotaAfterChange,
   syncUserPostQuotaAfterDelete,
@@ -31,13 +36,13 @@ export const Posts: CollectionConfig = {
   },
   access: {
     read: adminOrPublishedOrAuthor,
-    create: authenticated,
-    update: adminOrAuthor,
-    delete: adminOrAuthor,
+    create: adminOrVerifiedActiveUser,
+    update: adminOrVerifiedActiveAuthor,
+    delete: adminOrVerifiedActiveAuthor,
   },
   hooks: {
     beforeValidate: [setCurrentAuthor, validatePostChannelRelation],
-    beforeChange: [setPublishedAt],
+    beforeChange: [setPublishedAt, validatePostQuota],
     afterChange: [syncUserPostQuotaAfterChange, revalidatePostCacheAfterChange],
     afterDelete: [syncUserPostQuotaAfterDelete, revalidatePostCacheAfterDelete],
   },

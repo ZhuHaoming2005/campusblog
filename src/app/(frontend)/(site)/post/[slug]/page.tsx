@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { IconChevronRight, IconClockHour4, IconMapPin, IconSchool } from '@tabler/icons-react'
 import type { JSONContent } from '@tiptap/core'
 
@@ -67,6 +68,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
+  await connection()
+
   const { slug } = await params
   const t = getDictionary(DEFAULT_LOCALE)
   const post = await getPublishedPostBySlug(slug)
@@ -84,6 +87,8 @@ export async function generateMetadata({
 }
 
 async function PostDetailPageContent({ params }: { params: Promise<{ slug: string }> }) {
+  await connection()
+
   const { slug } = await params
   const { headers, locale, t } = await getFrontendRequestContext()
   const currentUser = await getCurrentFrontendUser(headers)

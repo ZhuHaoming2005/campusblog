@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 
 import SchoolTopBar from '@/components/layout/SchoolTopBar'
 import {
@@ -20,6 +21,8 @@ async function SchoolLayoutContent({
   children: React.ReactNode
   params: Promise<{ slug: string }>
 }) {
+  await connection()
+
   const [{ slug }, { t }] = await Promise.all([params, getFrontendRequestContext()])
   if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
     notFound()

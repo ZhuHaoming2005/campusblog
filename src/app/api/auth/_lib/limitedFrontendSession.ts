@@ -1,7 +1,5 @@
 import { getPayload } from 'payload'
 
-import config from '@/payload.config'
-
 type FrontendAuthUserDoc = {
   id: number | string
   lockUntil?: Date | string | null
@@ -19,6 +17,7 @@ function isLocked(lockUntil: Date | string | null | undefined): boolean {
 }
 
 async function findFrontendAuthUser(email: string): Promise<FrontendAuthUserDoc | null> {
+  const { default: config } = await import('@/payload.config')
   const payload = await getPayload({ config: await config })
   const userResult = await payload.find({
     collection: 'users',

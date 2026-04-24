@@ -54,22 +54,6 @@ export default function EmailActionForm({
   const autoSubmitAttempted = useRef(false)
 
   useEffect(() => {
-    setValue(email)
-  }, [email])
-
-  useEffect(() => {
-    setErrorMessage(error)
-  }, [error])
-
-  useEffect(() => {
-    setSuccess(status === 'success')
-  }, [status])
-
-  useEffect(() => {
-    setSecondsRemaining(Math.max(0, cooldownSeconds))
-  }, [cooldownSeconds])
-
-  useEffect(() => {
     if (secondsRemaining <= 0) return
 
     const timeout = window.setTimeout(() => {
@@ -136,7 +120,16 @@ export default function EmailActionForm({
     if (!normalizedEmail) return
 
     autoSubmitAttempted.current = true
-    void submitEmail(normalizedEmail)
+    let cancelled = false
+    queueMicrotask(() => {
+      if (!cancelled) {
+        void submitEmail(normalizedEmail)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [autoSubmitOnMount, secondsRemaining, submitEmail, value])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

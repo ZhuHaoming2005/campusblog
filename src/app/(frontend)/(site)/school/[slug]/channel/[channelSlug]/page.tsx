@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { IconSchool } from '@tabler/icons-react'
 
 import PostFeed from '@/components/PostFeed'
@@ -22,6 +23,8 @@ async function SubChannelPageContent({
 }: {
   params: Promise<{ slug: string; channelSlug: string }>
 }) {
+  await connection()
+
   const [{ slug, channelSlug }, { locale, t }] = await Promise.all([
     params,
     getFrontendRequestContext(),

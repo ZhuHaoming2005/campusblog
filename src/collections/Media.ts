@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 
+import { adminOnly, adminOrVerifiedActiveUser } from '@/access/admin'
 import {
   revalidateMediaCacheAfterChange,
   revalidateMediaCacheAfterDelete,
@@ -9,7 +10,10 @@ import { syncMediaQuotaAfterChange, syncMediaQuotaAfterDelete } from '@/hooks/sy
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
+    create: adminOrVerifiedActiveUser,
+    delete: adminOnly,
     read: () => true,
+    update: adminOnly,
   },
   hooks: {
     afterChange: [syncMediaQuotaAfterChange, revalidateMediaCacheAfterChange],

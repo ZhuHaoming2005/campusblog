@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import { connection } from 'next/server'
 
 import DiscoverHomepage from '@/components/discover/DiscoverHomepage'
 
@@ -8,6 +9,8 @@ import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getFrontendRequestContext } from '@/lib/requestContext'
 
 async function DiscoverPageContent() {
+  await connection()
+
   const [{ locale, t }, { posts }] = await Promise.all([
     getFrontendRequestContext(),
     getDiscoverPageData(),

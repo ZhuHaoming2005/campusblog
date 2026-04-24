@@ -1,4 +1,3 @@
-import fs from 'fs'
 import path from 'path'
 import { sqliteD1Adapter } from '@payloadcms/db-d1-sqlite'
 import { buildConfig } from 'payload'
@@ -6,10 +5,17 @@ import type { PayloadLogger } from 'payload'
 import { en } from 'payload/i18n/en'
 import { zh } from 'payload/i18n/zh'
 import { fileURLToPath } from 'url'
-import { CloudflareContext, getCloudflareContext } from '@opennextjs/cloudflare'
-import { GetPlatformProxyOptions } from 'wrangler'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
+import type { CloudflareContext } from '@opennextjs/cloudflare'
+import type { GetPlatformProxyOptions } from 'wrangler'
 import { r2Storage } from '@payloadcms/storage-r2'
 
+import {
+  isPayloadCLIProcess,
+  shouldUseBuildTimeBindings,
+  shouldUseRemoteBindings,
+  shouldUseWranglerPlatformProxy,
+} from './cloudflare/contextMode'
 import { readRuntimeEnvFlag, readRuntimeEnvString } from './cloudflare/runtimeEnv'
 import { Posts } from './collections/Posts'
 import { SchoolSubChannels } from './collections/SchoolSubChannels'
@@ -33,12 +39,25 @@ type EmailBindingLike = {
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
-const realpath = (value: string) => (fs.existsSync(value) ? fs.realpathSync(value) : undefined)
-
-const isCLI = process.argv.some(
-  (value) => realpath(value)?.endsWith(path.join('payload', 'bin.js')) ?? false,
-)
+const projectDir = path.resolve(dirname, '..')
 const isProduction = process.env.NODE_ENV === 'production'
+const isPayloadCLI = isPayloadCLIProcess(process.argv)
+const useWranglerPlatformProxy = shouldUseWranglerPlatformProxy({
+  argv: process.argv,
+  env: process.env,
+  nodeEnv: process.env.NODE_ENV,
+})
+const useBuildTimeBindings = shouldUseBuildTimeBindings({
+  argv: process.argv,
+  env: process.env,
+})
+const useRemoteBindings = shouldUseRemoteBindings({
+  argv: process.argv,
+  env: process.env,
+  nodeEnv: process.env.NODE_ENV,
+})
+const wranglerPlatformProxyConfigPath =
+  !isProduction && !isPayloadCLI ? path.resolve(projectDir, 'wrangler.dev.jsonc') : undefined
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {
@@ -61,9 +80,14 @@ const cloudflareLogger = {
 } as unknown as PayloadLogger
 
 const cloudflare =
-  isCLI || !isProduction
-    ? await getCloudflareContextFromWrangler()
-    : await getCloudflareContext({ async: true })
+  useBuildTimeBindings
+    ? createBuildTimeCloudflareContext()
+    : useWranglerPlatformProxy
+      ? await getCloudflareContextFromWrangler({
+          configPath: wranglerPlatformProxyConfigPath,
+          remoteBindings: useRemoteBindings,
+        })
+      : await getCloudflareContext({ async: true })
 const cloudflareEnv = cloudflare.env as CloudflareEnv & {
   EMAIL?: EmailBindingLike
 }
@@ -149,19 +173,118 @@ export default buildConfig({
   logger: isProduction ? cloudflareLogger : undefined,
   plugins: [
     r2Storage({
-      bucket: cloudflare.env.R2,
+      bucket: cloudflareEnv.R2,
       collections: { media: true },
     }),
   ],
 })
 
 // Adapted from https://github.com/opennextjs/opennextjs-cloudflare/blob/d00b3a13e42e65aad76fba41774815726422cc39/packages/cloudflare/src/api/cloudflare-context.ts#L328C36-L328C46
-function getCloudflareContextFromWrangler(): Promise<CloudflareContext> {
+function getCloudflareContextFromWrangler(options: {
+  configPath?: string
+  remoteBindings: boolean
+}): Promise<CloudflareContext> {
   return import(/* webpackIgnore: true */ `${'__wrangler'.replaceAll('_', '')}`).then(
     ({ getPlatformProxy }) =>
       getPlatformProxy({
-        environment: process.env.CLOUDFLARE_ENV,
-        remoteBindings: isProduction,
+        configPath: options.configPath,
+        environment: options.configPath ? undefined : process.env.CLOUDFLARE_ENV,
+        remoteBindings: options.remoteBindings,
       } satisfies GetPlatformProxyOptions),
   )
+}
+
+function createBuildTimeCloudflareContext(): CloudflareContext {
+  const env = {
+    AUTH_EMAIL_DEBUG: process.env.AUTH_EMAIL_DEBUG,
+    AUTH_EMAIL_DEBUG_DELIVER: process.env.AUTH_EMAIL_DEBUG_DELIVER,
+    AUTH_EMAIL_DEBUG_PRINT_URLS: process.env.AUTH_EMAIL_DEBUG_PRINT_URLS,
+    AUTH_EMAIL_FROM_ADDRESS: process.env.AUTH_EMAIL_FROM_ADDRESS,
+    AUTH_EMAIL_FROM_NAME: process.env.AUTH_EMAIL_FROM_NAME,
+    D1: createUnavailableD1Database(),
+    EMAIL: createUnavailableEmailBinding(),
+    GITHUB_URL: process.env.GITHUB_URL,
+    KV: createUnavailableKVNamespace(),
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    PAYLOAD_PUBLIC_SERVER_URL: process.env.PAYLOAD_PUBLIC_SERVER_URL,
+    PAYLOAD_SECRET: process.env.PAYLOAD_SECRET,
+    R2: createUnavailableR2Bucket(),
+  } as unknown as CloudflareEnv & { EMAIL?: EmailBindingLike }
+
+  return { env } as CloudflareContext
+}
+
+function unavailableBindingError(binding: string) {
+  return new Error(
+    `${binding} is unavailable while Next.js is collecting build-time route data. ` +
+      'Move this operation to request/runtime execution or run it through the Payload CLI.',
+  )
+}
+
+function createUnavailableD1Database(): D1Database {
+  const createStatement = () =>
+    ({
+      all: async () => {
+        throw unavailableBindingError('D1')
+      },
+      bind: () => createStatement(),
+      first: async () => {
+        throw unavailableBindingError('D1')
+      },
+      raw: async () => {
+        throw unavailableBindingError('D1')
+      },
+      run: async () => {
+        throw unavailableBindingError('D1')
+      },
+    }) as unknown as D1PreparedStatement
+
+  return {
+    batch: async () => {
+      throw unavailableBindingError('D1')
+    },
+    dump: async () => {
+      throw unavailableBindingError('D1')
+    },
+    exec: async () => {
+      throw unavailableBindingError('D1')
+    },
+    prepare: () => createStatement(),
+  } as unknown as D1Database
+}
+
+function createUnavailableKVNamespace(): KVNamespace {
+  return new Proxy(
+    {},
+    {
+      get: (_target, prop) =>
+        prop === 'then'
+          ? undefined
+          : async () => {
+              throw unavailableBindingError('KV')
+            },
+    },
+  ) as KVNamespace
+}
+
+function createUnavailableR2Bucket(): R2Bucket {
+  return new Proxy(
+    {},
+    {
+      get: (_target, prop) =>
+        prop === 'then'
+          ? undefined
+          : async () => {
+              throw unavailableBindingError('R2')
+            },
+    },
+  ) as R2Bucket
+}
+
+function createUnavailableEmailBinding(): EmailBindingLike {
+  return {
+    async send() {
+      throw unavailableBindingError('EMAIL')
+    },
+  }
 }

@@ -2,7 +2,6 @@ import 'server-only'
 
 import { getPayload } from 'payload'
 
-import config from '@/payload.config'
 import type { User } from '@/payload-types'
 import type { SidebarUser } from './sessionTypes'
 
@@ -18,6 +17,7 @@ declare global {
 export async function getFrontendPayload() {
   if (!globalThis.__campusblogFrontendPayloadPromise) {
     globalThis.__campusblogFrontendPayloadPromise = (async () => {
+      const { default: config } = await import('@/payload.config')
       const payloadConfig = await config
       return getPayload({ config: payloadConfig })
     })()

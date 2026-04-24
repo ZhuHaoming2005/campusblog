@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import { connection } from 'next/server'
 
 import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
 import FrontendChrome from '@/components/layout/FrontendChrome'
@@ -11,6 +12,8 @@ async function SiteLayoutContent({
 }: {
   children: React.ReactNode
 }) {
+  await connection()
+
   const [{ headers, locale, t }, githubUrl, schools] = await Promise.all([
     getFrontendRequestContext(),
     readCloudflareRuntimeEnvString('GITHUB_URL', {

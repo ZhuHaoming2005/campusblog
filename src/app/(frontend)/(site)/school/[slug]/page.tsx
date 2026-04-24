@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
 import { IconSchool } from '@tabler/icons-react'
 
 import PostFeed from '@/components/PostFeed'
@@ -13,6 +14,8 @@ async function SchoolPageContent({
 }: {
   params: Promise<{ slug: string }>
 }) {
+  await connection()
+
   const [{ slug }, { locale, t }] = await Promise.all([params, getFrontendRequestContext()])
   if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
     notFound()

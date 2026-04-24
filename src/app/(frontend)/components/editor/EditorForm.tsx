@@ -120,6 +120,7 @@ export default function EditorForm({
   initialPost,
 }: EditorFormProps) {
   const router = useRouter()
+  const initialPostId = initialPost?.id
   const [title, setTitle] = useState(initialPost?.title ?? '')
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? '')
   const [schoolId, setSchoolId] = useState(initialPost?.schoolId ?? '')
@@ -282,7 +283,7 @@ export default function EditorForm({
           fallbackError: t.editor.imageUploadError,
           file,
           kind: 'inline-image',
-          seed: initialPost?.id ?? undefined,
+          seed: initialPostId ?? undefined,
         })
 
         if (!media.url) {
@@ -312,7 +313,7 @@ export default function EditorForm({
         setIsUploadingInlineImage(false)
       }
     },
-    [editor, initialPost?.id, t.editor.imageUploadError],
+    [editor, initialPostId, t.editor.imageUploadError],
   )
 
   const handleCoverImageChange = useCallback(
@@ -330,7 +331,7 @@ export default function EditorForm({
           fallbackError: t.editor.coverUploadError,
           file,
           kind: 'cover-image',
-          seed: initialPost?.id ?? undefined,
+          seed: initialPostId ?? undefined,
         })
 
         setCoverImage({
@@ -350,7 +351,7 @@ export default function EditorForm({
         setIsUploadingCover(false)
       }
     },
-    [initialPost?.id, t.editor.coverUploadError],
+    [initialPostId, t.editor.coverUploadError],
   )
 
   return (
@@ -599,7 +600,6 @@ export default function EditorForm({
     </div>
   )
 }
-
 
 
 

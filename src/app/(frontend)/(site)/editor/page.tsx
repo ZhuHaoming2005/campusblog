@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { redirect } from 'next/navigation'
+import { connection } from 'next/server'
 import type { JSONContent } from '@tiptap/core'
 
 import type { Post } from '@/payload-types'
@@ -46,6 +47,8 @@ async function EditorPageContent({
 }: {
   searchParams: Promise<{ draft?: string }>
 }) {
+  await connection()
+
   const [{ headers, t }, { draft }] = await Promise.all([
     getFrontendRequestContext(),
     searchParams,

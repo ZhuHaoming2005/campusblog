@@ -262,11 +262,11 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders the pending verification page with masked email, resend status, and a sanitized next target', async () => {
-    const { default: VerificationPendingPage } = await import(
-      '@/app/(frontend)/(auth)/verify/pending/page'
+    const { VerificationPendingPageContent } = await import(
+      '@/app/(frontend)/(auth)/verify/pending/VerificationPendingPageContent'
     )
 
-    const view = await VerificationPendingPage({
+    const view = await VerificationPendingPageContent({
       searchParams: Promise.resolve({
         email: 'Student@Example.com',
         error: '  Delivery failed  ',
@@ -291,9 +291,11 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders verification results with resend recovery only for failed attempts', async () => {
-    const { default: VerificationPage } = await import('@/app/(frontend)/(auth)/verify/page')
+    const { VerificationPageContent } = await import(
+      '@/app/(frontend)/(auth)/verify/VerificationPageContent'
+    )
 
-    const successView = await VerificationPage({
+    const successView = await VerificationPageContent({
       searchParams: Promise.resolve({
         email: 'reader@example.com',
         next: '/editor',
@@ -310,7 +312,7 @@ describe('Frontend auth verification pages', () => {
 
     successRender.unmount()
 
-    const errorView = await VerificationPage({
+    const errorView = await VerificationPageContent({
       searchParams: Promise.resolve({
         email: 'reader@example.com',
         next: '/editor',
@@ -327,12 +329,12 @@ describe('Frontend auth verification pages', () => {
   })
 
   it('renders forgot-password and reset-password forms against the auth endpoints and handles missing reset tokens', async () => {
-    const [{ default: ForgotPasswordPage }, { default: ResetPasswordPage }] = await Promise.all([
-      import('@/app/(frontend)/(auth)/forgot-password/page'),
-      import('@/app/(frontend)/(auth)/reset-password/page'),
+    const [{ ForgotPasswordPageContent }, { ResetPasswordPageContent }] = await Promise.all([
+      import('@/app/(frontend)/(auth)/forgot-password/ForgotPasswordPageContent'),
+      import('@/app/(frontend)/(auth)/reset-password/ResetPasswordPageContent'),
     ])
 
-    const forgotView = await ForgotPasswordPage({
+    const forgotView = await ForgotPasswordPageContent({
       searchParams: Promise.resolve({
         email: ' Reset@Example.com ',
         error: '  Too many requests  ',
@@ -351,7 +353,7 @@ describe('Frontend auth verification pages', () => {
 
     forgotRender.unmount()
 
-    const resetWithTokenView = await ResetPasswordPage({
+    const resetWithTokenView = await ResetPasswordPageContent({
       searchParams: Promise.resolve({
         next: '/editor',
         token: 'reset-token',
@@ -379,7 +381,7 @@ describe('Frontend auth verification pages', () => {
 
     resetWithTokenRender.unmount()
 
-    const resetWithoutTokenView = await ResetPasswordPage({
+    const resetWithoutTokenView = await ResetPasswordPageContent({
       searchParams: Promise.resolve({
         error: '  Invalid token  ',
       }),

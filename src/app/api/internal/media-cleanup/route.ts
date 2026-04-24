@@ -3,7 +3,6 @@ import { getPayload } from 'payload'
 
 import { hasAdminRole } from '@/access/admin'
 import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
-import config from '@/payload.config'
 import { cleanupAllOrphanMedia } from '@/media/orphanCleanup'
 
 function getBearerToken(authorization: string | null): string | null {
@@ -21,6 +20,7 @@ export async function POST(request: Request) {
   const bearerToken = getBearerToken(request.headers.get('authorization'))
   const isSecretAuthorized = Boolean(cleanupSecret && bearerToken === cleanupSecret)
 
+  const { default: config } = await import('@/payload.config')
   const payloadConfig = await config
   const payload = await getPayload({ config: payloadConfig })
 

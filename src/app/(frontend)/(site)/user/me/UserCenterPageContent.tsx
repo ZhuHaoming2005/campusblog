@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { connection } from 'next/server'
 
 import type { Post } from '@/payload-types'
 import LogoutButton from '@/components/auth/LogoutButton'
@@ -133,6 +134,8 @@ function UserPostList({
 }
 
 export async function UserCenterPageContent() {
+  await connection()
+
   const { headers, locale, t } = await getFrontendRequestContext()
   const auth = await requireFrontendAuth({
     headers,
