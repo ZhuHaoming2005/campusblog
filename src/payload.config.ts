@@ -12,6 +12,7 @@ import { r2Storage } from '@payloadcms/storage-r2'
 
 import {
   isPayloadCLIProcess,
+  resolveWranglerPlatformProxyConfigPath,
   shouldUseBuildTimeBindings,
   shouldUseRemoteBindings,
   shouldUseWranglerPlatformProxy,
@@ -56,8 +57,12 @@ const useRemoteBindings = shouldUseRemoteBindings({
   env: process.env,
   nodeEnv: process.env.NODE_ENV,
 })
-const wranglerPlatformProxyConfigPath =
-  !isProduction && !isPayloadCLI ? path.resolve(projectDir, 'wrangler.dev.jsonc') : undefined
+const wranglerPlatformProxyConfigPath = resolveWranglerPlatformProxyConfigPath({
+  env: process.env,
+  isPayloadCLI,
+  isProduction,
+  projectDir,
+})
 
 const createLog =
   (level: string, fn: typeof console.log) => (objOrMsg: object | string, msg?: string) => {

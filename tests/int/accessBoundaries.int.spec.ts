@@ -5,6 +5,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  resolveWranglerPlatformProxyConfigPath,
   shouldUseBuildTimeBindings,
   shouldUseRemoteBindings,
   shouldUseWranglerPlatformProxy,
@@ -12,7 +13,7 @@ import {
 import { Media } from '@/collections/Media'
 import { Posts } from '@/collections/Posts'
 
-type AccessFunction = (args: { req: { user: unknown } }) => unknown
+type AccessFunction = (args: { req: { payload?: unknown; user: unknown } }) => unknown
 
 const activeVerifiedUser = {
   _verified: true,
@@ -42,17 +43,51 @@ const adminUser = {
   roles: ['admin'],
 }
 
-async function runAccess(access: unknown, user: unknown) {
+function createUserLookup(doc: unknown) {
+  return {
+    findByID: async () => doc,
+  }
+}
+
+async function runAccess(access: unknown, user: unknown, payload?: unknown) {
   expect(access).toEqual(expect.any(Function))
-  return await (access as AccessFunction)({ req: { user } })
+  return await (access as AccessFunction)({ req: { payload, user } })
 }
 
 describe('collection access boundaries', () => {
   it('allows only verified active non-admin users to create posts', async () => {
-    await expect(runAccess(Posts.access?.create, activeVerifiedUser)).resolves.toBe(true)
-    await expect(runAccess(Posts.access?.create, activeUnverifiedUser)).resolves.toBe(false)
-    await expect(runAccess(Posts.access?.create, inactiveVerifiedUser)).resolves.toBe(false)
+    await expect(
+      runAccess(Posts.access?.create, activeVerifiedUser, createUserLookup(activeVerifiedUser)),
+    ).resolves.toBe(true)
+    await expect(
+      runAccess(Posts.access?.create, activeUnverifiedUser, createUserLookup(activeUnverifiedUser)),
+    ).resolves.toBe(false)
+    await expect(
+      runAccess(Posts.access?.create, inactiveVerifiedUser, createUserLookup(inactiveVerifiedUser)),
+    ).resolves.toBe(false)
     await expect(runAccess(Posts.access?.create, adminUser)).resolves.toBe(true)
+  })
+
+  it('does not trust active user fields from the request token', async () => {
+    const staleTokenUser = {
+      _verified: true,
+      id: 5,
+      isActive: true,
+      roles: ['user'],
+    }
+
+    await expect(
+      runAccess(
+        Posts.access?.create,
+        staleTokenUser,
+        createUserLookup({
+          _verified: true,
+          id: 5,
+          isActive: false,
+          roles: ['user'],
+        }),
+      ),
+    ).resolves.toBe(false)
   })
 
   it('validates post quota inside the Payload collection lifecycle', () => {
@@ -62,11 +97,27 @@ describe('collection access boundaries', () => {
   })
 
   it('does not leave media mutations on Payload default authenticated access', async () => {
-    await expect(runAccess(Media.access?.create, activeVerifiedUser)).resolves.toBe(true)
-    await expect(runAccess(Media.access?.create, activeUnverifiedUser)).resolves.toBe(false)
+    await expect(
+      runAccess(Media.access?.create, activeVerifiedUser, createUserLookup(activeVerifiedUser)),
+    ).resolves.toBe(true)
+    await expect(
+      runAccess(Media.access?.create, activeUnverifiedUser, createUserLookup(activeUnverifiedUser)),
+    ).resolves.toBe(false)
     await expect(runAccess(Media.access?.update, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, adminUser)).resolves.toBe(true)
+  })
+
+  it('validates active schools at the post relationship boundary', () => {
+    const schoolField = Posts.fields.find((field) => 'name' in field && field.name === 'school')
+
+    expect(schoolField).toMatchObject({
+      filterOptions: {
+        isActive: {
+          equals: true,
+        },
+      },
+    })
   })
 })
 
@@ -164,5 +215,16 @@ describe('Cloudflare context mode', () => {
         realpath,
       }),
     ).toBe(false)
+  })
+
+  it('uses the local development Wrangler config for non-production Payload CLI imports', () => {
+    expect(
+      resolveWranglerPlatformProxyConfigPath({
+        env: {},
+        isPayloadCLI: true,
+        isProduction: false,
+        projectDir: 'D:\\code\\project\\campusblog',
+      }),
+    ).toBe(path.resolve('D:\\code\\project\\campusblog', 'wrangler.dev.jsonc'))
   })
 })

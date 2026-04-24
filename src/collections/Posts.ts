@@ -88,6 +88,11 @@ export const Posts: CollectionConfig = {
       relationTo: 'schools',
       required: true,
       index: true,
+      filterOptions: {
+        isActive: {
+          equals: true,
+        },
+      },
       admin: {
         description: 'Primary school channel that owns this post.',
         position: 'sidebar',

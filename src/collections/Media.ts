@@ -5,6 +5,7 @@ import {
   revalidateMediaCacheAfterChange,
   revalidateMediaCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
+import { setMediaOwner, validateMediaUploadQuota } from '@/hooks/validateMediaUploadQuota'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -15,6 +16,8 @@ export const Media: CollectionConfig = {
     update: adminOnly,
   },
   hooks: {
+    beforeValidate: [setMediaOwner],
+    beforeChange: [validateMediaUploadQuota],
     afterChange: [revalidateMediaCacheAfterChange],
     afterDelete: [revalidateMediaCacheAfterDelete],
   },
@@ -23,6 +26,13 @@ export const Media: CollectionConfig = {
       name: 'alt',
       type: 'text',
       required: true,
+    },
+    {
+      name: 'owner',
+      type: 'relationship',
+      relationTo: 'users',
+      index: true,
+      hidden: true,
     },
   ],
   upload: {

@@ -16,7 +16,6 @@ type PostQuotaData = {
 
 type QuotaUser = {
   id?: number | string | null
-  quotaBytes?: number | null
   roles?: string[] | null
 }
 
@@ -44,6 +43,7 @@ export const validatePostQuota: CollectionBeforeChangeHook = async ({
 
   if (!authorId || String(authorId) !== String(user.id)) return data
 
+  const quotaBytes = await getCurrentQuotaBytes(req)
   const projection = await projectQuotaForPost({
     candidatePost: {
       content: nextPost.content,
@@ -53,7 +53,7 @@ export const validatePostQuota: CollectionBeforeChangeHook = async ({
     },
     excludePostId: operation === 'update' ? originalDoc?.id : null,
     payload: req.payload,
-    quotaBytes: user.quotaBytes,
+    quotaBytes,
     req,
     userId: user.id,
   })
@@ -63,4 +63,22 @@ export const validatePostQuota: CollectionBeforeChangeHook = async ({
   }
 
   return data
+}
+
+async function getCurrentQuotaBytes(req: Parameters<CollectionBeforeChangeHook>[0]['req']) {
+  const userID = req.user?.id
+  if (!userID) return undefined
+
+  const user = await req.payload.findByID({
+    collection: 'users',
+    depth: 0,
+    id: userID,
+    overrideAccess: true,
+    req,
+    select: {
+      quotaBytes: true,
+    },
+  })
+
+  return typeof user.quotaBytes === 'number' ? user.quotaBytes : undefined
 }

@@ -83,3 +83,15 @@ export function shouldUseRemoteBindings(args: {
     })
   )
 }
+
+export function resolveWranglerPlatformProxyConfigPath(args: {
+  env?: RuntimeEnv
+  isPayloadCLI: boolean
+  isProduction: boolean
+  projectDir: string
+}) {
+  if (args.isProduction) return undefined
+
+  const selectedConfig = args.env?.WRANGLER_CONFIG_PATH || 'wrangler.dev.jsonc'
+  return path.resolve(args.projectDir, selectedConfig)
+}
