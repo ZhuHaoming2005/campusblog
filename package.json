@@ -42,10 +42,10 @@
     "@payloadcms/storage-r2": "^3.84.1",
     "@payloadcms/ui": "^3.84.1",
     "@tabler/icons-react": "^3.41.1",
-    "@tiptap/core": "^3.22.4",
-    "@tiptap/extension-placeholder": "^3.22.4",
-    "@tiptap/react": "^3.22.4",
-    "@tiptap/starter-kit": "^3.22.4",
+    "@tiptap/core": "^3.22.5",
+    "@tiptap/extension-placeholder": "^3.22.5",
+    "@tiptap/react": "^3.22.5",
+    "@tiptap/starter-kit": "^3.22.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
@@ -56,7 +56,7 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",
-    "shadcn": "^4.4.0",
+    "shadcn": "^4.6.0",
     "slugify": "^1.6.9",
     "tailwind-merge": "^3.5.0",
     "transliteration": "^2.6.1"
@@ -74,7 +74,7 @@
     "eslint-config-next": "16.2.4",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "29.0.2",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.12",
     "prettier": "^3.8.3",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
@@ -83,7 +83,7 @@
     "vite": "7.3.2",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.4",
-    "wrangler": "^4.84.1"
+    "wrangler": "^4.86.0"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",
