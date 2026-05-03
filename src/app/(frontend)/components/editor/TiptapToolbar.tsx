@@ -169,7 +169,7 @@ export function TiptapToolbar({
   }
 
   return (
-    <div className="sticky top-16 z-20 flex items-center gap-1 overflow-x-auto rounded-t-xl border-b border-border/50 bg-white/90 px-3 py-2 backdrop-blur">
+    <div className="no-scrollbar sticky top-0 z-20 flex items-center gap-1 overflow-x-auto rounded-t-xl border-b border-border/50 bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
       <select
         aria-label={toolbarCopy.blockFormat}
         value={getActiveBlockFormat(editor)}

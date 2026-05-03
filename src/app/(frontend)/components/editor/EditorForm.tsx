@@ -84,7 +84,6 @@ type EditorDictionary = {
     statsTitle: string
     wordCount: string
     characterCount: string
-    blockCount: string
     readinessTitle: string
     titleReady: string
     contentReady: string
@@ -104,7 +103,6 @@ const EMPTY_EDITOR_CONTENT: JSONContent = {
 }
 
 type EditorStats = {
-  blocks: number
   characters: number
   words: number
 }
@@ -156,18 +154,9 @@ function getNodeText(node: JSONContent): string {
   return [ownText, childText].filter(Boolean).join(' ')
 }
 
-function getBlockCount(node: JSONContent | null): number {
-  if (!node) return 0
-
-  const ownBlock = node.type && node.type !== 'doc' && node.type !== 'text' ? 1 : 0
-  const childBlocks = node.content?.reduce((count, child) => count + getBlockCount(child), 0) ?? 0
-
-  return ownBlock + childBlocks
-}
-
 function getEditorStats(json: JSONContent | null): EditorStats {
   if (!json || isContentEmpty(json)) {
-    return { blocks: 0, characters: 0, words: 0 }
+    return { characters: 0, words: 0 }
   }
 
   const text = getNodeText(json).replace(/\s+/g, ' ').trim()
@@ -175,7 +164,6 @@ function getEditorStats(json: JSONContent | null): EditorStats {
   const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0
 
   return {
-    blocks: getBlockCount(json),
     characters: Array.from(text).filter((char) => !/\s/.test(char)).length,
     words: latinWords + cjkChars,
   }
@@ -544,8 +532,8 @@ export default function EditorForm({
   )
 
   return (
-    <div className="min-h-screen">
-      <div className="sticky top-0 z-30 border-b border-campus-primary/5 bg-white/70 backdrop-blur-xl">
+    <div className="flex h-screen flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-campus-primary/5 bg-white/70 backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-4">
             <Link
@@ -599,9 +587,9 @@ export default function EditorForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 px-6 py-8 lg:grid lg:h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_26rem]">
-        <div className="min-w-0 space-y-5 lg:overflow-y-auto lg:px-10 lg:py-8">
-          <div>
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="no-scrollbar min-w-0 lg:overflow-y-auto">
+          <div className="px-0 pb-5 lg:px-10 lg:pt-8">
             <input
               type="text"
               value={title}
@@ -619,77 +607,49 @@ export default function EditorForm({
             {errors.title ? <p className="mt-1.5 text-sm font-label text-red-500">{errors.title}</p> : null}
           </div>
 
-          <div
-            className={cn(
-              'tiptap-editor overflow-visible rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
-              errors.content ? 'border-red-400' : 'border-campus-primary/8',
-            )}
-          >
-            <TiptapToolbar
-              copy={t.editor.toolbar}
-              editor={editor}
-              imageTitle={t.editor.imageInsert}
-              imageUploadingTitle={t.editor.imageUploading}
-              onOpenLinkPopover={openLinkPopover}
-              onUploadImage={handleInlineImageUpload}
-            />
-            <EditorContent editor={editor} />
-            {isLinkPopoverOpen && editor ? (
-              <TiptapLinkPopover
-                copy={editorCopy}
+          <div className="px-0 pb-8 lg:px-10">
+            <div
+              className={cn(
+                'tiptap-editor overflow-visible rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
+                errors.content ? 'border-red-400' : 'border-campus-primary/8',
+              )}
+            >
+              <TiptapToolbar
+                copy={t.editor.toolbar}
                 editor={editor}
-                onClose={() => setIsLinkPopoverOpen(false)}
+                imageTitle={t.editor.imageInsert}
+                imageUploadingTitle={t.editor.imageUploading}
+                onOpenLinkPopover={openLinkPopover}
+                onUploadImage={handleInlineImageUpload}
               />
-            ) : null}
-            <TiptapMenus
-              copy={t.editor.toolbar}
-              editor={editor}
-              imageTitle={t.editor.imageInsert}
-              onOpenLinkPopover={openLinkPopover}
-              onRequestImage={() => inlineImageInputRef.current?.click()}
-            />
-            <input
-              ref={inlineImageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleInlineImageInputChange}
-            />
+              <EditorContent editor={editor} />
+              {isLinkPopoverOpen && editor ? (
+                <TiptapLinkPopover
+                  copy={editorCopy}
+                  editor={editor}
+                  onClose={() => setIsLinkPopoverOpen(false)}
+                />
+              ) : null}
+              <TiptapMenus
+                copy={t.editor.toolbar}
+                editor={editor}
+                imageTitle={t.editor.imageInsert}
+                onOpenLinkPopover={openLinkPopover}
+                onRequestImage={() => inlineImageInputRef.current?.click()}
+              />
+              <input
+                ref={inlineImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleInlineImageInputChange}
+              />
+            </div>
+            {errors.content ? <p className="mt-2 text-sm font-label text-red-500">{errors.content}</p> : null}
           </div>
-          {errors.content ? <p className="text-sm font-label text-red-500">{errors.content}</p> : null}
         </div>
 
-        <div className="w-full space-y-5 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-6 lg:py-8 xl:px-8">
-          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="font-headline text-lg text-campus-primary">
-                {editorCopy.outlineTitle}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {outlineItems.length > 0 ? (
-                <nav className="space-y-1">
-                  {outlineItems.map((item, index) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => scrollToOutlineItem(index)}
-                      className={cn(
-                        'block w-full truncate rounded-md px-2 py-1.5 text-left text-sm font-label text-foreground/60 transition-colors hover:bg-campus-primary/5 hover:text-campus-primary',
-                        item.level === 2 && 'pl-5',
-                        item.level === 3 && 'pl-8 text-xs',
-                      )}
-                    >
-                      {item.text}
-                    </button>
-                  ))}
-                </nav>
-              ) : (
-                <p className="text-sm font-label text-foreground/35">{editorCopy.outlineEmpty}</p>
-              )}
-            </CardContent>
-          </Card>
-
+        <div className="no-scrollbar w-full space-y-5 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-5 lg:py-8 xl:px-6">
           <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="font-headline text-lg text-campus-primary">
@@ -697,7 +657,7 @@ export default function EditorForm({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
                   <div className="text-lg font-semibold text-campus-primary">{editorStats.words}</div>
                   <div className="text-xs font-label text-foreground/45">{t.editor.wordCount}</div>
@@ -705,10 +665,6 @@ export default function EditorForm({
                 <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
                   <div className="text-lg font-semibold text-campus-primary">{editorStats.characters}</div>
                   <div className="text-xs font-label text-foreground/45">{t.editor.characterCount}</div>
-                </div>
-                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
-                  <div className="text-lg font-semibold text-campus-primary">{editorStats.blocks}</div>
-                  <div className="text-xs font-label text-foreground/45">{t.editor.blockCount}</div>
                 </div>
               </div>
 
@@ -868,6 +824,36 @@ export default function EditorForm({
                   ) : null}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg text-campus-primary">
+                {editorCopy.outlineTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {outlineItems.length > 0 ? (
+                <nav className="space-y-1">
+                  {outlineItems.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => scrollToOutlineItem(index)}
+                      className={cn(
+                        'block w-full truncate rounded-md px-2 py-1.5 text-left text-sm font-label text-foreground/60 transition-colors hover:bg-campus-primary/5 hover:text-campus-primary',
+                        item.level === 2 && 'pl-5',
+                        item.level === 3 && 'pl-8 text-xs',
+                      )}
+                    >
+                      {item.text}
+                    </button>
+                  ))}
+                </nav>
+              ) : (
+                <p className="text-sm font-label text-foreground/35">{editorCopy.outlineEmpty}</p>
+              )}
             </CardContent>
           </Card>
         </div>
