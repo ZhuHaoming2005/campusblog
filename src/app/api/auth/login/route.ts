@@ -1,29 +1,113 @@
+import { getPayload } from 'payload'
+
 import { AuthInputError, parseLoginInput } from '../_lib/authInput'
 import { checkAuthRateLimit, getRequestIP } from '../_lib/authRateLimit'
 import {
-  appendSetCookieHeaders,
   AUTH_MESSAGES,
   jsonAuthError,
   jsonAuthSuccess,
   sanitizeAuthNextPath,
 } from '../_lib/authResponses'
 
-type UpstreamAuthErrorPayload = {
-  errors?: Array<{
-    message?: string
-  }>
+type PayloadLoginError = Error & {
+  status?: number
 }
 
-function getUpstreamAuthError(payload: UpstreamAuthErrorPayload | null | undefined) {
-  const firstError = payload?.errors?.[0]
-  if (!firstError || typeof firstError !== 'object') return null
-
-  return {
-    message:
-      typeof firstError.message === 'string' && firstError.message.trim()
-        ? firstError.message
-        : null,
+type PayloadAuthCookieConfig = {
+  cookies: {
+    domain?: string | null
+    sameSite?: boolean | 'Lax' | 'None' | 'Strict' | null
+    secure?: boolean | null
   }
+  tokenExpiration?: number | null
+}
+
+function getPayloadLoginError(error: unknown): PayloadLoginError | null {
+  return error instanceof Error ? (error as PayloadLoginError) : null
+}
+
+function isPayloadLoginError(error: unknown, name: string): boolean {
+  return getPayloadLoginError(error)?.name === name
+}
+
+function getPayloadLoginErrorMessage(error: unknown): string | null {
+  const message = getPayloadLoginError(error)?.message
+  return typeof message === 'string' && message.trim() ? message : null
+}
+
+function generatePayloadAuthCookie(args: {
+  auth: PayloadAuthCookieConfig
+  cookiePrefix: string
+  token: string
+}): string {
+  const sameSite =
+    typeof args.auth.cookies.sameSite === 'string'
+      ? args.auth.cookies.sameSite
+      : args.auth.cookies.sameSite
+        ? 'Strict'
+        : undefined
+  const expires = new Date()
+  expires.setSeconds(expires.getSeconds() + (args.auth.tokenExpiration ?? 7200))
+
+  let cookie = `${args.cookiePrefix}-token=${args.token}; Expires=${expires.toUTCString()}; Path=/`
+
+  if (args.auth.cookies.domain) {
+    cookie += `; Domain=${args.auth.cookies.domain}`
+  }
+
+  if (args.auth.cookies.secure || sameSite === 'None') {
+    cookie += '; Secure=true'
+  }
+
+  cookie += '; HttpOnly=true'
+
+  if (sameSite) {
+    cookie += `; SameSite=${sameSite}`
+  }
+
+  return cookie
+}
+
+async function getPayloadLoginErrorResponse(args: {
+  email: string
+  error: unknown
+  next: string | null | undefined
+  request: Request
+}): Promise<Response | null> {
+  if (isPayloadLoginError(args.error, 'UnverifiedEmail')) {
+    const next = sanitizeAuthNextPath(args.next, '/user/me')
+    const location = `/verify/pending?email=${encodeURIComponent(args.email)}&next=${encodeURIComponent(next)}`
+    return jsonAuthError(
+      403,
+      'email_verification_required',
+      getPayloadLoginErrorMessage(args.error) ?? 'Email verification is required.',
+      undefined,
+      { location },
+    )
+  }
+
+  if (isPayloadLoginError(args.error, 'LockedAuth')) {
+    return jsonAuthError(401, 'account_locked', 'This account is temporarily locked.')
+  }
+
+  if (
+    isPayloadLoginError(args.error, 'AuthenticationError') ||
+    getPayloadLoginError(args.error)?.status === 401
+  ) {
+    const { getFrontendLoginLockState } = await import('../_lib/limitedFrontendSession')
+    const lockState = await getFrontendLoginLockState({
+      email: args.email,
+      request: args.request,
+    })
+
+    if (lockState === 'locked') {
+      return jsonAuthError(401, 'account_locked', 'This account is temporarily locked.')
+    }
+
+    return jsonAuthError(401, 'invalid_credentials', AUTH_MESSAGES.invalidCredentials)
+  }
+
+  return null
 }
 
 export async function POST(request: Request) {
@@ -41,78 +125,68 @@ export async function POST(request: Request) {
       })
     }
 
-    const upstream = await fetch(new URL('/api/users/login', request.url), {
-      body: JSON.stringify({
-        email: input.email,
-        password: input.password,
-      }),
-      headers: {
-        'accept-language': request.headers.get('accept-language') ?? '',
-        'content-type': 'application/json',
-      },
-      method: 'POST',
-    })
+    const { default: config } = await import('@/payload.config')
+    const payload = await getPayload({ config: await config })
 
-    if (!upstream.ok) {
-      const upstreamPayload = (await upstream.json().catch((): null => null)) as
-        | UpstreamAuthErrorPayload
-        | null
-      const upstreamError = getUpstreamAuthError(upstreamPayload)
+    try {
+      const payloadResponse = await payload.login({
+        collection: 'users',
+        data: {
+          email: input.email,
+          password: input.password,
+        },
+        overrideAccess: false,
+        req: {
+          headers: request.headers,
+        },
+        showHiddenFields: true,
+      })
+      const token = typeof payloadResponse.token === 'string' ? payloadResponse.token : ''
+      const headers = new Headers()
 
-      if (upstream.status === 403) {
-        const next = sanitizeAuthNextPath(input.next, '/user/me')
-        const location = `/verify/pending?email=${encodeURIComponent(input.email)}&next=${encodeURIComponent(next)}`
-        return jsonAuthError(
-          403,
-          'email_verification_required',
-          upstreamError?.message ?? 'Email verification is required.',
-          undefined,
-          { location },
+      if (token) {
+        const usersCollection = payload.collections.users
+        headers.append(
+          'set-cookie',
+          generatePayloadAuthCookie({
+            auth: usersCollection.config.auth as PayloadAuthCookieConfig,
+            cookiePrefix: payload.config.cookiePrefix,
+            token,
+          }),
         )
       }
 
-      if (upstream.status === 401) {
-        const { getFrontendLoginLockState } = await import('../_lib/limitedFrontendSession')
-        const lockState = await getFrontendLoginLockState({
-          email: input.email,
-          request,
-        })
-
-        if (lockState === 'locked') {
-          return jsonAuthError(401, 'account_locked', 'This account is temporarily locked.')
-        }
-
-        return jsonAuthError(401, 'invalid_credentials', AUTH_MESSAGES.invalidCredentials)
-      }
-
-      if (upstream.status >= 500) {
-        return jsonAuthError(500, 'login_failed', upstreamError?.message ?? 'Unable to log in right now.')
-      }
-
-      return jsonAuthError(
-        upstream.status,
-        'login_failed',
-        upstreamError?.message ?? 'Unable to log in right now.',
+      return jsonAuthSuccess(
+        {
+          next: sanitizeAuthNextPath(input.next, '/user/me'),
+          user: payloadResponse.user ?? null,
+        },
+        { headers },
       )
+    } catch (error) {
+      const errorResponse = await getPayloadLoginErrorResponse({
+        email: input.email,
+        error,
+        next: input.next,
+        request,
+      })
+
+      if (errorResponse) {
+        return errorResponse
+      }
+
+      throw error
     }
-
-    const payloadResponse = (await upstream.json()) as { user?: { id?: number | string } }
-    const headers = new Headers()
-    appendSetCookieHeaders(upstream.headers, headers)
-
-    return jsonAuthSuccess(
-      {
-        next: sanitizeAuthNextPath(input.next, '/user/me'),
-        user: payloadResponse.user ?? null,
-      },
-      { headers },
-    )
   } catch (error) {
     if (error instanceof AuthInputError) {
       return jsonAuthError(error.status, error.code, error.message)
     }
 
     console.error('POST /api/auth/login error:', error)
-    return jsonAuthError(500, 'login_failed', 'Unable to log in right now.')
+    return jsonAuthError(
+      500,
+      'login_failed',
+      getPayloadLoginErrorMessage(error) ?? 'Unable to log in right now.',
+    )
   }
 }

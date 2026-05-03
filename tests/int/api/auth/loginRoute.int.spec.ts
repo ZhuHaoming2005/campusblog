@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const checkAuthRateLimitMock = vi.fn()
 const getRequestIPMock = vi.fn(() => '127.0.0.1')
 const getFrontendLoginLockStateMock = vi.fn()
+const payloadLoginMock = vi.fn()
+const getPayloadMock = vi.fn()
+
+const payloadConfigMock = Promise.resolve({})
 
 vi.mock('@/app/api/auth/_lib/authRateLimit', () => ({
   checkAuthRateLimit: checkAuthRateLimitMock,
@@ -13,32 +17,54 @@ vi.mock('@/app/api/auth/_lib/limitedFrontendSession', () => ({
   getFrontendLoginLockState: getFrontendLoginLockStateMock,
 }))
 
+vi.mock('@/payload.config', () => ({
+  default: payloadConfigMock,
+}))
+
+vi.mock('payload', () => ({
+  getPayload: getPayloadMock,
+}))
+
 describe('POST /api/auth/login', () => {
   beforeEach(() => {
+    vi.resetModules()
     checkAuthRateLimitMock.mockReset()
     getRequestIPMock.mockClear()
     getFrontendLoginLockStateMock.mockReset()
+    payloadLoginMock.mockReset()
+    getPayloadMock.mockReset()
     checkAuthRateLimitMock.mockResolvedValue({ limited: false, retryAfterSeconds: 0 })
     getFrontendLoginLockStateMock.mockResolvedValue('not_locked')
+    getPayloadMock.mockResolvedValue({
+      collections: {
+        users: {
+          config: {
+            auth: {
+              cookies: {
+                sameSite: 'Lax',
+                secure: false,
+              },
+              removeTokenFromResponses: false,
+              tokenExpiration: 3600,
+            },
+          },
+        },
+      },
+      config: {
+        cookiePrefix: 'payload',
+      },
+      login: payloadLoginMock,
+    })
     vi.restoreAllMocks()
   })
 
   it('normalizes successful login responses and forwards set-cookie headers', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          exp: 123,
-          user: { email: 'user@example.com', id: 7 },
-        }),
-        {
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'payload-token=abc; Path=/; HttpOnly',
-          },
-          status: 200,
-        },
-      ),
-    )
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+    payloadLoginMock.mockResolvedValue({
+      exp: 123,
+      token: 'abc',
+      user: { email: 'user@example.com', id: 7 },
+    })
 
     const { POST } = await import('@/app/api/auth/login/route')
 
@@ -57,7 +83,20 @@ describe('POST /api/auth/login', () => {
       }),
     )
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(getPayloadMock).toHaveBeenCalledWith({ config: await payloadConfigMock })
+    expect(payloadLoginMock).toHaveBeenCalledWith({
+      collection: 'users',
+      data: {
+        email: 'user@example.com',
+        password: 'password123',
+      },
+      overrideAccess: false,
+      req: {
+        headers: expect.any(Headers),
+      },
+      showHiddenFields: true,
+    })
     expect(response.headers.get('set-cookie')).toContain('payload-token=abc')
 
     const body = await response.json()
@@ -67,17 +106,12 @@ describe('POST /api/auth/login', () => {
     })
   })
 
-  it('returns an email-verification response for upstream unverified-login failures', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          errors: [{ message: 'Please verify your email before logging in.' }],
-        }),
-        {
-          headers: { 'content-type': 'application/json' },
-          status: 403,
-        },
-      ),
+  it('returns an email-verification response for Payload unverified-login failures', async () => {
+    payloadLoginMock.mockRejectedValue(
+      Object.assign(new Error('Please verify your email before logging in.'), {
+        name: 'UnverifiedEmail',
+        status: 403,
+      }),
     )
 
     const { POST } = await import('@/app/api/auth/login/route')
@@ -106,10 +140,12 @@ describe('POST /api/auth/login', () => {
     })
   })
 
-  it('returns a generic credential error when the upstream login fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ errors: [{ message: 'User not found' }] }), {
-        headers: { 'content-type': 'application/json' },
+  it('returns a generic credential error when Payload login rejects credentials', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {})
+    payloadLoginMock.mockRejectedValue(
+      Object.assign(new Error('User not found'), {
+        name: 'AuthenticationError',
         status: 401,
       }),
     )
@@ -134,6 +170,8 @@ describe('POST /api/auth/login', () => {
     await expect(response.json()).resolves.toMatchObject({
       code: 'invalid_credentials',
     })
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(consoleErrorMock).not.toHaveBeenCalled()
     expect(getFrontendLoginLockStateMock).toHaveBeenCalledWith({
       email: 'user@example.com',
       request: expect.any(Request),
@@ -141,22 +179,12 @@ describe('POST /api/auth/login', () => {
   })
 
   it('preserves Payload locked-account failures instead of collapsing them into invalid credentials', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          errors: [
-            {
-              message: 'This user is locked due to having too many failed login attempts.',
-            },
-          ],
-        }),
-        {
-          headers: { 'content-type': 'application/json' },
-          status: 401,
-        },
-      ),
+    payloadLoginMock.mockRejectedValue(
+      Object.assign(new Error('This user is locked due to having too many failed login attempts.'), {
+        name: 'LockedAuth',
+        status: 401,
+      }),
     )
-    getFrontendLoginLockStateMock.mockResolvedValue('locked')
 
     const { POST } = await import('@/app/api/auth/login/route')
 
@@ -180,15 +208,12 @@ describe('POST /api/auth/login', () => {
       error: 'This account is temporarily locked.',
       ok: false,
     })
+    expect(getFrontendLoginLockStateMock).not.toHaveBeenCalled()
   })
 
-  it('preserves upstream 5xx login failures instead of collapsing them into invalid credentials', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ errors: [{ message: 'Service unavailable.' }] }), {
-        headers: { 'content-type': 'application/json' },
-        status: 503,
-      }),
-    )
+  it('preserves unexpected Payload login failures instead of collapsing them into invalid credentials', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    payloadLoginMock.mockRejectedValue(new Error('Service unavailable.'))
 
     const { POST } = await import('@/app/api/auth/login/route')
 
