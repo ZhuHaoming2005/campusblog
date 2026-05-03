@@ -49,9 +49,11 @@ async function buildCooldownKey(args: {
 }
 
 export function getRequestIP(headers: Headers): string {
+  const cloudflareIP = headers.get('cf-connecting-ip')?.trim()
+  const trueClientIP = headers.get('true-client-ip')?.trim()
   const forwarded = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
   const realIP = headers.get('x-real-ip')?.trim()
-  return forwarded || realIP || 'unknown'
+  return cloudflareIP || trueClientIP || forwarded || realIP || 'unknown'
 }
 
 export async function checkAuthRateLimit(args: {

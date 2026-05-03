@@ -173,4 +173,25 @@ describe('authRateLimit', () => {
       expect.objectContaining({ expirationTtl: 60 }),
     )
   })
+
+  it('prefers Cloudflare visitor IP over spoofable forwarded headers', async () => {
+    const { getRequestIP } = await import('@/app/api/auth/_lib/authRateLimit')
+    const headers = new Headers({
+      'cf-connecting-ip': '203.0.113.10',
+      'x-forwarded-for': '198.51.100.77',
+      'x-real-ip': '198.51.100.88',
+    })
+
+    expect(getRequestIP(headers)).toBe('203.0.113.10')
+  })
+
+  it('uses forwarded headers only when Cloudflare visitor IP is unavailable', async () => {
+    const { getRequestIP } = await import('@/app/api/auth/_lib/authRateLimit')
+    const headers = new Headers({
+      'x-forwarded-for': '198.51.100.77, 198.51.100.78',
+      'x-real-ip': '198.51.100.88',
+    })
+
+    expect(getRequestIP(headers)).toBe('198.51.100.77')
+  })
 })

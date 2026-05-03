@@ -2,7 +2,7 @@
 
 import path from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import {
   resolveWranglerPlatformProxyConfigPath,
@@ -106,6 +106,71 @@ describe('collection access boundaries', () => {
     await expect(runAccess(Media.access?.update, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, adminUser)).resolves.toBe(true)
+  })
+
+  it('does not allow anonymous users to read draft-only media', async () => {
+    const payload = {
+      find: vi.fn(async ({ collection }: { collection: string }) => {
+        if (collection === 'posts') {
+          return {
+            docs: [
+              {
+                author: 41,
+                content: {
+                  type: 'doc',
+                  content: [
+                    {
+                      type: 'image',
+                      attrs: { mediaId: 102 },
+                    },
+                  ],
+                },
+                coverImage: 101,
+              },
+            ],
+            totalPages: 1,
+          }
+        }
+
+        if (collection === 'users') {
+          return {
+            docs: [
+              {
+                avatar: 103,
+              },
+            ],
+            totalPages: 1,
+          }
+        }
+
+        return { docs: [], totalPages: 1 }
+      }),
+    }
+
+    await expect(runAccess(Media.access?.read, null, payload)).resolves.toEqual({
+      id: {
+        in: [101, 102, 103],
+      },
+    })
+    expect(payload.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'posts',
+        overrideAccess: true,
+        where: { status: { equals: 'published' } },
+      }),
+    )
+  })
+
+  it('allows authenticated users to read their own media without making all media public', async () => {
+    const payload = {
+      find: vi.fn(async () => ({ docs: [], totalPages: 1 })),
+    }
+
+    await expect(runAccess(Media.access?.read, activeVerifiedUser, payload)).resolves.toEqual({
+      owner: {
+        equals: activeVerifiedUser.id,
+      },
+    })
   })
 
   it('validates active schools at the post relationship boundary', () => {
