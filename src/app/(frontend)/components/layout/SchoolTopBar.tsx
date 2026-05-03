@@ -6,6 +6,7 @@ import { IconPlus } from '@tabler/icons-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { SubscriptionToggle } from '@/components/subscriptions/SubscriptionToggle'
 import SearchBar from './SearchBar'
 
 type SubChannel = {
@@ -15,9 +16,20 @@ type SubChannel = {
 }
 
 type SchoolTopBarProps = {
+  schoolId?: string | number
   schoolName: string
   schoolSlug: string
   subChannels: SubChannel[]
+  subscriptionLabels?: {
+    channelSubscribe: string
+    channelSubscribed: string
+    schoolSubscribe: string
+    schoolSubscribed: string
+  }
+  subscriptionState?: {
+    channels: Record<string, boolean>
+    school: boolean
+  }
   t: {
     common: {
       searchPlaceholder: string
@@ -30,7 +42,15 @@ type SchoolTopBarProps = {
   }
 }
 
-export default function SchoolTopBar({ schoolName, schoolSlug, subChannels, t }: SchoolTopBarProps) {
+export default function SchoolTopBar({
+  schoolId,
+  schoolName,
+  schoolSlug,
+  subChannels,
+  subscriptionLabels,
+  subscriptionState,
+  t,
+}: SchoolTopBarProps) {
   const pathname = usePathname()
   const schoolBasePath = `/school/${schoolSlug}`
   const tabItems = [
@@ -50,11 +70,27 @@ export default function SchoolTopBar({ schoolName, schoolSlug, subChannels, t }:
   return (
     <header className="sticky top-0 z-40 isolate border-b border-campus-border-soft/90 bg-gradient-to-b from-campus-panel-soft via-campus-page to-campus-page">
       <div className="space-y-2 px-4 py-2.5 sm:px-5 lg:px-6">
-        <div className="min-w-0">
-          <p className="font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
-            {t.school.homepage}
-          </p>
-          <h2 className="truncate font-headline text-2xl text-campus-primary sm:text-[2rem]">{schoolName}</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="font-label text-[10px] font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
+              {t.school.homepage}
+            </p>
+            <h2 className="truncate font-headline text-2xl text-campus-primary sm:text-[2rem]">{schoolName}</h2>
+          </div>
+
+          {schoolId && subscriptionLabels && subscriptionState ? (
+            <SubscriptionToggle
+              endpoint="/api/subscriptions/schools"
+              idField="schoolId"
+              idValue={schoolId}
+              initialSubscribed={subscriptionState.school}
+              labels={{
+                subscribe: subscriptionLabels.schoolSubscribe,
+                subscribed: subscriptionLabels.schoolSubscribed,
+              }}
+              testId="school-subscribe-toggle"
+            />
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
@@ -102,6 +138,24 @@ export default function SchoolTopBar({ schoolName, schoolSlug, subChannels, t }:
               <IconPlus size={13} />
               <span>{t.school.addSubChannel}</span>
             </Button>
+
+            {subscriptionLabels && subscriptionState
+              ? subChannels.map((channel) => (
+                  <SubscriptionToggle
+                    key={`subscription-${channel.id}`}
+                    className="h-9 shrink-0 px-3"
+                    endpoint="/api/subscriptions/channels"
+                    idField="channelId"
+                    idValue={channel.id}
+                    initialSubscribed={subscriptionState.channels[String(channel.id)] === true}
+                    labels={{
+                      subscribe: subscriptionLabels.channelSubscribe,
+                      subscribed: subscriptionLabels.channelSubscribed,
+                    }}
+                    testId={`channel-subscribe-toggle-${channel.id}`}
+                  />
+                ))
+              : null}
           </div>
 
           <div className="w-full xl:max-w-xs xl:flex-shrink-0">
@@ -116,4 +170,3 @@ export default function SchoolTopBar({ schoolName, schoolSlug, subChannels, t }:
     </header>
   )
 }
-

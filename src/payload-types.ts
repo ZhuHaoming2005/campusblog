@@ -74,6 +74,11 @@ export interface Config {
     tags: Tag;
     posts: Post;
     comments: Comment;
+    'post-likes': PostLike;
+    'post-bookmarks': PostBookmark;
+    'user-follows': UserFollow;
+    'school-subscriptions': SchoolSubscription;
+    'school-sub-channel-subscriptions': SchoolSubChannelSubscription;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -88,6 +93,11 @@ export interface Config {
     tags: TagsSelect<false> | TagsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
+    'post-likes': PostLikesSelect<false> | PostLikesSelect<true>;
+    'post-bookmarks': PostBookmarksSelect<false> | PostBookmarksSelect<true>;
+    'user-follows': UserFollowsSelect<false> | UserFollowsSelect<true>;
+    'school-subscriptions': SchoolSubscriptionsSelect<false> | SchoolSubscriptionsSelect<true>;
+    'school-sub-channel-subscriptions': SchoolSubChannelSubscriptionsSelect<false> | SchoolSubChannelSubscriptionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -383,6 +393,62 @@ export interface Comment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-likes".
+ */
+export interface PostLike {
+  id: number;
+  user: number | User;
+  post: number | Post;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-bookmarks".
+ */
+export interface PostBookmark {
+  id: number;
+  user: number | User;
+  post: number | Post;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-follows".
+ */
+export interface UserFollow {
+  id: number;
+  follower: number | User;
+  following: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-subscriptions".
+ */
+export interface SchoolSubscription {
+  id: number;
+  user: number | User;
+  school: number | School;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channel-subscriptions".
+ */
+export interface SchoolSubChannelSubscription {
+  id: number;
+  user: number | User;
+  school: number | School;
+  channel: number | SchoolSubChannel;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -432,6 +498,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'comments';
         value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'post-likes';
+        value: number | PostLike;
+      } | null)
+    | ({
+        relationTo: 'post-bookmarks';
+        value: number | PostBookmark;
+      } | null)
+    | ({
+        relationTo: 'user-follows';
+        value: number | UserFollow;
+      } | null)
+    | ({
+        relationTo: 'school-subscriptions';
+        value: number | SchoolSubscription;
+      } | null)
+    | ({
+        relationTo: 'school-sub-channel-subscriptions';
+        value: number | SchoolSubChannelSubscription;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -595,6 +681,57 @@ export interface CommentsSelect<T extends boolean = true> {
   parent?: T;
   status?: T;
   content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-likes_select".
+ */
+export interface PostLikesSelect<T extends boolean = true> {
+  user?: T;
+  post?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-bookmarks_select".
+ */
+export interface PostBookmarksSelect<T extends boolean = true> {
+  user?: T;
+  post?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-follows_select".
+ */
+export interface UserFollowsSelect<T extends boolean = true> {
+  follower?: T;
+  following?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-subscriptions_select".
+ */
+export interface SchoolSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
+  school?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channel-subscriptions_select".
+ */
+export interface SchoolSubChannelSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
+  school?: T;
+  channel?: T;
   updatedAt?: T;
   createdAt?: T;
 }

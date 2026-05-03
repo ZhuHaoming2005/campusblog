@@ -67,6 +67,8 @@
     "noPostsHint": "成为第一个发布文章的人吧",
     "subscribe": "订阅",
     "subscribed": "已订阅",
+    "channelSubscribe": "订阅频道",
+    "channelSubscribed": "已订阅频道",
     "description": "简介",
     "notFound": "未找到该学校",
     "notFoundHint": "该学校不存在或已停用"

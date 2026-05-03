@@ -10,6 +10,7 @@ import {
   revalidateUserCacheAfterChange,
   revalidateUserCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
+import { cleanupUserInteractionsBeforeDelete } from '@/collections/Interactions'
 import {
   getAuthEmailSubject,
   readAuthNextPathFromReq,
@@ -81,6 +82,7 @@ export const Users: CollectionConfig = {
   },
   hooks: {
     beforeChange: [preventAdminPasswordChange],
+    beforeDelete: [cleanupUserInteractionsBeforeDelete],
     afterChange: [cleanupDetachedUserMediaAfterChange, revalidateUserCacheAfterChange],
     afterDelete: [cleanupDetachedUserMediaAfterDelete, revalidateUserCacheAfterDelete],
   },

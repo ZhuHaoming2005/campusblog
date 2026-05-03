@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
+import { cleanupSchoolSubChannelSubscriptionsBeforeDelete } from '@/collections/Interactions'
 import {
   revalidateSchoolSubChannelCacheAfterChange,
   revalidateSchoolSubChannelCacheAfterDelete,
@@ -20,6 +21,7 @@ export const SchoolSubChannels: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    beforeDelete: [cleanupSchoolSubChannelSubscriptionsBeforeDelete],
     afterChange: [revalidateSchoolSubChannelCacheAfterChange],
     afterDelete: [revalidateSchoolSubChannelCacheAfterDelete],
   },

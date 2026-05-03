@@ -67,6 +67,8 @@
     "noPostsHint": "Be the first to publish an article",
     "subscribe": "Subscribe",
     "subscribed": "Subscribed",
+    "channelSubscribe": "Subscribe Channel",
+    "channelSubscribed": "Channel Subscribed",
     "description": "About",
     "notFound": "School not found",
     "notFoundHint": "This school does not exist or has been disabled"
