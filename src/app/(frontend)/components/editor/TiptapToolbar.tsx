@@ -28,10 +28,7 @@ import {
 
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import {
-  resolveTiptapEditorCopy,
-  type TiptapEditorCopy,
-} from './tiptapEditorCopy'
+import { resolveTiptapEditorCopy, type TiptapEditorCopy } from './tiptapEditorCopy'
 
 type TiptapToolbarProps = {
   copy?: Partial<TiptapEditorCopy>
@@ -50,7 +47,15 @@ type ToolbarButtonProps = {
   title: string
 }
 
-type BlockFormat = 'paragraph' | 'h1' | 'h2' | 'h3' | 'bulletList' | 'orderedList' | 'blockquote' | 'codeBlock'
+type BlockFormat =
+  | 'paragraph'
+  | 'h1'
+  | 'h2'
+  | 'h3'
+  | 'bulletList'
+  | 'orderedList'
+  | 'blockquote'
+  | 'codeBlock'
 
 function ToolbarButton({ children, disabled, isActive, onClick, title }: ToolbarButtonProps) {
   return (
@@ -169,7 +174,10 @@ export function TiptapToolbar({
   }
 
   return (
-    <div className="no-scrollbar sticky top-0 z-20 flex items-center gap-1 overflow-x-auto rounded-t-xl border-b border-border/50 bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
+    <div
+      data-editor-toolbar="true"
+      className="no-scrollbar sticky top-0 z-20 flex items-center gap-1 overflow-x-auto rounded-t-xl border-b border-border/50 bg-white/95 px-3 py-2 shadow-sm backdrop-blur"
+    >
       <select
         aria-label={toolbarCopy.blockFormat}
         value={getActiveBlockFormat(editor)}

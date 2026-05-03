@@ -34,13 +34,11 @@ import { cn } from '@/lib/utils'
 import { getMediaImageAlt } from '../../lib/mediaAlt'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
+import { getOutlineScrollTop } from './editorScroll'
 import { TiptapLinkPopover } from './TiptapLinkPopover'
 import { TiptapMenus } from './TiptapMenus'
 import { TiptapToolbar } from './TiptapToolbar'
-import {
-  resolveTiptapEditorCopy,
-  type TiptapEditorCopy,
-} from './tiptapEditorCopy'
+import { resolveTiptapEditorCopy, type TiptapEditorCopy } from './tiptapEditorCopy'
 
 type SchoolOption = { id: string | number; name: string; slug: string }
 type SubChannelOption = { id: string | number; name: string; slug: string; school: string | number }
@@ -221,7 +219,9 @@ export default function EditorForm({
   const [schoolId, setSchoolId] = useState(initialPost?.schoolId ?? '')
   const [subChannelId, setSubChannelId] = useState(initialPost?.subChannelId ?? '')
   const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tagIds ?? [])
-  const [editorContent, setEditorContent] = useState<JSONContent | null>(initialPost?.content ?? null)
+  const [editorContent, setEditorContent] = useState<JSONContent | null>(
+    initialPost?.content ?? null,
+  )
   const [coverImage, setCoverImage] = useState<{
     alt?: string | null
     id: string
@@ -243,6 +243,8 @@ export default function EditorForm({
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const inlineImageInputRef = useRef<HTMLInputElement | null>(null)
+  const pageScrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const editorScrollContainerRef = useRef<HTMLDivElement | null>(null)
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false)
   const editorCopy = resolveTiptapEditorCopy(t.editor.toolbar)
@@ -311,7 +313,9 @@ export default function EditorForm({
     editor?.commands.setContent(EMPTY_EDITOR_CONTENT)
   }, [editor])
 
-  const filteredSubChannels = subChannels.filter((channel) => String(channel.school) === String(schoolId))
+  const filteredSubChannels = subChannels.filter(
+    (channel) => String(channel.school) === String(schoolId),
+  )
 
   const handleSchoolChange = useCallback((value: string) => {
     setSchoolId(value)
@@ -370,9 +374,9 @@ export default function EditorForm({
       const response = await fetch(
         initialPost ? `/api/editor/posts/${initialPost.id}` : '/api/editor/posts',
         {
-        method: initialPost ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+          method: initialPost ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         },
       )
 
@@ -385,10 +389,7 @@ export default function EditorForm({
       }
 
       if (!response.ok) {
-        const quotaMessage =
-          data.quota && data.error
-            ? `${data.error}`
-            : undefined
+        const quotaMessage = data.quota && data.error ? `${data.error}` : undefined
 
         setFeedback({
           type: 'error',
@@ -525,8 +526,40 @@ export default function EditorForm({
   const isSchoolReady = Boolean(schoolId)
   const scrollToOutlineItem = useCallback(
     (index: number) => {
-      const headings = editor?.view.dom.querySelectorAll('h1, h2, h3')
-      headings?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const heading = editor?.view.dom.querySelectorAll('h1, h2, h3')[index] as
+        | HTMLElement
+        | undefined
+
+      if (!heading) return
+
+      const editorScrollContainer = editorScrollContainerRef.current
+      const pageScrollContainer = pageScrollContainerRef.current
+      const scrollContainer =
+        editorScrollContainer &&
+        editorScrollContainer.scrollHeight > editorScrollContainer.clientHeight + 1
+          ? editorScrollContainer
+          : pageScrollContainer
+
+      if (!scrollContainer) {
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+
+      const toolbar = editorScrollContainer?.querySelector(
+        '[data-editor-toolbar="true"]',
+      ) as HTMLElement | null
+      const containerRect = scrollContainer.getBoundingClientRect()
+      const headingRect = heading.getBoundingClientRect()
+
+      scrollContainer.scrollTo({
+        behavior: 'smooth',
+        top: getOutlineScrollTop({
+          containerTop: containerRect.top,
+          currentScrollTop: scrollContainer.scrollTop,
+          headingTop: headingRect.top,
+          toolbarHeight: toolbar?.offsetHeight ?? 0,
+        }),
+      })
     },
     [editor],
   )
@@ -557,7 +590,11 @@ export default function EditorForm({
                     : 'border border-red-200 bg-red-50 text-red-700',
                 )}
               >
-                {feedback.type === 'success' ? <IconCheck size={16} /> : <IconAlertTriangle size={16} />}
+                {feedback.type === 'success' ? (
+                  <IconCheck size={16} />
+                ) : (
+                  <IconAlertTriangle size={16} />
+                )}
                 {feedback.message}
               </div>
             ) : null}
@@ -587,8 +624,14 @@ export default function EditorForm({
         </div>
       </div>
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="no-scrollbar min-w-0 lg:overflow-y-auto">
+      <div
+        ref={pageScrollContainerRef}
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_22rem]"
+      >
+        <div
+          ref={editorScrollContainerRef}
+          className="no-scrollbar min-w-0 lg:min-h-0 lg:overflow-y-auto"
+        >
           <div className="px-0 pb-5 lg:px-10 lg:pt-8">
             <input
               type="text"
@@ -604,7 +647,9 @@ export default function EditorForm({
               )}
               style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', lineHeight: 1.2 }}
             />
-            {errors.title ? <p className="mt-1.5 text-sm font-label text-red-500">{errors.title}</p> : null}
+            {errors.title ? (
+              <p className="mt-1.5 text-sm font-label text-red-500">{errors.title}</p>
+            ) : null}
           </div>
 
           <div className="px-0 pb-8 lg:px-10">
@@ -645,11 +690,13 @@ export default function EditorForm({
                 onChange={handleInlineImageInputChange}
               />
             </div>
-            {errors.content ? <p className="mt-2 text-sm font-label text-red-500">{errors.content}</p> : null}
+            {errors.content ? (
+              <p className="mt-2 text-sm font-label text-red-500">{errors.content}</p>
+            ) : null}
           </div>
         </div>
 
-        <div className="no-scrollbar w-full space-y-5 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-5 lg:py-8 xl:px-6">
+        <div className="no-scrollbar w-full space-y-5 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-5 lg:py-8 xl:px-6">
           <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="font-headline text-lg text-campus-primary">
@@ -659,12 +706,18 @@ export default function EditorForm({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
-                  <div className="text-lg font-semibold text-campus-primary">{editorStats.words}</div>
+                  <div className="text-lg font-semibold text-campus-primary">
+                    {editorStats.words}
+                  </div>
                   <div className="text-xs font-label text-foreground/45">{t.editor.wordCount}</div>
                 </div>
                 <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
-                  <div className="text-lg font-semibold text-campus-primary">{editorStats.characters}</div>
-                  <div className="text-xs font-label text-foreground/45">{t.editor.characterCount}</div>
+                  <div className="text-lg font-semibold text-campus-primary">
+                    {editorStats.characters}
+                  </div>
+                  <div className="text-xs font-label text-foreground/45">
+                    {t.editor.characterCount}
+                  </div>
                 </div>
               </div>
 
@@ -705,7 +758,9 @@ export default function EditorForm({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                {errors.school ? <p className="text-xs font-label text-red-500">{errors.school}</p> : null}
+                {errors.school ? (
+                  <p className="text-xs font-label text-red-500">{errors.school}</p>
+                ) : null}
               </div>
 
               {schoolId && filteredSubChannels.length > 0 ? (
@@ -734,7 +789,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.tagsLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.tagsLabel}
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => {
                     const isSelected = selectedTags.includes(String(tag.id))
@@ -757,7 +814,9 @@ export default function EditorForm({
                   })}
 
                   {tags.length === 0 ? (
-                    <p className="text-sm font-label text-foreground/30">{t.editor.tagsPlaceholder}</p>
+                    <p className="text-sm font-label text-foreground/30">
+                      {t.editor.tagsPlaceholder}
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -765,7 +824,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.excerptLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.excerptLabel}
+                </Label>
                 <Textarea
                   value={excerpt}
                   onChange={(event) => setExcerpt(event.target.value)}
@@ -778,7 +839,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.coverLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.coverLabel}
+                </Label>
                 <div className="space-y-3">
                   {coverImage?.url ? (
                     <div className="overflow-hidden rounded-2xl border border-campus-primary/10 bg-white/80">
