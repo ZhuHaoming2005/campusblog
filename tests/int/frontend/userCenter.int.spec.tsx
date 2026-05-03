@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 
@@ -142,6 +142,15 @@ describe('user center', () => {
     vi.doMock('@/components/user/UserPostActions', () => ({
       default: userPostActionsMock,
     }))
+    vi.doMock('@/components/PostFeed', () => ({
+      default: ({ posts }: { posts: Array<{ id: number; title: string }> }) => (
+        <div data-testid="mock-post-feed">
+          {posts.map((post) => (
+            <article key={post.id}>{post.title}</article>
+          ))}
+        </div>
+      ),
+    }))
 
     const { UserCenterPageContent } = await import(
       '@/app/(frontend)/(site)/user/me/UserCenterPageContent'
@@ -157,7 +166,7 @@ describe('user center', () => {
     }
   }
 
-  it('loads author-side data and renders author controls for verified sessions', async () => {
+  it('loads profile data and renders tabbed content feeds for verified sessions', async () => {
     const verifiedUser: Record<string, unknown> = {
       _verified: true,
       avatar: null,
@@ -195,6 +204,36 @@ describe('user center', () => {
           {
             docs: [],
           },
+          {
+            docs: [
+              {
+                id: 21,
+                createdAt: '2026-04-21T00:00:00.000Z',
+                post: {
+                  id: 13,
+                  slug: 'liked-title',
+                  title: 'Liked title',
+                  status: 'published',
+                  updatedAt: '2026-04-20T00:00:00.000Z',
+                },
+              },
+            ],
+          },
+          {
+            docs: [
+              {
+                id: 31,
+                createdAt: '2026-04-19T00:00:00.000Z',
+                post: {
+                  id: 14,
+                  slug: 'bookmarked-title',
+                  title: 'Bookmarked title',
+                  status: 'published',
+                  updatedAt: '2026-04-18T00:00:00.000Z',
+                },
+              },
+            ],
+          },
         ],
         postUsageBytesMap: new Map([
           ['11', 512],
@@ -207,12 +246,19 @@ describe('user center', () => {
     expect(screen.getByTestId('user-profile-editor')).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.profileCardTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.quotaCardTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.myArticlesTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.likedTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.bookmarkedTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.draftsTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.publishedTitle)).toBeTruthy()
     expect(screen.getByText('Draft title')).toBeTruthy()
     expect(screen.getByText('Published title')).toBeTruthy()
     expect(screen.getAllByTestId('row-post-actions')).toHaveLength(2)
-    expect(payloadFindMock).toHaveBeenCalledTimes(3)
+    fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.likedTitle }))
+    expect(screen.getByText('Liked title')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.bookmarkedTitle }))
+    expect(screen.getByText('Bookmarked title')).toBeTruthy()
+    expect(payloadFindMock).toHaveBeenCalledTimes(5)
     expect(getPostUsageBytesMapMock).toHaveBeenCalledTimes(1)
     expect(userPostActionsMock).toHaveBeenCalledTimes(2)
     expect(payloadFindMock).toHaveBeenNthCalledWith(
@@ -235,6 +281,24 @@ describe('user center', () => {
       3,
       expect.objectContaining({
         collection: 'posts',
+        overrideAccess: false,
+        user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        collection: 'post-likes',
+        depth: 2,
+        overrideAccess: false,
+        user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      5,
+      expect.objectContaining({
+        collection: 'post-bookmarks',
+        depth: 2,
         overrideAccess: false,
         user: verifiedUser,
       }),

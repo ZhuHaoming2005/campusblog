@@ -73,4 +73,47 @@ describe('interaction routes', () => {
       }),
     )
   })
+
+  it('creates a post comment for a verified frontend user', async () => {
+    const payload = createPayloadMock()
+    payload.create.mockResolvedValueOnce({
+      id: 1001,
+      author: { id: user.id, displayName: 'Frontend Test User' },
+      content: 'Useful context.',
+      createdAt: '2026-05-04T00:00:00.000Z',
+    })
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/interactions/posts/[postId]/comments/route')
+    const response = await POST(
+      new Request('https://example.com/api/interactions/posts/88/comments', {
+        body: JSON.stringify({ content: ' Useful context. ' }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ postId: '88' }) },
+    )
+
+    expect(response.status).toBe(201)
+    await expect(response.json()).resolves.toMatchObject({
+      comment: { content: 'Useful context.' },
+      postId: 88,
+    })
+    expect(payload.findByID).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'posts',
+        id: 88,
+        overrideAccess: false,
+        user,
+      }),
+    )
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'comments',
+        data: { author: user.id, content: 'Useful context.', post: 88 },
+        overrideAccess: false,
+        user,
+      }),
+    )
+  })
 })

@@ -17,6 +17,7 @@ type RelationDoc = {
 }
 
 type InteractionCollectionSlug =
+  | 'comments'
   | 'post-bookmarks'
   | 'post-likes'
   | 'school-sub-channel-subscriptions'
@@ -121,6 +122,11 @@ export const cleanupPostInteractionsBeforeDelete: CollectionBeforeDeleteHook = a
   req,
 }) => {
   await deleteInteractionRows({
+    collection: 'comments',
+    req,
+    where: { post: { equals: id } },
+  })
+  await deleteInteractionRows({
     collection: 'post-likes',
     req,
     where: { post: { equals: id } },
@@ -136,6 +142,11 @@ export const cleanupUserInteractionsBeforeDelete: CollectionBeforeDeleteHook = a
   id,
   req,
 }) => {
+  await deleteInteractionRows({
+    collection: 'comments',
+    req,
+    where: { author: { equals: id } },
+  })
   await deleteInteractionRows({
     collection: 'post-likes',
     req,

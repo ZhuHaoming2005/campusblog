@@ -2,7 +2,8 @@ import 'server-only'
 
 import { cacheLife, cacheTag } from 'next/cache'
 
-import type { Post, School, SchoolSubChannel, User } from '@/payload-types'
+import type { Comment, Post, School, SchoolSubChannel, User } from '@/payload-types'
+import { toFrontendComment, type FrontendComment } from './commentPresentation'
 import {
   CMS_CONTENT_CACHE_LIFE,
   CMS_STRUCTURE_CACHE_LIFE,
@@ -43,6 +44,13 @@ type ChannelPageData = {
   school: School
   channel: SchoolSubChannel
   posts: Post[]
+}
+
+export type PostInteractionState = {
+  bookmarked: boolean
+  followingAuthor: boolean
+  liked: boolean
+  likeCount: number
 }
 
 function shouldSkipCmsQueriesDuringStaticGeneration() {
@@ -381,6 +389,90 @@ export async function getSchoolSubscriptionState(
   return {
     channels,
     school: schoolSubscriptions.docs.length > 0,
+  }
+}
+
+export async function getPublishedCommentsByPost(postId: number): Promise<FrontendComment[]> {
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'comments',
+    depth: 1,
+    limit: 100,
+    overrideAccess: true,
+    sort: 'createdAt',
+    where: {
+      and: [{ post: { equals: postId } }, { status: { equals: 'published' } }],
+    },
+  })
+
+  return (docs as Comment[]).map(toFrontendComment)
+}
+
+export async function getPostInteractionState(
+  postId: number,
+  authorId: number | string | null,
+  user: User | null,
+): Promise<PostInteractionState> {
+  const payload = await getPayloadClient()
+  const likeCountPromise = payload.find({
+    collection: 'post-likes',
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    where: { post: { equals: postId } },
+  })
+
+  if (!user) {
+    const likeCount = await likeCountPromise
+    return {
+      bookmarked: false,
+      followingAuthor: false,
+      liked: false,
+      likeCount: likeCount.totalDocs,
+    }
+  }
+
+  const [likeCount, like, bookmark, follow] = await Promise.all([
+    likeCountPromise,
+    payload.find({
+      collection: 'post-likes',
+      depth: 0,
+      limit: 1,
+      overrideAccess: false,
+      user,
+      where: {
+        and: [{ user: { equals: user.id } }, { post: { equals: postId } }],
+      },
+    }),
+    payload.find({
+      collection: 'post-bookmarks',
+      depth: 0,
+      limit: 1,
+      overrideAccess: false,
+      user,
+      where: {
+        and: [{ user: { equals: user.id } }, { post: { equals: postId } }],
+      },
+    }),
+    authorId && String(authorId) !== String(user.id)
+      ? payload.find({
+          collection: 'user-follows',
+          depth: 0,
+          limit: 1,
+          overrideAccess: false,
+          user,
+          where: {
+            and: [{ follower: { equals: user.id } }, { following: { equals: authorId } }],
+          },
+        })
+      : Promise.resolve({ docs: [] }),
+  ])
+
+  return {
+    bookmarked: bookmark.docs.length > 0,
+    followingAuthor: follow.docs.length > 0,
+    liked: like.docs.length > 0,
+    likeCount: likeCount.totalDocs,
   }
 }
 

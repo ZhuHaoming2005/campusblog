@@ -8,6 +8,8 @@ import type { JSONContent } from '@tiptap/core'
 
 import type { Post } from '@/payload-types'
 import { TiptapReadOnly } from '@/components/editor/TiptapReadOnly'
+import { PostComments } from '@/components/interactions/PostComments'
+import { PostInteractionBar } from '@/components/interactions/PostInteractionBar'
 import PostBackButton from '@/components/PostBackButton'
 import PostFeed from '@/components/PostFeed'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -20,6 +22,8 @@ import {
   getPublishedPosts,
   getPublishedPostsBySchool,
   getPublishedPostsBySchoolAndChannel,
+  getPostInteractionState,
+  getPublishedCommentsByPost,
   getVisiblePostBySlug,
 } from '@/lib/cmsData'
 import { getFrontendRequestContext } from '@/lib/requestContext'
@@ -98,10 +102,16 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
     notFound()
   }
 
-  const relatedPosts = await getRelatedPosts(post)
   const school = getPostSchool(post)
   const channel = getPostSubChannel(post)
   const author = getPostAuthor(post)
+  const authorId =
+    author?.id ?? (typeof post.author === 'number' || typeof post.author === 'string' ? post.author : null)
+  const [relatedPosts, comments, interactionState] = await Promise.all([
+    getRelatedPosts(post),
+    getPublishedCommentsByPost(post.id),
+    getPostInteractionState(post.id, authorId, currentUser),
+  ])
   const primaryTag = getPostPrimaryTag(post)
   const publishedLabel = getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)
   const readingMinutes = estimatePostReadingMinutes(post)
@@ -218,6 +228,22 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                   </span>
                 </div>
               </div>
+
+              <PostInteractionBar
+                authorId={authorId}
+                className="mt-5"
+                initialState={interactionState}
+                labels={{
+                  bookmark: t.post.bookmark,
+                  bookmarked: t.post.bookmarked,
+                  follow: t.post.followAuthor,
+                  following: t.post.followingAuthor,
+                  like: t.post.like,
+                  liked: t.post.liked,
+                }}
+                postId={post.id}
+                viewerId={currentUser?.id}
+              />
             </header>
 
             <section className="rounded-[2rem] border border-campus-border-soft/80 bg-[linear-gradient(180deg,#FFFFFF_0%,#F9FBFE_100%)] p-6 shadow-[0_14px_36px_rgba(27,75,122,0.04)] sm:p-8">
@@ -229,6 +255,23 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                 loadingClassName="article-prose"
               />
             </section>
+
+            <PostComments
+              canComment={currentUser?._verified === true && currentUser.isActive === true}
+              initialComments={comments}
+              labels={{
+                anonymous: t.common.anonymous,
+                authRequired: t.post.commentAuthRequired,
+                empty: t.post.commentEmpty,
+                error: t.post.commentError,
+                placeholder: t.post.commentPlaceholder,
+                submit: t.post.commentSubmit,
+                submitting: t.post.commentSubmitting,
+                title: t.post.comments,
+              }}
+              locale={locale}
+              postId={post.id}
+            />
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">

@@ -84,6 +84,18 @@ describe('phase 5 interaction collections', () => {
     )
   })
 
+  it('limits comment creation to verified active users and moderation to admins', () => {
+    expect(Comments.access?.create).toBeTypeOf('function')
+
+    const statusField = Comments.fields.find((field) => 'name' in field && field.name === 'status')
+    expect(statusField).toMatchObject({
+      access: {
+        create: expect.any(Function),
+        update: expect.any(Function),
+      },
+    })
+  })
+
   it('creates cascade foreign keys and unique indexes in the phase 5 migration', () => {
     const migration = readFileSync(
       path.resolve(process.cwd(), 'src/migrations/20260503_134555.ts'),
