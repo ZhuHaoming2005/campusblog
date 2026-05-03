@@ -11,6 +11,7 @@ import {
   IconH2,
   IconInfoCircle,
   IconItalic,
+  IconLink,
   IconList,
   IconPhoto,
   IconSeparator,
@@ -18,7 +19,6 @@ import {
 } from '@tabler/icons-react'
 
 import { cn } from '@/lib/utils'
-import { TiptapLinkPopover } from './TiptapLinkPopover'
 import {
   resolveTiptapEditorCopy,
   type TiptapEditorCopy,
@@ -28,6 +28,7 @@ type TiptapMenusProps = {
   copy?: Partial<TiptapEditorCopy>
   editor: Editor | null
   imageTitle?: string
+  onOpenLinkPopover?: () => void
   onRequestImage?: () => void
 }
 
@@ -56,7 +57,13 @@ function MenuButton({ children, isActive, onClick, title }: MenuButtonProps) {
   )
 }
 
-export function TiptapMenus({ copy, editor, imageTitle, onRequestImage }: TiptapMenusProps) {
+export function TiptapMenus({
+  copy,
+  editor,
+  imageTitle,
+  onOpenLinkPopover,
+  onRequestImage,
+}: TiptapMenusProps) {
   if (!editor) return null
 
   const iconSize = 17
@@ -100,13 +107,13 @@ export function TiptapMenus({ copy, editor, imageTitle, onRequestImage }: Tiptap
         >
           <IconCode size={iconSize} />
         </MenuButton>
-        <TiptapLinkPopover
-          buttonClassName="inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm transition-colors"
-          copy={menuCopy}
-          editor={editor}
-          iconSize={iconSize}
+        <MenuButton
+          onClick={() => onOpenLinkPopover?.()}
           isActive={editor.isActive('link')}
-        />
+          title={`${menuCopy.link} (${menuCopy.linkShortcut})`}
+        >
+          <IconLink size={iconSize} />
+        </MenuButton>
         {editor.isActive('campusCallout') ? (
           <>
             <MenuButton

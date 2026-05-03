@@ -1,10 +1,10 @@
 ﻿'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { JSONContent } from '@tiptap/core'
+import { Extension, type JSONContent } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
 import {
@@ -34,9 +34,13 @@ import { cn } from '@/lib/utils'
 import { getMediaImageAlt } from '../../lib/mediaAlt'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
+import { TiptapLinkPopover } from './TiptapLinkPopover'
 import { TiptapMenus } from './TiptapMenus'
 import { TiptapToolbar } from './TiptapToolbar'
-import type { TiptapEditorCopy } from './tiptapEditorCopy'
+import {
+  resolveTiptapEditorCopy,
+  type TiptapEditorCopy,
+} from './tiptapEditorCopy'
 
 type SchoolOption = { id: string | number; name: string; slug: string }
 type SubChannelOption = { id: string | number; name: string; slug: string; school: string | number }
@@ -105,6 +109,12 @@ type EditorStats = {
   words: number
 }
 
+type OutlineItem = {
+  id: string
+  level: number
+  text: string
+}
+
 type InitialPostData = {
   id: string
   title: string
@@ -171,6 +181,31 @@ function getEditorStats(json: JSONContent | null): EditorStats {
   }
 }
 
+function getEditorOutline(json: JSONContent | null): OutlineItem[] {
+  const items: OutlineItem[] = []
+
+  function visit(node: JSONContent) {
+    if (node.type === 'heading') {
+      const text = getNodeText(node).replace(/\s+/g, ' ').trim()
+      const level = Number(node.attrs?.level)
+
+      if (text && [1, 2, 3].includes(level)) {
+        items.push({
+          id: `outline-${items.length}`,
+          level,
+          text,
+        })
+      }
+    }
+
+    node.content?.forEach(visit)
+  }
+
+  if (json) visit(json)
+
+  return items
+}
+
 function ReadinessItem({ isReady, label }: { isReady: boolean; label: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg bg-campus-primary/[0.025] px-3 py-2">
@@ -221,10 +256,35 @@ export default function EditorForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const inlineImageInputRef = useRef<HTMLInputElement | null>(null)
   const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false)
+  const editorCopy = resolveTiptapEditorCopy(t.editor.toolbar)
+  const openLinkPopover = useCallback(() => setIsLinkPopoverOpen(true), [])
+
+  const keyboardShortcuts = useMemo(
+    () =>
+      Extension.create({
+        name: 'campusKeyboardShortcuts',
+        addKeyboardShortcuts() {
+          return {
+            'Mod-Alt-1': () => this.editor.chain().focus().toggleHeading({ level: 1 }).run(),
+            'Mod-Alt-2': () => this.editor.chain().focus().toggleHeading({ level: 2 }).run(),
+            'Mod-Alt-3': () => this.editor.chain().focus().toggleHeading({ level: 3 }).run(),
+            'Mod-k': () => {
+              openLinkPopover()
+              return true
+            },
+            'Mod-Shift-7': () => this.editor.chain().focus().toggleOrderedList().run(),
+            'Mod-Shift-8': () => this.editor.chain().focus().toggleBulletList().run(),
+          }
+        },
+      }),
+    [openLinkPopover],
+  )
 
   const editor = useEditor({
     extensions: [
       ...tiptapExtensions,
+      keyboardShortcuts,
       Placeholder.configure({
         placeholder: t.editor.contentPlaceholder,
       }),
@@ -471,9 +531,17 @@ export default function EditorForm({
   )
 
   const editorStats = getEditorStats(editorContent)
+  const outlineItems = getEditorOutline(editorContent)
   const isTitleReady = title.trim().length > 0
   const isContentReady = !isContentEmpty(editorContent)
   const isSchoolReady = Boolean(schoolId)
+  const scrollToOutlineItem = useCallback(
+    (index: number) => {
+      const headings = editor?.view.dom.querySelectorAll('h1, h2, h3')
+      headings?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    },
+    [editor],
+  )
 
   return (
     <div className="min-h-screen">
@@ -531,8 +599,8 @@ export default function EditorForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 px-6 py-8 lg:flex-row lg:px-10">
-        <div className="min-w-0 flex-1 space-y-5">
+      <div className="flex flex-col gap-6 px-6 py-8 lg:grid lg:h-[calc(100vh-4rem)] lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_26rem]">
+        <div className="min-w-0 space-y-5 lg:overflow-y-auto lg:px-10 lg:py-8">
           <div>
             <input
               type="text"
@@ -562,13 +630,22 @@ export default function EditorForm({
               editor={editor}
               imageTitle={t.editor.imageInsert}
               imageUploadingTitle={t.editor.imageUploading}
+              onOpenLinkPopover={openLinkPopover}
               onUploadImage={handleInlineImageUpload}
             />
             <EditorContent editor={editor} />
+            {isLinkPopoverOpen && editor ? (
+              <TiptapLinkPopover
+                copy={editorCopy}
+                editor={editor}
+                onClose={() => setIsLinkPopoverOpen(false)}
+              />
+            ) : null}
             <TiptapMenus
               copy={t.editor.toolbar}
               editor={editor}
               imageTitle={t.editor.imageInsert}
+              onOpenLinkPopover={openLinkPopover}
               onRequestImage={() => inlineImageInputRef.current?.click()}
             />
             <input
@@ -582,7 +659,37 @@ export default function EditorForm({
           {errors.content ? <p className="text-sm font-label text-red-500">{errors.content}</p> : null}
         </div>
 
-        <div className="w-full shrink-0 space-y-5 lg:w-80 xl:w-96">
+        <div className="w-full space-y-5 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-6 lg:py-8 xl:px-8">
+          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg text-campus-primary">
+                {editorCopy.outlineTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {outlineItems.length > 0 ? (
+                <nav className="space-y-1">
+                  {outlineItems.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => scrollToOutlineItem(index)}
+                      className={cn(
+                        'block w-full truncate rounded-md px-2 py-1.5 text-left text-sm font-label text-foreground/60 transition-colors hover:bg-campus-primary/5 hover:text-campus-primary',
+                        item.level === 2 && 'pl-5',
+                        item.level === 3 && 'pl-8 text-xs',
+                      )}
+                    >
+                      {item.text}
+                    </button>
+                  ))}
+                </nav>
+              ) : (
+                <p className="text-sm font-label text-foreground/35">{editorCopy.outlineEmpty}</p>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="font-headline text-lg text-campus-primary">

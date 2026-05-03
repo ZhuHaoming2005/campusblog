@@ -15,6 +15,7 @@ import {
   IconAlertTriangle,
   IconInfoCircle,
   IconItalic,
+  IconLink,
   IconLinkOff,
   IconList,
   IconListNumbers,
@@ -27,7 +28,6 @@ import {
 
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { TiptapLinkPopover } from './TiptapLinkPopover'
 import {
   resolveTiptapEditorCopy,
   type TiptapEditorCopy,
@@ -38,6 +38,7 @@ type TiptapToolbarProps = {
   editor: Editor | null
   imageTitle?: string
   imageUploadingTitle?: string
+  onOpenLinkPopover?: () => void
   onUploadImage?: (file: File) => Promise<void>
 }
 
@@ -136,6 +137,7 @@ export function TiptapToolbar({
   editor,
   imageTitle,
   imageUploadingTitle,
+  onOpenLinkPopover,
   onUploadImage,
 }: TiptapToolbarProps) {
   const iconSize = 18
@@ -189,14 +191,14 @@ export function TiptapToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive('bold')}
-        title={toolbarCopy.bold}
+        title={`${toolbarCopy.bold} (${toolbarCopy.boldShortcut})`}
       >
         <IconBold size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleItalic().run()}
         isActive={editor.isActive('italic')}
-        title={toolbarCopy.italic}
+        title={`${toolbarCopy.italic} (${toolbarCopy.italicShortcut})`}
       >
         <IconItalic size={iconSize} />
       </ToolbarButton>
@@ -214,13 +216,14 @@ export function TiptapToolbar({
       >
         <IconCode size={iconSize} />
       </ToolbarButton>
-      <TiptapLinkPopover
-        buttonClassName="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors duration-150"
-        copy={toolbarCopy}
-        editor={editor}
-        iconSize={iconSize}
+      <ToolbarButton
+        onClick={() => onOpenLinkPopover?.()}
         isActive={editor.isActive('link')}
-      />
+        title={`${toolbarCopy.link} (${toolbarCopy.linkShortcut})`}
+        disabled={!onOpenLinkPopover}
+      >
+        <IconLink size={iconSize} />
+      </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().unsetCampusLink().run()}
         disabled={!editor.isActive('link')}
@@ -234,21 +237,21 @@ export function TiptapToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         isActive={editor.isActive('heading', { level: 1 })}
-        title={toolbarCopy.heading1}
+        title={`${toolbarCopy.heading1} (${toolbarCopy.heading1Shortcut})`}
       >
         <IconH1 size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         isActive={editor.isActive('heading', { level: 2 })}
-        title={toolbarCopy.heading2}
+        title={`${toolbarCopy.heading2} (${toolbarCopy.heading2Shortcut})`}
       >
         <IconH2 size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         isActive={editor.isActive('heading', { level: 3 })}
-        title={toolbarCopy.heading3}
+        title={`${toolbarCopy.heading3} (${toolbarCopy.heading3Shortcut})`}
       >
         <IconH3 size={iconSize} />
       </ToolbarButton>
@@ -258,14 +261,14 @@ export function TiptapToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
         isActive={editor.isActive('bulletList')}
-        title={toolbarCopy.bulletList}
+        title={`${toolbarCopy.bulletList} (${toolbarCopy.bulletListShortcut})`}
       >
         <IconList size={iconSize} />
       </ToolbarButton>
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
         isActive={editor.isActive('orderedList')}
-        title={toolbarCopy.numberedList}
+        title={`${toolbarCopy.numberedList} (${toolbarCopy.numberedListShortcut})`}
       >
         <IconListNumbers size={iconSize} />
       </ToolbarButton>
@@ -346,7 +349,7 @@ export function TiptapToolbar({
       <ToolbarButton
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
-        title={toolbarCopy.undo}
+        title={`${toolbarCopy.undo} (${toolbarCopy.undoShortcut})`}
       >
         <IconArrowBackUp size={iconSize} />
       </ToolbarButton>
