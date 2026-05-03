@@ -1,10 +1,10 @@
 ﻿'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { JSONContent } from '@tiptap/core'
+import { Extension, type JSONContent } from '@tiptap/core'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorContent, useEditor } from '@tiptap/react'
 import {
@@ -34,7 +34,11 @@ import { cn } from '@/lib/utils'
 import { getMediaImageAlt } from '../../lib/mediaAlt'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
+import { getOutlineScrollTop } from './editorScroll'
+import { TiptapLinkPopover } from './TiptapLinkPopover'
+import { TiptapMenus } from './TiptapMenus'
 import { TiptapToolbar } from './TiptapToolbar'
+import { resolveTiptapEditorCopy, type TiptapEditorCopy } from './tiptapEditorCopy'
 
 type SchoolOption = { id: string | number; name: string; slug: string }
 type SubChannelOption = { id: string | number; name: string; slug: string; school: string | number }
@@ -75,6 +79,14 @@ type EditorDictionary = {
     contentRequired: string
     schoolRequired: string
     schoolRequiredDraft: string
+    statsTitle: string
+    wordCount: string
+    characterCount: string
+    readinessTitle: string
+    titleReady: string
+    contentReady: string
+    schoolReady: string
+    toolbar?: Partial<TiptapEditorCopy>
     quotaExceeded: string
     requiredQuota: string
     backToHome: string
@@ -82,6 +94,22 @@ type EditorDictionary = {
 }
 
 type SubmitAction = 'draft' | 'publish' | null
+
+const EMPTY_EDITOR_CONTENT: JSONContent = {
+  type: 'doc',
+  content: [{ type: 'paragraph' }],
+}
+
+type EditorStats = {
+  characters: number
+  words: number
+}
+
+type OutlineItem = {
+  id: string
+  level: number
+  text: string
+}
 
 type InitialPostData = {
   id: string
@@ -107,8 +135,73 @@ type EditorFormProps = {
 function isContentEmpty(json: JSONContent | null): boolean {
   if (!json) return true
   if (!json.content || json.content.length === 0) return true
-  return json.content.every(
-    (node) => node.type === 'paragraph' && (!node.content || node.content.length === 0),
+  return !hasMeaningfulContent(json)
+}
+
+function hasMeaningfulContent(node: JSONContent): boolean {
+  if (typeof node.text === 'string' && node.text.trim().length > 0) return true
+  if (node.type === 'image') return true
+
+  return node.content?.some(hasMeaningfulContent) ?? false
+}
+
+function getNodeText(node: JSONContent): string {
+  const ownText = typeof node.text === 'string' ? node.text : ''
+  const childText = node.content?.map(getNodeText).join(' ') ?? ''
+
+  return [ownText, childText].filter(Boolean).join(' ')
+}
+
+function getEditorStats(json: JSONContent | null): EditorStats {
+  if (!json || isContentEmpty(json)) {
+    return { characters: 0, words: 0 }
+  }
+
+  const text = getNodeText(json).replace(/\s+/g, ' ').trim()
+  const latinWords = text.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g)?.length ?? 0
+  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0
+
+  return {
+    characters: Array.from(text).filter((char) => !/\s/.test(char)).length,
+    words: latinWords + cjkChars,
+  }
+}
+
+function getEditorOutline(json: JSONContent | null): OutlineItem[] {
+  const items: OutlineItem[] = []
+
+  function visit(node: JSONContent) {
+    if (node.type === 'heading') {
+      const text = getNodeText(node).replace(/\s+/g, ' ').trim()
+      const level = Number(node.attrs?.level)
+
+      if (text && [1, 2, 3].includes(level)) {
+        items.push({
+          id: `outline-${items.length}`,
+          level,
+          text,
+        })
+      }
+    }
+
+    node.content?.forEach(visit)
+  }
+
+  if (json) visit(json)
+
+  return items
+}
+
+function ReadinessItem({ isReady, label }: { isReady: boolean; label: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg bg-campus-primary/[0.025] px-3 py-2">
+      <span className="text-sm font-label text-foreground/65">{label}</span>
+      {isReady ? (
+        <IconCheck size={16} className="shrink-0 text-emerald-600" />
+      ) : (
+        <IconAlertTriangle size={16} className="shrink-0 text-amber-500" />
+      )}
+    </div>
   )
 }
 
@@ -126,7 +219,9 @@ export default function EditorForm({
   const [schoolId, setSchoolId] = useState(initialPost?.schoolId ?? '')
   const [subChannelId, setSubChannelId] = useState(initialPost?.subChannelId ?? '')
   const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tagIds ?? [])
-  const [editorContent, setEditorContent] = useState<JSONContent | null>(initialPost?.content ?? null)
+  const [editorContent, setEditorContent] = useState<JSONContent | null>(
+    initialPost?.content ?? null,
+  )
   const [coverImage, setCoverImage] = useState<{
     alt?: string | null
     id: string
@@ -147,10 +242,39 @@ export default function EditorForm({
     null,
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const inlineImageInputRef = useRef<HTMLInputElement | null>(null)
+  const pageScrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const editorScrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = useState(false)
+  const editorCopy = resolveTiptapEditorCopy(t.editor.toolbar)
+  const openLinkPopover = useCallback(() => setIsLinkPopoverOpen(true), [])
+
+  const keyboardShortcuts = useMemo(
+    () =>
+      Extension.create({
+        name: 'campusKeyboardShortcuts',
+        addKeyboardShortcuts() {
+          return {
+            'Mod-Alt-1': () => this.editor.chain().focus().toggleHeading({ level: 1 }).run(),
+            'Mod-Alt-2': () => this.editor.chain().focus().toggleHeading({ level: 2 }).run(),
+            'Mod-Alt-3': () => this.editor.chain().focus().toggleHeading({ level: 3 }).run(),
+            'Mod-k': () => {
+              openLinkPopover()
+              return true
+            },
+            'Mod-Shift-7': () => this.editor.chain().focus().toggleOrderedList().run(),
+            'Mod-Shift-8': () => this.editor.chain().focus().toggleBulletList().run(),
+          }
+        },
+      }),
+    [openLinkPopover],
+  )
 
   const editor = useEditor({
     extensions: [
       ...tiptapExtensions,
+      keyboardShortcuts,
       Placeholder.configure({
         placeholder: t.editor.contentPlaceholder,
       }),
@@ -168,7 +292,30 @@ export default function EditorForm({
     },
   })
 
-  const filteredSubChannels = subChannels.filter((channel) => String(channel.school) === String(schoolId))
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [])
+
+  const resetNewPostForm = useCallback(() => {
+    setTitle('')
+    setExcerpt('')
+    setSchoolId('')
+    setSubChannelId('')
+    setSelectedTags([])
+    setEditorContent(null)
+    setCoverImage(null)
+    setFeedback(null)
+    setErrors({})
+    editor?.commands.setContent(EMPTY_EDITOR_CONTENT)
+  }, [editor])
+
+  const filteredSubChannels = subChannels.filter(
+    (channel) => String(channel.school) === String(schoolId),
+  )
 
   const handleSchoolChange = useCallback((value: string) => {
     setSchoolId(value)
@@ -203,6 +350,11 @@ export default function EditorForm({
 
     if (isUploadingCover || isUploadingInlineImage) return
 
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current)
+      redirectTimerRef.current = null
+    }
+
     setSubmitAction(status === 'published' ? 'publish' : 'draft')
     setFeedback(null)
 
@@ -222,9 +374,9 @@ export default function EditorForm({
       const response = await fetch(
         initialPost ? `/api/editor/posts/${initialPost.id}` : '/api/editor/posts',
         {
-        method: initialPost ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+          method: initialPost ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         },
       )
 
@@ -237,10 +389,7 @@ export default function EditorForm({
       }
 
       if (!response.ok) {
-        const quotaMessage =
-          data.quota && data.error
-            ? `${data.error}`
-            : undefined
+        const quotaMessage = data.quota && data.error ? `${data.error}` : undefined
 
         setFeedback({
           type: 'error',
@@ -257,9 +406,13 @@ export default function EditorForm({
         message: status === 'published' ? t.editor.publishSuccess : t.editor.draftSuccess,
       })
 
-      setTimeout(() => {
+      redirectTimerRef.current = setTimeout(() => {
+        if (status === 'published') {
+          resetNewPostForm()
+        }
         router.push(status === 'published' ? '/' : '/user/me')
         router.refresh()
+        redirectTimerRef.current = null
       }, 1200)
     } catch {
       setFeedback({
@@ -316,6 +469,18 @@ export default function EditorForm({
     [editor, initialPostId, t.editor.imageUploadError],
   )
 
+  const handleInlineImageInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+
+      if (!file) return
+
+      void handleInlineImageUpload(file)
+    },
+    [handleInlineImageUpload],
+  )
+
   const handleCoverImageChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0]
@@ -354,9 +519,54 @@ export default function EditorForm({
     [initialPostId, t.editor.coverUploadError],
   )
 
+  const editorStats = getEditorStats(editorContent)
+  const outlineItems = getEditorOutline(editorContent)
+  const isTitleReady = title.trim().length > 0
+  const isContentReady = !isContentEmpty(editorContent)
+  const isSchoolReady = Boolean(schoolId)
+  const scrollToOutlineItem = useCallback(
+    (index: number) => {
+      const heading = editor?.view.dom.querySelectorAll('h1, h2, h3')[index] as
+        | HTMLElement
+        | undefined
+
+      if (!heading) return
+
+      const editorScrollContainer = editorScrollContainerRef.current
+      const pageScrollContainer = pageScrollContainerRef.current
+      const scrollContainer =
+        editorScrollContainer &&
+        editorScrollContainer.scrollHeight > editorScrollContainer.clientHeight + 1
+          ? editorScrollContainer
+          : pageScrollContainer
+
+      if (!scrollContainer) {
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        return
+      }
+
+      const toolbar = editorScrollContainer?.querySelector(
+        '[data-editor-toolbar="true"]',
+      ) as HTMLElement | null
+      const containerRect = scrollContainer.getBoundingClientRect()
+      const headingRect = heading.getBoundingClientRect()
+
+      scrollContainer.scrollTo({
+        behavior: 'smooth',
+        top: getOutlineScrollTop({
+          containerTop: containerRect.top,
+          currentScrollTop: scrollContainer.scrollTop,
+          headingTop: headingRect.top,
+          toolbarHeight: toolbar?.offsetHeight ?? 0,
+        }),
+      })
+    },
+    [editor],
+  )
+
   return (
-    <div className="min-h-screen">
-      <div className="sticky top-0 z-30 border-b border-campus-primary/5 bg-white/70 backdrop-blur-xl">
+    <div className="flex h-screen flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-campus-primary/5 bg-white/70 backdrop-blur-xl">
         <div className="flex h-16 items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-4">
             <Link
@@ -380,7 +590,11 @@ export default function EditorForm({
                     : 'border border-red-200 bg-red-50 text-red-700',
                 )}
               >
-                {feedback.type === 'success' ? <IconCheck size={16} /> : <IconAlertTriangle size={16} />}
+                {feedback.type === 'success' ? (
+                  <IconCheck size={16} />
+                ) : (
+                  <IconAlertTriangle size={16} />
+                )}
                 {feedback.message}
               </div>
             ) : null}
@@ -410,9 +624,15 @@ export default function EditorForm({
         </div>
       </div>
 
-      <div className="flex flex-col gap-6 px-6 py-8 lg:flex-row lg:px-10">
-        <div className="min-w-0 flex-1 space-y-5">
-          <div>
+      <div
+        ref={pageScrollContainerRef}
+        className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-6 py-8 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-0 lg:overflow-hidden lg:px-0 lg:py-0 xl:grid-cols-[minmax(0,1fr)_22rem]"
+      >
+        <div
+          ref={editorScrollContainerRef}
+          className="no-scrollbar min-w-0 lg:min-h-0 lg:overflow-y-auto"
+        >
+          <div className="px-0 pb-5 lg:px-10 lg:pt-8">
             <input
               type="text"
               value={title}
@@ -427,27 +647,91 @@ export default function EditorForm({
               )}
               style={{ fontSize: 'clamp(1.75rem, 3.5vw, 2.5rem)', lineHeight: 1.2 }}
             />
-            {errors.title ? <p className="mt-1.5 text-sm font-label text-red-500">{errors.title}</p> : null}
+            {errors.title ? (
+              <p className="mt-1.5 text-sm font-label text-red-500">{errors.title}</p>
+            ) : null}
           </div>
 
-          <div
-            className={cn(
-              'tiptap-editor overflow-hidden rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
-              errors.content ? 'border-red-400' : 'border-campus-primary/8',
-            )}
-          >
-            <TiptapToolbar
-              editor={editor}
-              imageTitle={t.editor.imageInsert}
-              imageUploadingTitle={t.editor.imageUploading}
-              onUploadImage={handleInlineImageUpload}
-            />
-            <EditorContent editor={editor} />
+          <div className="px-0 pb-8 lg:px-10">
+            <div
+              className={cn(
+                'tiptap-editor overflow-visible rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
+                errors.content ? 'border-red-400' : 'border-campus-primary/8',
+              )}
+            >
+              <TiptapToolbar
+                copy={t.editor.toolbar}
+                editor={editor}
+                imageTitle={t.editor.imageInsert}
+                imageUploadingTitle={t.editor.imageUploading}
+                onOpenLinkPopover={openLinkPopover}
+                onUploadImage={handleInlineImageUpload}
+              />
+              <EditorContent editor={editor} />
+              {isLinkPopoverOpen && editor ? (
+                <TiptapLinkPopover
+                  copy={editorCopy}
+                  editor={editor}
+                  onClose={() => setIsLinkPopoverOpen(false)}
+                />
+              ) : null}
+              <TiptapMenus
+                copy={t.editor.toolbar}
+                editor={editor}
+                imageTitle={t.editor.imageInsert}
+                onOpenLinkPopover={openLinkPopover}
+                onRequestImage={() => inlineImageInputRef.current?.click()}
+              />
+              <input
+                ref={inlineImageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleInlineImageInputChange}
+              />
+            </div>
+            {errors.content ? (
+              <p className="mt-2 text-sm font-label text-red-500">{errors.content}</p>
+            ) : null}
           </div>
-          {errors.content ? <p className="text-sm font-label text-red-500">{errors.content}</p> : null}
         </div>
 
-        <div className="w-full shrink-0 space-y-5 lg:w-80 xl:w-96">
+        <div className="no-scrollbar w-full space-y-5 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-campus-primary/5 lg:px-5 lg:py-8 xl:px-6">
+          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg text-campus-primary">
+                {t.editor.statsTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
+                  <div className="text-lg font-semibold text-campus-primary">
+                    {editorStats.words}
+                  </div>
+                  <div className="text-xs font-label text-foreground/45">{t.editor.wordCount}</div>
+                </div>
+                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
+                  <div className="text-lg font-semibold text-campus-primary">
+                    {editorStats.characters}
+                  </div>
+                  <div className="text-xs font-label text-foreground/45">
+                    {t.editor.characterCount}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-xs font-label font-semibold uppercase tracking-wide text-foreground/35">
+                  {t.editor.readinessTitle}
+                </div>
+                <ReadinessItem isReady={isTitleReady} label={t.editor.titleReady} />
+                <ReadinessItem isReady={isContentReady} label={t.editor.contentReady} />
+                <ReadinessItem isReady={isSchoolReady} label={t.editor.schoolReady} />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="font-headline text-lg text-campus-primary">
@@ -474,7 +758,9 @@ export default function EditorForm({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                {errors.school ? <p className="text-xs font-label text-red-500">{errors.school}</p> : null}
+                {errors.school ? (
+                  <p className="text-xs font-label text-red-500">{errors.school}</p>
+                ) : null}
               </div>
 
               {schoolId && filteredSubChannels.length > 0 ? (
@@ -503,7 +789,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.tagsLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.tagsLabel}
+                </Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => {
                     const isSelected = selectedTags.includes(String(tag.id))
@@ -526,7 +814,9 @@ export default function EditorForm({
                   })}
 
                   {tags.length === 0 ? (
-                    <p className="text-sm font-label text-foreground/30">{t.editor.tagsPlaceholder}</p>
+                    <p className="text-sm font-label text-foreground/30">
+                      {t.editor.tagsPlaceholder}
+                    </p>
                   ) : null}
                 </div>
               </div>
@@ -534,7 +824,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.excerptLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.excerptLabel}
+                </Label>
                 <Textarea
                   value={excerpt}
                   onChange={(event) => setExcerpt(event.target.value)}
@@ -547,7 +839,9 @@ export default function EditorForm({
               <Separator className="bg-campus-primary/5" />
 
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">{t.editor.coverLabel}</Label>
+                <Label className="font-label text-sm text-foreground/70">
+                  {t.editor.coverLabel}
+                </Label>
                 <div className="space-y-3">
                   {coverImage?.url ? (
                     <div className="overflow-hidden rounded-2xl border border-campus-primary/10 bg-white/80">
@@ -595,11 +889,38 @@ export default function EditorForm({
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg text-campus-primary">
+                {editorCopy.outlineTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {outlineItems.length > 0 ? (
+                <nav className="space-y-1">
+                  {outlineItems.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => scrollToOutlineItem(index)}
+                      className={cn(
+                        'block w-full truncate rounded-md px-2 py-1.5 text-left text-sm font-label text-foreground/60 transition-colors hover:bg-campus-primary/5 hover:text-campus-primary',
+                        item.level === 2 && 'pl-5',
+                        item.level === 3 && 'pl-8 text-xs',
+                      )}
+                    >
+                      {item.text}
+                    </button>
+                  ))}
+                </nav>
+              ) : (
+                <p className="text-sm font-label text-foreground/35">{editorCopy.outlineEmpty}</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   )
 }
-
-
-
