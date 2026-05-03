@@ -240,6 +240,21 @@ svg {
   margin: 0.5em 0;
 }
 
+.tiptap-editor .ProseMirror ul,
+.tiptap-readonly-wrap .ProseMirror ul {
+  list-style: disc;
+}
+
+.tiptap-editor .ProseMirror ol,
+.tiptap-readonly-wrap .ProseMirror ol {
+  list-style: decimal;
+}
+
+.tiptap-editor .ProseMirror li,
+.tiptap-readonly-wrap .ProseMirror li {
+  padding-left: 0.25rem;
+}
+
 .tiptap-editor .ProseMirror code {
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 0.9em;
@@ -272,6 +287,45 @@ svg {
   padding-left: 1rem;
   margin: 0.75em 0;
   color: rgba(0, 0, 0, 0.6);
+}
+
+.tiptap-editor .ProseMirror a,
+.tiptap-readonly-wrap .ProseMirror a {
+  color: var(--primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.tiptap-editor .ProseMirror .campus-unsafe-link,
+.tiptap-readonly-wrap .ProseMirror .campus-unsafe-link {
+  color: inherit;
+}
+
+.tiptap-editor .ProseMirror .campus-callout,
+.tiptap-readonly-wrap .ProseMirror .campus-callout {
+  border: 1px solid rgba(13, 59, 102, 0.1);
+  border-left-width: 4px;
+  border-radius: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+}
+
+.tiptap-editor .ProseMirror .campus-callout-note,
+.tiptap-readonly-wrap .ProseMirror .campus-callout-note {
+  background: rgba(13, 59, 102, 0.045);
+  border-left-color: rgba(13, 59, 102, 0.45);
+}
+
+.tiptap-editor .ProseMirror .campus-callout-important,
+.tiptap-readonly-wrap .ProseMirror .campus-callout-important {
+  background: rgba(217, 119, 6, 0.08);
+  border-left-color: rgba(217, 119, 6, 0.58);
+}
+
+.tiptap-editor .ProseMirror-selectednode {
+  outline: 2px solid rgba(13, 59, 102, 0.2);
+  outline-offset: 3px;
 }
 
 /* Tiptap horizontal rule */
@@ -350,10 +404,40 @@ svg {
   padding-left: 1.5rem;
 }
 
+.article-prose ul {
+  list-style: disc;
+}
+
+.article-prose ol {
+  list-style: decimal;
+}
+
+.article-prose li {
+  padding-left: 0.25rem;
+}
+
 .article-prose blockquote {
   border-left: 3px solid rgba(13, 59, 102, 0.18);
   color: color-mix(in oklch, var(--foreground) 70%, transparent);
   padding-left: 1rem;
+}
+
+.article-prose .campus-callout {
+  border: 1px solid rgba(13, 59, 102, 0.1);
+  border-left-width: 4px;
+  border-radius: 0.75rem;
+  margin: 1.25rem 0;
+  padding: 0.95rem 1.05rem;
+}
+
+.article-prose .campus-callout-note {
+  background: rgba(13, 59, 102, 0.045);
+  border-left-color: rgba(13, 59, 102, 0.45);
+}
+
+.article-prose .campus-callout-important {
+  background: rgba(217, 119, 6, 0.08);
+  border-left-color: rgba(217, 119, 6, 0.58);
 }
 
 .article-prose pre {

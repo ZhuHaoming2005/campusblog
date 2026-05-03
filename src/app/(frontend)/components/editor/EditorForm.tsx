@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -34,7 +34,9 @@ import { cn } from '@/lib/utils'
 import { getMediaImageAlt } from '../../lib/mediaAlt'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
+import { TiptapMenus } from './TiptapMenus'
 import { TiptapToolbar } from './TiptapToolbar'
+import type { TiptapEditorCopy } from './tiptapEditorCopy'
 
 type SchoolOption = { id: string | number; name: string; slug: string }
 type SubChannelOption = { id: string | number; name: string; slug: string; school: string | number }
@@ -75,6 +77,15 @@ type EditorDictionary = {
     contentRequired: string
     schoolRequired: string
     schoolRequiredDraft: string
+    statsTitle: string
+    wordCount: string
+    characterCount: string
+    blockCount: string
+    readinessTitle: string
+    titleReady: string
+    contentReady: string
+    schoolReady: string
+    toolbar?: Partial<TiptapEditorCopy>
     quotaExceeded: string
     requiredQuota: string
     backToHome: string
@@ -82,6 +93,17 @@ type EditorDictionary = {
 }
 
 type SubmitAction = 'draft' | 'publish' | null
+
+const EMPTY_EDITOR_CONTENT: JSONContent = {
+  type: 'doc',
+  content: [{ type: 'paragraph' }],
+}
+
+type EditorStats = {
+  blocks: number
+  characters: number
+  words: number
+}
 
 type InitialPostData = {
   id: string
@@ -107,8 +129,58 @@ type EditorFormProps = {
 function isContentEmpty(json: JSONContent | null): boolean {
   if (!json) return true
   if (!json.content || json.content.length === 0) return true
-  return json.content.every(
-    (node) => node.type === 'paragraph' && (!node.content || node.content.length === 0),
+  return !hasMeaningfulContent(json)
+}
+
+function hasMeaningfulContent(node: JSONContent): boolean {
+  if (typeof node.text === 'string' && node.text.trim().length > 0) return true
+  if (node.type === 'image') return true
+
+  return node.content?.some(hasMeaningfulContent) ?? false
+}
+
+function getNodeText(node: JSONContent): string {
+  const ownText = typeof node.text === 'string' ? node.text : ''
+  const childText = node.content?.map(getNodeText).join(' ') ?? ''
+
+  return [ownText, childText].filter(Boolean).join(' ')
+}
+
+function getBlockCount(node: JSONContent | null): number {
+  if (!node) return 0
+
+  const ownBlock = node.type && node.type !== 'doc' && node.type !== 'text' ? 1 : 0
+  const childBlocks = node.content?.reduce((count, child) => count + getBlockCount(child), 0) ?? 0
+
+  return ownBlock + childBlocks
+}
+
+function getEditorStats(json: JSONContent | null): EditorStats {
+  if (!json || isContentEmpty(json)) {
+    return { blocks: 0, characters: 0, words: 0 }
+  }
+
+  const text = getNodeText(json).replace(/\s+/g, ' ').trim()
+  const latinWords = text.match(/[A-Za-z0-9]+(?:['-][A-Za-z0-9]+)*/g)?.length ?? 0
+  const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0
+
+  return {
+    blocks: getBlockCount(json),
+    characters: Array.from(text).filter((char) => !/\s/.test(char)).length,
+    words: latinWords + cjkChars,
+  }
+}
+
+function ReadinessItem({ isReady, label }: { isReady: boolean; label: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg bg-campus-primary/[0.025] px-3 py-2">
+      <span className="text-sm font-label text-foreground/65">{label}</span>
+      {isReady ? (
+        <IconCheck size={16} className="shrink-0 text-emerald-600" />
+      ) : (
+        <IconAlertTriangle size={16} className="shrink-0 text-amber-500" />
+      )}
+    </div>
   )
 }
 
@@ -147,6 +219,8 @@ export default function EditorForm({
     null,
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const inlineImageInputRef = useRef<HTMLInputElement | null>(null)
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -167,6 +241,27 @@ export default function EditorForm({
       setEditorContent(currentEditor.getJSON())
     },
   })
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [])
+
+  const resetNewPostForm = useCallback(() => {
+    setTitle('')
+    setExcerpt('')
+    setSchoolId('')
+    setSubChannelId('')
+    setSelectedTags([])
+    setEditorContent(null)
+    setCoverImage(null)
+    setFeedback(null)
+    setErrors({})
+    editor?.commands.setContent(EMPTY_EDITOR_CONTENT)
+  }, [editor])
 
   const filteredSubChannels = subChannels.filter((channel) => String(channel.school) === String(schoolId))
 
@@ -202,6 +297,11 @@ export default function EditorForm({
     }
 
     if (isUploadingCover || isUploadingInlineImage) return
+
+    if (redirectTimerRef.current) {
+      clearTimeout(redirectTimerRef.current)
+      redirectTimerRef.current = null
+    }
 
     setSubmitAction(status === 'published' ? 'publish' : 'draft')
     setFeedback(null)
@@ -257,9 +357,13 @@ export default function EditorForm({
         message: status === 'published' ? t.editor.publishSuccess : t.editor.draftSuccess,
       })
 
-      setTimeout(() => {
+      redirectTimerRef.current = setTimeout(() => {
+        if (status === 'published') {
+          resetNewPostForm()
+        }
         router.push(status === 'published' ? '/' : '/user/me')
         router.refresh()
+        redirectTimerRef.current = null
       }, 1200)
     } catch {
       setFeedback({
@@ -316,6 +420,18 @@ export default function EditorForm({
     [editor, initialPostId, t.editor.imageUploadError],
   )
 
+  const handleInlineImageInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+
+      if (!file) return
+
+      void handleInlineImageUpload(file)
+    },
+    [handleInlineImageUpload],
+  )
+
   const handleCoverImageChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0]
@@ -353,6 +469,11 @@ export default function EditorForm({
     },
     [initialPostId, t.editor.coverUploadError],
   )
+
+  const editorStats = getEditorStats(editorContent)
+  const isTitleReady = title.trim().length > 0
+  const isContentReady = !isContentEmpty(editorContent)
+  const isSchoolReady = Boolean(schoolId)
 
   return (
     <div className="min-h-screen">
@@ -432,22 +553,69 @@ export default function EditorForm({
 
           <div
             className={cn(
-              'tiptap-editor overflow-hidden rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
+              'tiptap-editor overflow-visible rounded-xl border bg-white/60 backdrop-blur-sm transition-all',
               errors.content ? 'border-red-400' : 'border-campus-primary/8',
             )}
           >
             <TiptapToolbar
+              copy={t.editor.toolbar}
               editor={editor}
               imageTitle={t.editor.imageInsert}
               imageUploadingTitle={t.editor.imageUploading}
               onUploadImage={handleInlineImageUpload}
             />
             <EditorContent editor={editor} />
+            <TiptapMenus
+              copy={t.editor.toolbar}
+              editor={editor}
+              imageTitle={t.editor.imageInsert}
+              onRequestImage={() => inlineImageInputRef.current?.click()}
+            />
+            <input
+              ref={inlineImageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleInlineImageInputChange}
+            />
           </div>
           {errors.content ? <p className="text-sm font-label text-red-500">{errors.content}</p> : null}
         </div>
 
         <div className="w-full shrink-0 space-y-5 lg:w-80 xl:w-96">
+          <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="font-headline text-lg text-campus-primary">
+                {t.editor.statsTitle}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
+                  <div className="text-lg font-semibold text-campus-primary">{editorStats.words}</div>
+                  <div className="text-xs font-label text-foreground/45">{t.editor.wordCount}</div>
+                </div>
+                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
+                  <div className="text-lg font-semibold text-campus-primary">{editorStats.characters}</div>
+                  <div className="text-xs font-label text-foreground/45">{t.editor.characterCount}</div>
+                </div>
+                <div className="rounded-lg bg-campus-primary/[0.035] px-3 py-2">
+                  <div className="text-lg font-semibold text-campus-primary">{editorStats.blocks}</div>
+                  <div className="text-xs font-label text-foreground/45">{t.editor.blockCount}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-xs font-label font-semibold uppercase tracking-wide text-foreground/35">
+                  {t.editor.readinessTitle}
+                </div>
+                <ReadinessItem isReady={isTitleReady} label={t.editor.titleReady} />
+                <ReadinessItem isReady={isContentReady} label={t.editor.contentReady} />
+                <ReadinessItem isReady={isSchoolReady} label={t.editor.schoolReady} />
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-campus-primary/8 bg-white/60 backdrop-blur-sm">
             <CardHeader>
               <CardTitle className="font-headline text-lg text-campus-primary">
@@ -600,6 +768,3 @@ export default function EditorForm({
     </div>
   )
 }
-
-
-
