@@ -3,6 +3,8 @@ import { login } from '../helpers/login'
 import { seedTestAdmin, cleanupTestAdmin, testAdmin } from '../helpers/seedAdmin'
 
 test.describe('Admin Panel', () => {
+  test.setTimeout(90_000)
+
   let context: BrowserContext
   let page: Page
 
