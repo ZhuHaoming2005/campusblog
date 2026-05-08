@@ -13,12 +13,14 @@ import RegisterForm from './RegisterForm'
 type AuthMode = 'login' | 'register'
 
 type AuthExperienceProps = {
+  flashMessage?: string | null
   initialMode: AuthMode
   nextPath: string
   t: FrontendDictionary
 }
 
 export default function AuthExperience({
+  flashMessage,
   initialMode,
   nextPath,
   t,
@@ -108,6 +110,12 @@ export default function AuthExperience({
       registerHref={registerHref}
       onModeChange={updateMode}
     >
+      {flashMessage ? (
+        <div className="mb-5 rounded-xl border border-campus-primary/20 bg-campus-primary/5 px-4 py-3 text-sm font-label text-campus-primary">
+          {flashMessage}
+        </div>
+      ) : null}
+
       <div
         className="relative overflow-hidden transition-[height] duration-500 ease-expressive"
         style={panelHeight ? { height: `${panelHeight}px` } : undefined}
@@ -115,6 +123,7 @@ export default function AuthExperience({
         <div
           ref={loginRef}
           aria-hidden={displayMode !== 'login'}
+          inert={displayMode !== 'login'}
           className={cn(
             'transition-all duration-420 ease-expressive will-change-transform',
             displayMode === 'login'
@@ -133,6 +142,7 @@ export default function AuthExperience({
         <div
           ref={registerRef}
           aria-hidden={displayMode !== 'register'}
+          inert={displayMode !== 'register'}
           className={cn(
             'transition-all duration-420 ease-expressive will-change-transform',
             displayMode === 'register'

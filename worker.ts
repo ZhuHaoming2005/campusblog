@@ -1,0 +1,33 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
+import openNextWorker from './.open-next/worker.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
+export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js'
+
+import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
+
+type WorkerEnv = Record<string, unknown>
+
+const worker = {
+  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext) {
+    return openNextWorker.fetch(request, env, ctx)
+  },
+
+  async scheduled(_event: ScheduledEvent, env: WorkerEnv, _ctx: ExecutionContext) {
+    try {
+      const result = await runMediaCleanupCron(env as { D1: D1Database; R2: R2Bucket })
+
+      console.info(
+        `[media-cleanup:cron] scanned=${result.scannedCount} referenced=${result.referencedCount} deleted=${result.deletedIds.length}`,
+      )
+    } catch (error) {
+      console.error(
+        `[media-cleanup:cron] failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      )
+      throw error
+    }
+  },
+}
+
+export default worker

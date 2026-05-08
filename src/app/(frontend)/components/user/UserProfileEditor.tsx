@@ -1,5 +1,6 @@
-'use client'
+﻿'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { IconCamera, IconLoader2 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
@@ -8,7 +9,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PrimaryActionButton } from '@/components/ui/primary-action-button'
 import { Textarea } from '@/components/ui/textarea'
+import { uploadMediaFile } from '../../lib/mediaUpload'
 
 type UserProfileEditorProps = {
   avatarUrl?: string
@@ -22,24 +25,13 @@ type UserProfileEditorProps = {
     noBio: string
     profileError: string
     profileSaved: string
+    resetPassword: string
     saveProfile: string
     savingProfile: string
   }
   displayName: string
   email: string
   userId: number | string
-}
-
-function buildAvatarAlt(userId: number | string, displayName: string): string {
-  const normalizedName = displayName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5_-]+/gi, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-
-  const safeName = normalizedName || 'user'
-  return `profile-avatar-${String(userId)}-${safeName}`
 }
 
 function extractMessage(payload: unknown, fallback: string): string {
@@ -58,18 +50,6 @@ function extractMessage(payload: unknown, fallback: string): string {
   }
 
   return fallback
-}
-
-function extractCreatedId(payload: unknown): string | number | null {
-  if (!payload || typeof payload !== 'object') return null
-  if ('id' in payload && (typeof payload.id === 'string' || typeof payload.id === 'number')) {
-    return payload.id
-  }
-  if ('doc' in payload && payload.doc && typeof payload.doc === 'object' && 'id' in payload.doc) {
-    const docId = payload.doc.id
-    if (typeof docId === 'string' || typeof docId === 'number') return docId
-  }
-  return null
 }
 
 export default function UserProfileEditor({
@@ -119,24 +99,13 @@ export default function UserProfileEditor({
       let avatarId: string | number | null = null
 
       if (selectedFile) {
-        const avatarAlt = buildAvatarAlt(userId, trimmedDisplayName)
-        const formData = new FormData()
-        formData.append('_payload', JSON.stringify({ alt: avatarAlt }))
-        formData.append('alt', avatarAlt)
-        formData.append('file', selectedFile)
-
-        const mediaResponse = await fetch('/api/media', {
-          method: 'POST',
-          body: formData,
+        const media = await uploadMediaFile({
+          fallbackError: copy.profileError,
+          file: selectedFile,
+          kind: 'avatar',
+          seed: userId,
         })
-        const mediaPayload = await mediaResponse.json().catch((): null => null)
-
-        if (!mediaResponse.ok) {
-          setError(extractMessage(mediaPayload, copy.profileError))
-          return
-        }
-
-        avatarId = extractCreatedId(mediaPayload)
+        avatarId = media.id
       }
 
       const updateResponse = await fetch(`/api/users/${encodeURIComponent(String(userId))}`, {
@@ -171,14 +140,14 @@ export default function UserProfileEditor({
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="flex flex-col items-center gap-3">
-          <Avatar className="h-20 w-20 border border-campus-primary/10">
+          <Avatar className="h-20 w-20 border border-campus-border-soft bg-campus-panel-soft">
             {previewUrl ? <AvatarImage src={previewUrl} alt={nextDisplayName} /> : null}
-            <AvatarFallback className="bg-campus-surface-container text-xl text-campus-primary">
+            <AvatarFallback className="bg-campus-panel-strong text-xl text-campus-primary">
               {nextDisplayName.slice(0, 1).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-campus-primary/10 bg-campus-primary/5 px-3 py-2 text-sm font-label text-campus-primary transition-colors hover:bg-campus-primary/10">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-campus-border-soft bg-campus-panel-strong px-3 py-2 text-sm font-label text-campus-primary transition-colors hover:bg-campus-panel-soft">
             <IconCamera size={16} />
             {copy.avatarUpload}
             <input
@@ -208,14 +177,14 @@ export default function UserProfileEditor({
                 setNextDisplayName(event.target.value)
                 setSuccess('')
               }}
-              className="h-11 rounded-xl bg-white/75"
+              className="h-11 rounded-xl border-campus-border-soft bg-campus-panel"
               maxLength={80}
             />
           </div>
 
           <div className="space-y-2">
             <Label className="font-label text-sm text-foreground/70">{copy.emailLabel}</Label>
-            <Input value={email} disabled className="h-11 rounded-xl bg-white/55 text-foreground/55" />
+            <Input value={email} disabled className="h-11 rounded-xl border-campus-border-soft bg-campus-panel-soft text-foreground/55" />
           </div>
 
           <div className="space-y-2">
@@ -226,7 +195,7 @@ export default function UserProfileEditor({
                 setNextBio(event.target.value)
                 setSuccess('')
               }}
-              className="min-h-28 rounded-xl bg-white/75 px-3 py-2.5"
+              className="min-h-28 rounded-xl border-campus-border-soft bg-campus-panel px-3 py-2.5"
               placeholder={copy.noBio}
               maxLength={280}
             />
@@ -246,15 +215,24 @@ export default function UserProfileEditor({
         </div>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-3">
         <Button
+          asChild
+          type="button"
+          variant="outline"
+          className="h-11 rounded-full border-campus-border-soft bg-campus-panel px-5 font-label text-sm font-semibold text-campus-primary hover:bg-campus-panel-soft"
+        >
+          <Link href="/forgot-password?next=%2Fuser%2Fme">{copy.resetPassword}</Link>
+        </Button>
+        <PrimaryActionButton
           type="submit"
-          className="h-11 rounded-xl bg-primary px-5 text-primary-foreground hover:bg-primary/90"
+          data-testid="save-profile-button"
+          className="px-5"
           disabled={isSubmitting}
         >
           {isSubmitting ? <IconLoader2 size={16} className="animate-spin" /> : null}
           {isSubmitting ? copy.savingProfile : copy.saveProfile}
-        </Button>
+        </PrimaryActionButton>
       </div>
     </form>
   )

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -8,11 +8,13 @@ import { extractApiError } from '@/lib/authClient'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import PasswordInput from './PasswordInput'
 
 type LoginDictionary = {
   auth: {
-    backToHome: string
     emailLabel: string
+    emailPlaceholder: string
+    emailVerificationRequired: string
     passwordLabel: string
     loginButton: string
     loginPending: string
@@ -21,6 +23,10 @@ type LoginDictionary = {
     missingPassword: string
     noAccount: string
     goRegister: string
+    forgotPassword: string
+    resendVerification: string
+    showPassword: string
+    hidePassword: string
   }
 }
 
@@ -31,22 +37,34 @@ type LoginFormProps = {
   hideSwitchHint?: boolean
 }
 
+type LoginErrorPayload = {
+  code?: string
+  location?: string
+}
+
 export default function LoginForm({
   nextPath,
   registerHref,
   t,
   hideSwitchHint = false,
 }: LoginFormProps) {
+  const emailInputId = 'login-email'
+  const passwordInputId = 'login-password'
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const forgotPasswordHref =
+    nextPath === '/forgot-password'
+      ? '/forgot-password'
+      : `/forgot-password?next=${encodeURIComponent(nextPath)}`
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    const normalizedEmail = email.trim().toLowerCase()
 
-    if (!email.trim()) {
+    if (!normalizedEmail) {
       setError(t.auth.missingEmail)
       return
     }
@@ -60,20 +78,37 @@ export default function LoginForm({
     setError('')
 
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(),
+          email: normalizedEmail,
+          next: nextPath,
           password,
         }),
       })
 
-      const payload = await response.json().catch((): null => null)
+      const payload = (await response.json().catch((): null => null)) as LoginErrorPayload | null
 
       if (!response.ok) {
+        if (
+          response.status === 403 &&
+          payload &&
+          typeof payload === 'object' &&
+          payload.code === 'email_verification_required'
+        ) {
+          if (typeof payload.location === 'string') {
+            router.replace(payload.location)
+            router.refresh()
+            return
+          }
+
+          setError(t.auth.emailVerificationRequired)
+          return
+        }
+
         setError(extractApiError(payload, t.auth.loginError))
         return
       }
@@ -90,37 +125,55 @@ export default function LoginForm({
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="space-y-2">
-        <Label className="font-label text-sm text-foreground/70">{t.auth.emailLabel}</Label>
+        <Label className="font-label text-sm text-foreground/70" htmlFor={emailInputId}>
+          {t.auth.emailLabel}
+        </Label>
         <Input
+          id={emailInputId}
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="you@example.com"
+          placeholder={t.auth.emailPlaceholder}
           autoComplete="email"
-          className="h-11 rounded-xl bg-white/75"
+          className="h-11 rounded-xl border-campus-border-soft bg-campus-panel"
         />
       </div>
 
       <div className="space-y-2">
-        <Label className="font-label text-sm text-foreground/70">{t.auth.passwordLabel}</Label>
-        <Input
-          type="password"
+        <div className="flex items-center justify-between gap-3">
+          <Label className="font-label text-sm text-foreground/70" htmlFor={passwordInputId}>
+            {t.auth.passwordLabel}
+          </Label>
+          <Link
+            className="text-xs font-label text-campus-primary no-underline hover:underline"
+            href={forgotPasswordHref}
+          >
+            {t.auth.forgotPassword}
+          </Link>
+        </div>
+        <PasswordInput
+          id={passwordInputId}
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           autoComplete="current-password"
-          className="h-11 rounded-xl bg-white/75"
+          inputClassName="h-11 rounded-xl border-campus-border-soft bg-campus-panel"
+          t={t}
         />
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-label text-red-700">
+        <div
+          aria-live="polite"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-label text-red-700"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
 
       <Button
         type="submit"
-        className="h-11 w-full rounded-xl bg-campus-primary text-white hover:bg-campus-primary/90"
+        className="h-11 w-full rounded-xl bg-gradient-to-r from-campus-primary to-campus-secondary text-white hover:opacity-95"
         disabled={isSubmitting}
       >
         {isSubmitting ? t.auth.loginPending : t.auth.loginButton}

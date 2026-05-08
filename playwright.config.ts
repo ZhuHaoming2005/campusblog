@@ -15,8 +15,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Shared D1-backed fixtures require serialized e2e runs in local and CI environments. */
+  workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -35,6 +35,15 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
+    env: {
+      ...process.env,
+      AUTH_EMAIL_DEBUG: process.env.AUTH_EMAIL_DEBUG ?? 'false',
+      AUTH_EMAIL_FROM_ADDRESS:
+        process.env.AUTH_EMAIL_FROM_ADDRESS ?? 'noreply@mail.campusblog.net',
+      AUTH_EMAIL_FROM_NAME: process.env.AUTH_EMAIL_FROM_NAME ?? 'CampusBlog',
+      NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+      PAYLOAD_PUBLIC_SERVER_URL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3000',
+    },
     reuseExistingServer: true,
     url: 'http://localhost:3000',
   },

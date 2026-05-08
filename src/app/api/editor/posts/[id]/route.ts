@@ -1,13 +1,10 @@
-import { revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
+import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
-import { projectQuotaForPublishedPostREST } from '@/quota/postQuotaREST'
-
-export const runtime = 'nodejs'
-export const maxDuration = 15
 
 type PostRequestBody = {
   title?: string
@@ -28,9 +25,13 @@ type UserDoc = {
 type PostDoc = {
   coverImage?: number | string | { id?: number | string | null } | null
   id: number | string
+  school?: RelationValue
   slug: string
   status: string
+  subChannel?: RelationValue
 }
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
 const EMPTY_TIPTAP_DOC = {
   type: 'doc',
@@ -47,7 +48,7 @@ function toNumericId(value: string | number | undefined | null): number | undefi
   return Number.isFinite(num) ? num : undefined
 }
 
-function toRelationId(value: PostDoc['coverImage']): number | string | null {
+function toRelationId(value: RelationValue): number | string | null {
   if (typeof value === 'number' || typeof value === 'string') return value
   if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
   return null
@@ -66,6 +67,17 @@ function formatBytes(value: number, locale: string): string {
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
+    const auth = await requireFrontendAuth({
+      headers: request.headers,
+      nextPath: '/editor',
+      requireAuthorAccess: true,
+      requireVerified: true,
+    })
+
+    if (auth.ok === false) {
+      return toAuthFailureResponse(auth)
+    }
+
     const locale = resolveRequestLocale({
       acceptLanguage: request.headers.get('accept-language'),
     })
@@ -92,12 +104,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 
     const payload = createPayloadRESTClient(request)
-    const authUser = await payload.auth<{ id: number | string }>()
-
-    if (!authUser) {
-      return Response.json({ error: t.editor.authRequired }, { status: 401 })
-    }
-
+    const authUser = auth.user
     const [currentUser, existingPost] = await Promise.all([
       payload.findByID<UserDoc>('users', authUser.id, { depth: 0 }),
       payload.findByID<PostDoc>('posts', postId, { depth: 0 }),
@@ -136,36 +143,30 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         ? tags.map((tag) => toNumericId(tag)).filter(Boolean)
         : []
 
-    if (nextStatus === 'published') {
-      const projection = await projectQuotaForPublishedPostREST({
-        candidatePost: {
-          content: normalizedContent,
-          coverImage: coverImageId ?? toRelationId(existingPost.coverImage) ?? null,
-          excerpt: excerpt?.trim() || null,
-          title: normalizedTitle,
-        },
-        client: payload,
-        excludePostId: postId,
-        quotaBytes: currentUser.quotaBytes,
-        userId: currentUser.id,
-      })
+    const projection = await projectQuotaForPostREST({
+      candidatePost: {
+        content: normalizedContent,
+        coverImage: coverImageId ?? toRelationId(existingPost.coverImage) ?? null,
+        excerpt: excerpt?.trim() || null,
+        title: normalizedTitle,
+      },
+      client: payload,
+      excludePostId: postId,
+      quotaBytes: currentUser.quotaBytes,
+      userId: currentUser.id,
+    })
 
-      if (!projection.allowed) {
-        return Response.json(
-          {
-            error: `${t.editor.quotaExceeded} ${t.userCenter.remainingQuota}: ${formatBytes(projection.remainingBytes, locale)}. ${t.editor.requiredQuota}: ${formatBytes(projection.requiredBytes, locale)}.`,
-            quota: projection,
-          },
-          { status: 400 },
-        )
-      }
+    if (!projection.allowed) {
+      return Response.json(
+        {
+          error: `${t.editor.quotaExceeded} ${t.userCenter.remainingQuota}: ${formatBytes(projection.remainingBytes, locale)}. ${t.editor.requiredQuota}: ${formatBytes(projection.requiredBytes, locale)}.`,
+          quota: projection,
+        },
+        { status: 400 },
+      )
     }
 
     const post = await payload.update<PostDoc>('posts', postId, data)
-
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
@@ -207,18 +208,19 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
       return Response.json({ error: t.post.notFoundTitle }, { status: 400 })
     }
 
-    const payload = createPayloadRESTClient(request)
-    const authUser = await payload.auth<{ id: number | string }>()
+    const auth = await requireFrontendAuth({
+      headers: request.headers,
+      nextPath: '/editor',
+      requireAuthorAccess: true,
+      requireVerified: true,
+    })
 
-    if (!authUser) {
-      return Response.json({ error: t.editor.authRequired }, { status: 401 })
+    if (auth.ok === false) {
+      return toAuthFailureResponse(auth)
     }
 
+    const payload = createPayloadRESTClient(request)
     const post = await payload.delete<PostDoc>('posts', postId)
-
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
 
     after(() => {
       console.info(`[editor-posts:delete] id=${post.id} slug=${post.slug}`)
@@ -240,4 +242,3 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     return Response.json({ error: message }, { status: 500 })
   }
 }
-

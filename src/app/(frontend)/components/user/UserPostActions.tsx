@@ -1,15 +1,18 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { IconLoader2, IconTrash } from '@tabler/icons-react'
 
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Button } from '@/components/ui/button'
 
 type UserPostActionsProps = {
   actionHref?: string | null
   actionLabel?: string
+  cancelLabel: string
+  confirmActionLabel: string
   confirmLabel: string
   deleteErrorLabel: string
   deleteLabel: string
@@ -20,6 +23,8 @@ type UserPostActionsProps = {
 export default function UserPostActions({
   actionHref,
   actionLabel,
+  cancelLabel,
+  confirmActionLabel,
   confirmLabel,
   deleteErrorLabel,
   deleteLabel,
@@ -28,11 +33,10 @@ export default function UserPostActions({
 }: UserPostActionsProps) {
   const router = useRouter()
   const [deleteError, setDeleteError] = useState('')
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
-    if (!window.confirm(confirmLabel)) return
-
     setDeleteError('')
     setIsDeleting(true)
 
@@ -47,6 +51,7 @@ export default function UserPostActions({
         return
       }
 
+      setIsConfirmOpen(false)
       router.refresh()
     } catch {
       setDeleteError(deleteErrorLabel)
@@ -61,7 +66,7 @@ export default function UserPostActions({
         <Button
           asChild
           variant="outline"
-          className="rounded-xl border-campus-primary/10 bg-white/70 text-campus-primary hover:bg-campus-primary/5"
+          className="h-10 min-w-[9rem] justify-center rounded-full border-campus-border-soft bg-campus-panel text-campus-primary hover:bg-campus-panel-soft"
         >
           <Link href={actionHref}>{actionLabel}</Link>
         </Button>
@@ -70,10 +75,11 @@ export default function UserPostActions({
       <Button
         type="button"
         variant="destructive"
-        className="rounded-xl"
+        className="h-10 min-w-[9rem] justify-center rounded-full border-2 border-destructive/70 bg-destructive/10 text-destructive shadow-[inset_0_0_0_1px_hsl(var(--destructive)/0.12)] transition-colors duration-200 hover:border-destructive hover:bg-destructive hover:text-white"
         disabled={isDeleting}
         onClick={() => {
-          void handleDelete()
+          setDeleteError('')
+          setIsConfirmOpen(true)
         }}
       >
         {isDeleting ? <IconLoader2 size={16} className="animate-spin" /> : <IconTrash size={16} />}
@@ -81,6 +87,26 @@ export default function UserPostActions({
       </Button>
 
       {deleteError ? <p className="max-w-[13rem] text-right text-xs text-destructive">{deleteError}</p> : null}
+
+      <ConfirmDialog
+        open={isConfirmOpen}
+        onOpenChange={setIsConfirmOpen}
+        title={deleteLabel}
+        description={confirmLabel}
+        cancelLabel={cancelLabel}
+        confirmLabel={isDeleting ? deletingLabel : confirmActionLabel}
+        disabled={isDeleting}
+        onConfirm={() => {
+          void handleDelete()
+        }}
+      >
+        {isDeleting ? <IconLoader2 size={20} className="animate-spin" /> : <IconTrash size={20} />}
+      </ConfirmDialog>
     </div>
   )
 }
+
+
+
+
+

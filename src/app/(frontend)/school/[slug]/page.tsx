@@ -1,64 +1,118 @@
-import { headers as getHeaders } from 'next/headers.js'
-import { cookies as getCookies } from 'next/headers.js'
+import React, { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { IconSchool } from '@tabler/icons-react'
 
 import PostFeed from '@/components/PostFeed'
+import { DEFAULT_LOCALE } from '../../lib/i18n/config'
 import { getDictionary } from '../../lib/i18n/dictionaries'
-import { resolveRequestLocale } from '../../lib/i18n/locale'
-import { getPublishedPostsBySchool, getSchoolBySlug } from '../../lib/cmsData'
+import { getFrontendRequestContext } from '../../lib/requestContext'
+import { getSchoolPageData, STATIC_PARAMS_PLACEHOLDER_SLUG } from '../../lib/cmsData'
 
-export default async function SchoolPage({
+async function SchoolPageContent({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { slug } = await params
-  const headers = await getHeaders()
-  const cookies = await getCookies()
-  const locale = resolveRequestLocale({
-    cookieLocale: cookies.get('locale')?.value,
-    acceptLanguage: headers.get('accept-language'),
-  })
-  const t = getDictionary(locale)
-
-  const school = await getSchoolBySlug(slug)
-  if (!school) {
+  const [{ slug }, { locale, t }] = await Promise.all([params, getFrontendRequestContext()])
+  if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
     notFound()
   }
 
-  const posts = await getPublishedPostsBySchool(school.id)
+  const data = await getSchoolPageData(slug)
+
+  if (!data) {
+    notFound()
+  }
+
+  const { school, posts, subChannels } = data
 
   return (
-    <section className="px-6 lg:px-10 py-6">
-      {/* School description card */}
-      {school.description && (
-        <div className="mb-6 p-6 bg-white/60 backdrop-blur-sm rounded-xl border border-campus-primary/8 shadow-sm">
-          <h3 className="font-label text-xs uppercase tracking-[0.15em] text-foreground/40 font-bold mb-2">
-            {t.school.description}
-          </h3>
-          <p className="text-base text-foreground/70 leading-relaxed font-label">
-            {school.description}
-          </p>
-        </div>
-      )}
+    <section className="bg-gradient-to-b from-campus-page via-campus-panel-soft/35 to-campus-page px-4 py-5 sm:px-5 lg:px-6">
+      <div className="space-y-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem] xl:items-start">
+          <section className="rounded-[2rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/70 to-campus-page p-6 shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
+            <p className="font-label text-xs font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
+              {t.school.allPosts}
+            </p>
+            <h1 className="mt-3 font-headline text-4xl text-campus-primary sm:text-5xl">
+              {school.name}
+            </h1>
+            <p className="mt-4 max-w-2xl font-label text-sm leading-7 text-campus-text-soft sm:text-base">
+              {school.description?.trim() || `${school.name} ${t.school.homepage.toLowerCase()}`}
+            </p>
+          </section>
 
-      {/* Posts grid */}
-      {posts.length > 0 ? (
-        <PostFeed posts={posts} locale={locale} showChannelName />
-      ) : (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
-          <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-campus-primary/10 via-campus-teal/10 to-campus-accent/10 flex items-center justify-center mb-8 animate-float shadow-lg shadow-campus-primary/5">
-            <IconSchool size={52} className="text-campus-primary/50" />
-          </div>
-          <h2 className="font-headline text-3xl font-bold text-campus-primary mb-3">
-            {t.school.noPosts}
-          </h2>
-          <p className="text-foreground/60 font-label text-base max-w-sm">
-            {t.school.noPostsHint}
-          </p>
+          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="rounded-[1.5rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft to-campus-panel-strong p-4 shadow-[0_10px_24px_rgba(27,75,122,0.05)]">
+              <div className="font-label text-xs font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
+                {t.school.allPosts}
+              </div>
+              <div className="mt-3 font-headline text-3xl text-campus-primary">{posts.length}</div>
+            </div>
+            <div className="rounded-[1.5rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft to-campus-panel-strong p-4 shadow-[0_10px_24px_rgba(27,75,122,0.05)]">
+              <div className="font-label text-xs font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
+                {t.sidebar.channels}
+              </div>
+              <div className="mt-3 font-headline text-3xl text-campus-secondary">
+                {subChannels.length}
+              </div>
+            </div>
+          </section>
         </div>
-      )}
+
+        {posts.length > 0 ? (
+          <PostFeed posts={posts} locale={locale} showChannelName />
+        ) : (
+          <div className="flex min-h-[45vh] flex-col items-center justify-center rounded-[2rem] border border-dashed border-campus-border-soft bg-gradient-to-br from-campus-panel to-campus-panel-soft/70 p-10 text-center shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
+            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-campus-panel-strong text-campus-primary shadow-[0_10px_24px_rgba(27,75,122,0.08)]">
+              <IconSchool size={46} />
+            </div>
+            <h2 className="font-headline text-3xl font-bold text-campus-primary">
+              {t.school.noPosts}
+            </h2>
+            <p className="mt-3 max-w-sm font-label text-base text-campus-text-soft">
+              {t.school.noPostsHint}
+            </p>
+          </div>
+        )}
+      </div>
     </section>
+  )
+}
+
+export default function SchoolPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const fallbackLocale = DEFAULT_LOCALE
+  const fallbackDictionary = getDictionary(fallbackLocale)
+
+  return (
+    <Suspense
+      fallback={
+        <section className="bg-gradient-to-b from-campus-page via-campus-panel-soft/35 to-campus-page px-4 py-5 sm:px-5 lg:px-6">
+          <div className="space-y-6">
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem] xl:items-start">
+              <section className="rounded-[2rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/70 to-campus-page p-6 shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
+                <p className="font-label text-xs font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
+                  {fallbackDictionary.school.allPosts}
+                </p>
+              </section>
+            </div>
+            <div className="flex min-h-[45vh] flex-col items-center justify-center rounded-[2rem] border border-dashed border-campus-border-soft bg-gradient-to-br from-campus-panel to-campus-panel-soft/70 p-10 text-center shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-[1.75rem] bg-campus-panel-strong text-campus-primary shadow-[0_10px_24px_rgba(27,75,122,0.08)]">
+                <IconSchool size={46} />
+              </div>
+              <p className="font-label text-base text-campus-text-soft">
+                {fallbackDictionary.school.homepage}
+              </p>
+            </div>
+          </div>
+        </section>
+      }
+    >
+      <SchoolPageContent params={params} />
+    </Suspense>
   )
 }

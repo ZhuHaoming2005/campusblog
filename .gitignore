@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-pnpm-lock.yaml
 /.pnp
 .pnp.js
 .yarn/install-state.gz
@@ -10,14 +9,20 @@ pnpm-lock.yaml
 /.idea/*
 !/.idea/runConfigurations
 
-# vscode
-.vscode/
-
-# cursor
+# agent
 .cursor/
+.codex/
+.superpowers/
 
 # testing
 /coverage
+
+**.log
+**.pyc
+
+**/server-info
+
+**.html
 
 # next.js
 /.next/
@@ -37,6 +42,11 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
+
+# tmp
+tmp
+*.docx
 
 # vercel
 .vercel
@@ -44,8 +54,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-.env
 
 /media
 

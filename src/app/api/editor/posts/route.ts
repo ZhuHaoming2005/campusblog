@@ -1,13 +1,10 @@
-import { revalidateTag } from 'next/cache'
 import { after } from 'next/server'
 
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
+import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
-import { projectQuotaForPublishedPostREST } from '@/quota/postQuotaREST'
-
-export const runtime = 'nodejs'
-export const maxDuration = 15
 
 type PostRequestBody = {
   title?: string
@@ -59,6 +56,17 @@ function formatBytes(value: number, locale: string): string {
 
 export async function POST(request: Request) {
   try {
+    const auth = await requireFrontendAuth({
+      headers: request.headers,
+      nextPath: '/editor',
+      requireAuthorAccess: true,
+      requireVerified: true,
+    })
+
+    if (auth.ok === false) {
+      return toAuthFailureResponse(auth)
+    }
+
     const locale = resolveRequestLocale({
       acceptLanguage: request.headers.get('accept-language'),
     })
@@ -78,12 +86,7 @@ export async function POST(request: Request) {
     }
 
     const payload = createPayloadRESTClient(request)
-    const authUser = await payload.auth<{ id: number | string }>()
-
-    if (!authUser) {
-      return Response.json({ error: t.editor.authRequired }, { status: 401 })
-    }
-
+    const authUser = auth.user
     const currentUser = await payload.findByID<UserDoc>('users', authUser.id, { depth: 0 })
 
     const normalizedTitle =
@@ -116,35 +119,29 @@ export async function POST(request: Request) {
       data.tags = tags.map((tag) => toNumericId(tag)).filter(Boolean)
     }
 
-    if (nextStatus === 'published') {
-      const projection = await projectQuotaForPublishedPostREST({
-        candidatePost: {
-          content: normalizedContent,
-          coverImage: coverImageId ?? null,
-          excerpt: excerpt?.trim() || null,
-          title: normalizedTitle,
-        },
-        client: payload,
-        quotaBytes: currentUser.quotaBytes,
-        userId: currentUser.id,
-      })
+    const projection = await projectQuotaForPostREST({
+      candidatePost: {
+        content: normalizedContent,
+        coverImage: coverImageId ?? null,
+        excerpt: excerpt?.trim() || null,
+        title: normalizedTitle,
+      },
+      client: payload,
+      quotaBytes: currentUser.quotaBytes,
+      userId: currentUser.id,
+    })
 
-      if (!projection.allowed) {
-        return Response.json(
-          {
-            error: `${t.editor.quotaExceeded} ${t.userCenter.remainingQuota}: ${formatBytes(projection.remainingBytes, locale)}. ${t.editor.requiredQuota}: ${formatBytes(projection.requiredBytes, locale)}.`,
-            quota: projection,
-          },
-          { status: 400 },
-        )
-      }
+    if (!projection.allowed) {
+      return Response.json(
+        {
+          error: `${t.editor.quotaExceeded} ${t.userCenter.remainingQuota}: ${formatBytes(projection.remainingBytes, locale)}. ${t.editor.requiredQuota}: ${formatBytes(projection.requiredBytes, locale)}.`,
+          quota: projection,
+        },
+        { status: 400 },
+      )
     }
 
     const post = await payload.create<PostDoc>('posts', data)
-
-    revalidateTag('posts')
-    revalidateTag('posts-by-school')
-    revalidateTag('posts-by-school-channel')
 
     after(() => {
       const channelInfo = subChannelId ? ` channel=${subChannelId}` : ''
@@ -168,4 +165,3 @@ export async function POST(request: Request) {
     return Response.json({ error: message }, { status: 500 })
   }
 }
-

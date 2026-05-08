@@ -10,8 +10,10 @@
     "userCenter": "User Center",
     "logout": "Logout",
     "logoutPending": "Signing out...",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
     "languageLabel": "Language",
-    "languageZh": "简体中文",
+    "languageZh": "中文",
     "languageEn": "English",
     "anonymous": "Anonymous"
   },
@@ -23,6 +25,39 @@
   "discover": {
     "noPosts": "No posts to discover yet",
     "noPostsHint": "Be the first to share your insights"
+  },
+  "discoverHome": {
+    "heroEyebrow": "Campus now",
+    "heroTitle": "What is everyone talking about on campus today?",
+    "heroSubtitle": "Start with the stories, events, and opinions moving across schools right now.",
+    "featuredLabel": "Featured now",
+    "tabs": {
+      "recommended": "Recommended",
+      "latest": "Latest",
+      "sameSchool": "Same School Trending",
+      "nearbySchools": "Nearby Schools"
+    },
+    "views": {
+      "recommendedTitle": "Recommended for browsing",
+      "recommendedHint": "A balanced mix of active campus stories and standout posts.",
+      "latestTitle": "Latest drops",
+      "latestHint": "Freshly published posts, sorted by newest first.",
+      "sameSchoolTitle": "Same school momentum",
+      "sameSchoolHint": "A tighter stream built around the busiest school in the current feed.",
+      "nearbySchoolsTitle": "Across nearby schools",
+      "nearbySchoolsHint": "Sample one story from more campuses before diving deeper."
+    },
+    "sections": {
+      "schoolHighlights": "School Highlights",
+      "channelShortcuts": "Channel Shortcuts",
+      "trendingTags": "Trending Tags"
+    },
+    "empty": {
+      "filteredTitle": "Nothing matches this view yet",
+      "filteredHint": "Try another discovery tab or come back after the next post lands."
+    },
+    "tabListLabel": "Homepage discovery views",
+    "backToTop": "Back to top"
   },
   "school": {
     "homepage": "Homepage",
@@ -82,15 +117,19 @@
     "registerTitle": "Create your account",
     "registerSubtitle": "Register a Campus Blog account to publish your campus news.",
     "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
     "passwordLabel": "Password",
     "displayNameLabel": "Display name",
     "confirmPasswordLabel": "Confirm password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "loginButton": "Sign in",
     "loginPending": "Signing in...",
     "registerButton": "Create account",
     "registerPending": "Creating account...",
     "loginError": "Unable to sign in. Please check your credentials and try again.",
     "registerError": "Unable to create your account right now. Please try again.",
+    "emailVerificationRequired": "Verify your email before signing in.",
     "missingDisplayName": "Display name is required.",
     "missingEmail": "Email is required.",
     "missingPassword": "Password is required.",
@@ -99,7 +138,44 @@
     "noAccount": "Don't have an account?",
     "goRegister": "Register now",
     "haveAccount": "Already have an account?",
-    "goLogin": "Sign in"
+    "goLogin": "Sign in",
+    "forgotPassword": "Forgot password?",
+    "resendVerification": "Resend verification email",
+    "resendVerificationButton": "Send another verification email",
+    "resendVerificationCooldownPrefix": "Available again in",
+    "emailActionCooldownPrefix": "Available again in",
+    "resendVerificationSuccess": "Verification email sent. Check your inbox for the new link.",
+    "verifyPendingTitle": "Check your inbox",
+    "verifyPendingSubtitle": "Your account was created, but you need to verify your email before you can finish signing in.",
+    "verifyPendingEmailLabel": "Verification email sent to",
+    "verifySuccessTitle": "Email verified",
+    "verifySuccessSubtitle": "Your account is ready. You can now sign in and continue to your destination.",
+    "verifyErrorTitle": "Verification link is invalid",
+    "verifyErrorSubtitle": "This verification link is missing, expired, or has already been used. Request another email and try again.",
+    "verifyLoginButton": "Continue to sign in",
+    "forgotPasswordTitle": "Reset your password",
+    "forgotPasswordSubtitle": "Enter your account email and we'll send you a reset link if the account is eligible.",
+    "forgotPasswordButton": "Send reset email",
+    "forgotPasswordSuccess": "If the email can be used for password recovery, a reset link has been sent.",
+    "resetPasswordTitle": "Choose a new password",
+    "resetPasswordSubtitle": "Set a new password for your account using the reset link you received.",
+    "resetPasswordButton": "Update password",
+    "resetPasswordSuccess": "Your password has been reset. You can sign in with the new password now.",
+    "resetPasswordTokenError": "This reset link is missing or invalid. Request a new password reset email.",
+    "emailTemplates": {
+      "accountLabel": "Account:",
+      "fallbackURLLabel": "If the button does not work, copy and paste this URL into your browser:",
+      "resetPassword": {
+        "actionLabel": "Reset your password",
+        "intro": "Use the secure link below to reset your CampusBlog password.",
+        "subject": "Reset your CampusBlog password"
+      },
+      "verifyEmail": {
+        "actionLabel": "Verify your email",
+        "intro": "Verify your email address to activate CampusBlog sign-in.",
+        "subject": "Verify your CampusBlog email"
+      }
+    }
   },
   "userCenter": {
     "pageTitle": "My Dashboard",
@@ -108,11 +184,13 @@
     "quotaCardTitle": "Quota",
     "draftsTitle": "Drafts",
     "publishedTitle": "Published Posts",
+    "hiddenTitle": "Hidden Posts",
     "emailLabel": "Email",
     "bioLabel": "Bio",
     "noBio": "No bio yet",
     "avatarUpload": "Upload avatar",
     "avatarHint": "PNG, JPG, or WebP. A square image works best.",
+    "resetPassword": "Change password",
     "saveProfile": "Save profile",
     "savingProfile": "Saving...",
     "profileSaved": "Profile updated successfully.",
@@ -124,9 +202,11 @@
     "editDraft": "Edit Draft",
     "emptyDrafts": "You don't have any drafts yet.",
     "emptyPublished": "You haven't published any posts yet.",
+    "emptyHidden": "You don't have any hidden posts yet.",
     "publishedAt": "Published at",
     "updatedAt": "Updated at",
     "viewPublicPost": "View Post",
+    "previewHiddenPost": "Preview Post",
     "deletePost": "Delete",
     "deletingPost": "Deleting...",
     "deletePostConfirm": "Delete this article permanently?",

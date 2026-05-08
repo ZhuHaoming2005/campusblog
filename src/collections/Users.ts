@@ -1,6 +1,20 @@
 import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrSelf, hasAdminRole } from '@/access/admin'
+import {
+  cleanupDetachedUserMediaAfterChange,
+  cleanupDetachedUserMediaAfterDelete,
+} from '@/hooks/cleanupDetachedUserMedia'
+import { preventAdminPasswordChange } from '@/hooks/preventAdminPasswordChange'
+import {
+  getAuthEmailSubject,
+  readAuthNextPathFromReq,
+  renderAuthActionEmail,
+} from '@/email/authEmailTemplates'
+
+const AUTH_TOKEN_TTL_MS = 1000 * 60 * 60
+const AUTH_LOCK_TIME_MS = 1000 * 60 * 15
+const AUTH_MAX_LOGIN_ATTEMPTS = 5
 
 const canReadOwnOrAdmin = ({
   req: { user },
@@ -17,15 +31,54 @@ const canReadOwnOrAdmin = ({
 export const Users: CollectionConfig = {
   slug: 'users',
   admin: {
+    components: {
+      edit: {
+        beforeDocumentControls: ['/components/admin/UserPasswordChangeNotice'],
+      },
+    },
     defaultColumns: ['displayName', 'email', 'roles', 'isActive', 'updatedAt'],
     useAsTitle: 'displayName',
   },
-  auth: true,
+  auth: {
+    forgotPassword: {
+      expiration: AUTH_TOKEN_TTL_MS,
+      generateEmailHTML: ({ req, token, user }) =>
+        renderAuthActionEmail({
+          action: 'resetPassword',
+          next: readAuthNextPathFromReq(req),
+          pathname: '/reset-password',
+          req,
+          token,
+          userEmail: user?.email,
+        }),
+      generateEmailSubject: ({ req }) => getAuthEmailSubject('resetPassword', req),
+    },
+    lockTime: AUTH_LOCK_TIME_MS,
+    maxLoginAttempts: AUTH_MAX_LOGIN_ATTEMPTS,
+    verify: {
+      generateEmailHTML: ({ req, token, user }) =>
+        renderAuthActionEmail({
+          action: 'verifyEmail',
+          next: readAuthNextPathFromReq(req),
+          pathname: '/api/auth/verify-email',
+          req,
+          token,
+          userEmail: user?.email,
+        }),
+      generateEmailSubject: ({ req }) => getAuthEmailSubject('verifyEmail', req),
+    },
+  },
   access: {
+    admin: ({ req: { user } }) => hasAdminRole(user),
     read: adminOrSelf,
-    create: () => true,
+    create: ({ req: { user } }) => hasAdminRole(user),
     update: adminOrSelf,
     delete: adminOnly,
+  },
+  hooks: {
+    beforeChange: [preventAdminPasswordChange],
+    afterChange: [cleanupDetachedUserMediaAfterChange],
+    afterDelete: [cleanupDetachedUserMediaAfterDelete],
   },
   fields: [
     {

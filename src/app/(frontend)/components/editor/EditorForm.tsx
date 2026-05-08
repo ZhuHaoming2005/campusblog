@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useState } from 'react'
 import Image from 'next/image'
@@ -19,7 +19,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { MovingBorderButton } from '@/components/ui/moving-border'
+import { PrimaryActionButton } from '@/components/ui/primary-action-button'
 import {
   Select,
   SelectContent,
@@ -31,6 +31,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { getMediaImageAlt } from '../../lib/mediaAlt'
 import { uploadMediaFile } from '../../lib/mediaUpload'
 import { tiptapExtensions } from '../../lib/tiptap-extensions'
 import { TiptapToolbar } from './TiptapToolbar'
@@ -109,16 +110,6 @@ function isContentEmpty(json: JSONContent | null): boolean {
   return json.content.every(
     (node) => node.type === 'paragraph' && (!node.content || node.content.length === 0),
   )
-}
-
-function buildCoverAlt(title: string): string {
-  const trimmedTitle = title.trim()
-  return trimmedTitle ? `${trimmedTitle} cover` : 'post-cover'
-}
-
-function buildInlineImageAlt(title: string): string {
-  const trimmedTitle = title.trim()
-  return trimmedTitle ? `${trimmedTitle} inline image` : `post-inline-image-${Date.now().toString(36)}`
 }
 
 export default function EditorForm({
@@ -287,11 +278,11 @@ export default function EditorForm({
       setFeedback(null)
 
       try {
-        const fallbackAlt = buildInlineImageAlt(title)
         const media = await uploadMediaFile({
-          alt: fallbackAlt,
           fallbackError: t.editor.imageUploadError,
           file,
+          kind: 'inline-image',
+          seed: initialPost?.id ?? undefined,
         })
 
         if (!media.url) {
@@ -302,7 +293,7 @@ export default function EditorForm({
           .chain()
           .focus()
           .setCampusImage({
-            alt: media.alt ?? fallbackAlt,
+            alt: getMediaImageAlt(media.alt, 'inline-image'),
             mediaId: String(media.id),
             src: media.url,
           })
@@ -321,7 +312,7 @@ export default function EditorForm({
         setIsUploadingInlineImage(false)
       }
     },
-    [editor, t.editor.imageUploadError, title],
+    [editor, initialPost?.id, t.editor.imageUploadError],
   )
 
   const handleCoverImageChange = useCallback(
@@ -335,15 +326,15 @@ export default function EditorForm({
       setFeedback(null)
 
       try {
-        const fallbackAlt = buildCoverAlt(title)
         const media = await uploadMediaFile({
-          alt: fallbackAlt,
           fallbackError: t.editor.coverUploadError,
           file,
+          kind: 'cover-image',
+          seed: initialPost?.id ?? undefined,
         })
 
         setCoverImage({
-          alt: media.alt ?? fallbackAlt,
+          alt: getMediaImageAlt(media.alt, 'cover-image'),
           id: String(media.id),
           url: media.url,
         })
@@ -359,7 +350,7 @@ export default function EditorForm({
         setIsUploadingCover(false)
       }
     },
-    [t.editor.coverUploadError, title],
+    [initialPost?.id, t.editor.coverUploadError],
   )
 
   return (
@@ -395,23 +386,25 @@ export default function EditorForm({
 
             <button
               type="button"
+              data-testid="editor-save-draft-button"
               onClick={() => void submitPost('draft')}
               disabled={submitAction !== null || isUploadingCover || isUploadingInlineImage}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-campus-primary/10 bg-white/75 px-5 text-sm font-label font-semibold text-campus-primary transition-all hover:bg-campus-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-campus-primary/10 bg-white/75 px-5 text-sm font-label font-semibold text-campus-primary transition-all hover:bg-campus-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <IconCheck size={17} />
               {submitAction === 'draft' ? t.editor.savingDraft : t.editor.saveDraft}
             </button>
 
-            <MovingBorderButton
+            <PrimaryActionButton
+              type="button"
+              data-testid="editor-publish-button"
               onClick={() => void submitPost('published')}
               disabled={submitAction !== null || isUploadingCover || isUploadingInlineImage}
-              containerClassName="shrink-0"
-              className="px-8 font-label font-bold text-base"
+              className="shrink-0 px-8"
             >
               <IconPencil size={18} />
               {submitAction === 'publish' ? t.editor.publishing : t.editor.publish}
-            </MovingBorderButton>
+            </PrimaryActionButton>
           </div>
         </div>
       </div>
@@ -559,7 +552,7 @@ export default function EditorForm({
                     <div className="overflow-hidden rounded-2xl border border-campus-primary/10 bg-white/80">
                       <Image
                         src={coverImage.url}
-                        alt={coverImage.alt || title || t.editor.coverLabel}
+                        alt={getMediaImageAlt(coverImage.alt, 'cover-image')}
                         width={1200}
                         height={704}
                         unoptimized
@@ -606,3 +599,7 @@ export default function EditorForm({
     </div>
   )
 }
+
+
+
+
