@@ -36,16 +36,16 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
-    "@opennextjs/cloudflare": "^1.19.8",
+    "@opennextjs/cloudflare": "^1.19.10",
     "@payloadcms/db-d1-sqlite": "^3.84.1",
     "@payloadcms/next": "^3.84.1",
     "@payloadcms/storage-r2": "^3.84.1",
     "@payloadcms/ui": "^3.84.1",
-    "@tabler/icons-react": "^3.43.0",
-    "@tiptap/core": "^3.22.5",
-    "@tiptap/extension-placeholder": "^3.22.5",
-    "@tiptap/react": "^3.22.5",
-    "@tiptap/starter-kit": "^3.22.5",
+    "@tabler/icons-react": "^3.44.0",
+    "@tiptap/core": "^3.23.4",
+    "@tiptap/extension-placeholder": "^3.23.4",
+    "@tiptap/react": "^3.23.4",
+    "@tiptap/starter-kit": "^3.23.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cross-env": "^7.0.3",
@@ -58,14 +58,14 @@
     "react-dom": "19.2.6",
     "shadcn": "^4.7.0",
     "slugify": "^1.6.9",
-    "tailwind-merge": "^3.5.0",
+    "tailwind-merge": "^3.6.0",
     "transliteration": "^2.6.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
     "@playwright/test": "1.59.1",
     "@testing-library/react": "16.3.2",
-    "@types/node": "22.19.9",
+    "@types/node": "22.19.19",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.2.0",
@@ -83,7 +83,7 @@
     "vite": "7.3.3",
     "vite-tsconfig-paths": "6.1.1",
     "vitest": "4.1.5",
-    "wrangler": "^4.90.0"
+    "wrangler": "^4.92.0"
   },
   "engines": {
     "node": "^18.20.2 || >=20.9.0",
