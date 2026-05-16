@@ -3,11 +3,9 @@ import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 
 import SchoolTopBar from '@/components/layout/SchoolTopBar'
-import { getCurrentFrontendUser } from '@/lib/frontendSession'
 import {
   getActiveSchoolParams,
   getSchoolLayoutData,
-  getSchoolSubscriptionState,
   STATIC_PARAMS_PLACEHOLDER_SLUG,
 } from '@/lib/cmsData'
 import { getFrontendRequestContext } from '@/lib/requestContext'
@@ -25,15 +23,12 @@ async function SchoolLayoutContent({
 }) {
   await connection()
 
-  const [{ slug }, { headers, t }] = await Promise.all([params, getFrontendRequestContext()])
+  const [{ slug }, { t }] = await Promise.all([params, getFrontendRequestContext()])
   if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
     notFound()
   }
 
-  const [data, currentUser] = await Promise.all([
-    getSchoolLayoutData(slug),
-    getCurrentFrontendUser(headers),
-  ])
+  const data = await getSchoolLayoutData(slug)
 
   if (!data) {
     notFound()
@@ -44,26 +39,13 @@ async function SchoolLayoutContent({
     name: ch.name,
     slug: ch.slug,
   }))
-  const subscriptionState = await getSchoolSubscriptionState(
-    data.school.id,
-    data.subChannels.map((channel) => channel.id),
-    currentUser,
-  )
 
   return (
     <div>
       <SchoolTopBar
-        schoolId={data.school.id}
         schoolName={data.school.name}
         schoolSlug={data.school.slug}
         subChannels={channelItems}
-        subscriptionLabels={{
-          channelSubscribe: t.school.channelSubscribe,
-          channelSubscribed: t.school.channelSubscribed,
-          schoolSubscribe: t.school.subscribe,
-          schoolSubscribed: t.school.subscribed,
-        }}
-        subscriptionState={subscriptionState}
         t={t}
       />
       {children}
