@@ -62,6 +62,17 @@ svg {
   vertical-align: middle;
 }
 
+.campus-password-input::-ms-reveal,
+.campus-password-input::-ms-clear {
+  display: none;
+}
+
+.campus-password-input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 /* Masonry grid layout */
 .masonry-grid {
   column-count: 1;
