@@ -1,4 +1,5 @@
 import React, { Suspense } from 'react'
+import type { Viewport } from 'next'
 import { connection } from 'next/server'
 
 import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
@@ -7,6 +8,10 @@ import { getActiveSchools } from '@/lib/cmsData'
 import { getCurrentFrontendUser, toSidebarUser } from '@/lib/frontendSession'
 import { getFrontendRequestContext } from '@/lib/requestContext'
 import { getUserSubscriptionNavigationData } from '@/lib/subscriptionData'
+
+export const viewport: Viewport = {
+  width: 450,
+}
 
 async function SiteLayoutContent({ children }: { children: React.ReactNode }) {
   await connection()
