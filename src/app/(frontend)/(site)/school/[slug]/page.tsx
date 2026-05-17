@@ -4,46 +4,54 @@ import { connection } from 'next/server'
 import { IconSchool } from '@tabler/icons-react'
 
 import PostFeed from '@/components/PostFeed'
+import { SchoolIntroCard } from '@/components/school/SchoolIntroCard'
 import { DEFAULT_LOCALE } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
+import { getCurrentFrontendUser, toSidebarUser } from '@/lib/frontendSession'
 import { getFrontendRequestContext } from '@/lib/requestContext'
 import { getSchoolPageData, STATIC_PARAMS_PLACEHOLDER_SLUG } from '@/lib/cmsData'
+import { getUserSubscriptionNavigationData } from '@/lib/subscriptionData'
 
-async function SchoolPageContent({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+async function SchoolPageContent({ params }: { params: Promise<{ slug: string }> }) {
   await connection()
 
-  const [{ slug }, { locale, t }] = await Promise.all([params, getFrontendRequestContext()])
+  const [{ slug }, { headers, locale, t }] = await Promise.all([
+    params,
+    getFrontendRequestContext(),
+  ])
   if (slug === STATIC_PARAMS_PLACEHOLDER_SLUG) {
     notFound()
   }
 
-  const data = await getSchoolPageData(slug)
+  const [data, currentUser] = await Promise.all([
+    getSchoolPageData(slug),
+    getCurrentFrontendUser(headers),
+  ])
 
   if (!data) {
     notFound()
   }
 
   const { school, posts, subChannels } = data
+  const sidebarUser = toSidebarUser(currentUser)
+  const subscriptionData = await getUserSubscriptionNavigationData(currentUser)
+  const schoolSubscribed = subscriptionData.schoolIds.some((id) => String(id) === String(school.id))
 
   return (
     <section className="bg-gradient-to-b from-campus-page via-campus-panel-soft/35 to-campus-page px-4 py-5 sm:px-5 lg:px-6">
       <div className="space-y-6">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_15rem] xl:items-start">
-          <section className="rounded-[2rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/70 to-campus-page p-6 shadow-[0_12px_32px_rgba(27,75,122,0.05)]">
-            <p className="font-label text-xs font-semibold uppercase tracking-[0.18em] text-campus-text-soft">
-              {t.school.allPosts}
-            </p>
-            <h1 className="mt-3 font-headline text-4xl text-campus-primary sm:text-5xl">
-              {school.name}
-            </h1>
-            <p className="mt-4 max-w-2xl font-label text-sm leading-7 text-campus-text-soft sm:text-base">
-              {school.description?.trim() || `${school.name} ${t.school.homepage.toLowerCase()}`}
-            </p>
-          </section>
+          <SchoolIntroCard
+            canManageSubscriptions={Boolean(sidebarUser)}
+            school={{
+              description: school.description,
+              id: school.id,
+              name: school.name,
+              slug: school.slug,
+            }}
+            schoolSubscribed={schoolSubscribed}
+            t={t}
+          />
 
           <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <div className="rounded-[1.5rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft to-campus-panel-strong p-4 shadow-[0_10px_24px_rgba(27,75,122,0.05)]">
@@ -83,11 +91,7 @@ async function SchoolPageContent({
   )
 }
 
-export default function SchoolPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>
-}) {
+export default function SchoolPage({ params }: { params: Promise<{ slug: string }> }) {
   const fallbackLocale = DEFAULT_LOCALE
   const fallbackDictionary = getDictionary(fallbackLocale)
 

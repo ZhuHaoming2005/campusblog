@@ -20,7 +20,12 @@
   "sidebar": {
     "discover": "Discover",
     "channels": "Channels",
-    "addChannel": "Add Channel"
+    "addChannel": "Add Channel",
+    "noSubscribedChannels": "No subscribed channels",
+    "subscribe": "Subscribe",
+    "subscribed": "Subscribed",
+    "subscriptionError": "Unable to update subscription. Please try again.",
+    "unsubscribe": "Unsubscribe"
   },
   "discover": {
     "noPosts": "No posts to discover yet",
@@ -63,6 +68,12 @@
     "homepage": "Homepage",
     "allPosts": "All Posts",
     "addSubChannel": "Add Sub-channel",
+    "subscribe": "Subscribe",
+    "subscribeSchool": "Subscribe School",
+    "subscribed": "Subscribed",
+    "subscribedSchool": "Subscribed School",
+    "subscriptionError": "Unable to update subscription. Please try again.",
+    "unsubscribe": "Unsubscribe",
     "noPosts": "No posts in this school yet",
     "noPostsHint": "Be the first to publish an article",
     "description": "About",

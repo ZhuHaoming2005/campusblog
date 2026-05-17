@@ -20,7 +20,12 @@
   "sidebar": {
     "discover": "发现",
     "channels": "频道",
-    "addChannel": "添加频道"
+    "addChannel": "添加频道",
+    "noSubscribedChannels": "暂无订阅频道",
+    "subscribe": "订阅",
+    "subscribed": "已订阅",
+    "subscriptionError": "订阅状态更新失败，请稍后重试。",
+    "unsubscribe": "取消订阅"
   },
   "discover": {
     "noPosts": "暂时还没有可浏览的文章",
@@ -63,6 +68,12 @@
     "homepage": "主页",
     "allPosts": "全部文章",
     "addSubChannel": "添加子频道",
+    "subscribe": "订阅",
+    "subscribeSchool": "订阅学校",
+    "subscribed": "已订阅",
+    "subscribedSchool": "已订阅学校",
+    "subscriptionError": "订阅状态更新失败，请稍后重试。",
+    "unsubscribe": "取消订阅",
     "noPosts": "这个学校频道里还没有文章",
     "noPostsHint": "成为第一个发布文章的人吧",
     "description": "简介",

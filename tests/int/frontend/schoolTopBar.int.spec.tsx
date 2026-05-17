@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import SchoolTopBar from '@/components/layout/SchoolTopBar'
@@ -7,27 +7,40 @@ let pathnameMock = '/school/north-campus'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathnameMock,
+  useRouter: () => ({ refresh: vi.fn() }),
 }))
 
 afterEach(() => {
+  cleanup()
   vi.restoreAllMocks()
 })
 
 describe('SchoolTopBar', () => {
-  it('renders content-width channel tabs with a sliding indicator and balanced add button', () => {
+  it('renders subscribed channel tabs with a sliding indicator and matching add button style', () => {
     pathnameMock = '/school/north-campus/channel/events'
 
     const { container } = render(
       <SchoolTopBar
+        canManageSubscriptions
+        schoolId={10}
         schoolName="North Campus"
         schoolSlug="north-campus"
         subChannels={[
           { id: 1, name: 'Events', slug: 'events' },
           { id: 2, name: 'Culture', slug: 'culture' },
         ]}
+        subscribedChannelIds={[1]}
         t={{
-          common: { searchPlaceholder: 'Search campus news...' },
-          school: { addSubChannel: 'Add Channel', allPosts: 'All Posts', homepage: 'Homepage' },
+          common: { cancel: 'Cancel', login: 'Login', searchPlaceholder: 'Search campus news...' },
+          school: {
+            addSubChannel: 'Add Channel',
+            allPosts: 'All Posts',
+            homepage: 'Homepage',
+            subscribe: 'Subscribe',
+            subscribed: 'Subscribed',
+            subscriptionError: 'Unable to update subscription.',
+            unsubscribe: 'Unsubscribe',
+          },
         }}
       />,
     )
@@ -35,9 +48,31 @@ describe('SchoolTopBar', () => {
     expect(screen.getByText('North Campus')).toBeTruthy()
     expect(screen.getByPlaceholderText('Search campus news...')).toBeTruthy()
     expect(screen.getByTestId('school-channel-tabs-indicator')).toBeTruthy()
-    expect(screen.getByTestId('school-add-channel').className).toContain('h-9')
+    expect(screen.getByText('Events')).toBeTruthy()
+    expect(screen.queryByText('Culture')).toBeNull()
+    expect(screen.getByTestId('school-add-channel').className).toContain('text-campus-accent/60')
+    expect(screen.getByTestId('school-add-channel').className).toContain(
+      'aria-expanded:text-campus-accent',
+    )
+    expect(screen.getByTestId('school-add-channel').className).not.toContain('hover:bg-gradient')
     expect(screen.queryByTestId('school-subscribe-toggle')).toBeNull()
-    expect(screen.queryByTestId('channel-subscribe-toggle-1')).toBeNull()
+    expect(screen.getByTestId('school-topbar-title-row').className).toContain('pr-32')
     expect(container.querySelector('header')?.className).toContain('bg-gradient-to-b')
+
+    fireEvent.click(screen.getByTestId('school-add-channel'))
+
+    expect(screen.queryByTestId('school-channel-picker')).toBeNull()
+
+    const dialog = screen.getByRole('dialog', { name: 'Add Channel' })
+    const optionNames = Array.from(
+      dialog.querySelectorAll('[data-testid^="subscription-dialog-item-"]'),
+    ).map((item) => item.textContent)
+
+    expect(optionNames[0]).toContain('Culture')
+    expect(optionNames[1]).toContain('Events')
+    expect(dialog.className).not.toContain('bg-white/96')
+    expect(dialog.className).toContain('bg-white')
+    expect(screen.getByTestId('subscription-dialog-index-c')).toBeTruthy()
+    expect(screen.getByTestId('subscription-dialog-index-e')).toBeTruthy()
   })
 })

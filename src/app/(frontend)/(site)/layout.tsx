@@ -6,12 +6,9 @@ import FrontendChrome from '@/components/layout/FrontendChrome'
 import { getActiveSchools } from '@/lib/cmsData'
 import { getCurrentFrontendUser, toSidebarUser } from '@/lib/frontendSession'
 import { getFrontendRequestContext } from '@/lib/requestContext'
+import { getUserSubscriptionNavigationData } from '@/lib/subscriptionData'
 
-async function SiteLayoutContent({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+async function SiteLayoutContent({ children }: { children: React.ReactNode }) {
   await connection()
 
   const [{ headers, locale, t }, githubUrl, schools] = await Promise.all([
@@ -22,6 +19,7 @@ async function SiteLayoutContent({
     getActiveSchools(),
   ])
   const currentUser = await getCurrentFrontendUser(headers)
+  const subscriptionData = await getUserSubscriptionNavigationData(currentUser)
 
   const schoolItems = schools.map((s) => ({
     id: s.id,
@@ -32,6 +30,7 @@ async function SiteLayoutContent({
   return (
     <FrontendChrome
       schools={schoolItems}
+      subscribedSchoolIds={subscriptionData.schoolIds}
       locale={locale}
       t={t}
       currentUser={toSidebarUser(currentUser)}

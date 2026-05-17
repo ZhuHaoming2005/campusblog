@@ -116,4 +116,206 @@ describe('interaction routes', () => {
       }),
     )
   })
+
+  it('creates a school subscription for the current frontend user', async () => {
+    const payload = createPayloadMock()
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/subscriptions/schools/route')
+    const response = await POST(
+      new Request('https://example.com/api/subscriptions/schools', {
+        body: JSON.stringify({ schoolId: 7 }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({ schoolId: 7, subscribed: true })
+    expect(payload.findByID).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'schools',
+        id: 7,
+        overrideAccess: false,
+        user,
+      }),
+    )
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-subscriptions',
+        data: { school: 7, user: user.id },
+        overrideAccess: false,
+        user,
+      }),
+    )
+  })
+
+  it('treats the school subscription uniqueness hook error as an idempotent success', async () => {
+    const payload = createPayloadMock()
+    payload.create.mockRejectedValueOnce(new Error('This relationship already exists.'))
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/subscriptions/schools/route')
+    const response = await POST(
+      new Request('https://example.com/api/subscriptions/schools', {
+        body: JSON.stringify({ schoolId: 7 }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({ schoolId: 7, subscribed: true })
+  })
+
+  it('removes a school subscription and its channel subscriptions for that school', async () => {
+    const payload = createPayloadMock()
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { DELETE } = await import('@/app/api/subscriptions/schools/route')
+    const response = await DELETE(
+      new Request('https://example.com/api/subscriptions/schools', {
+        body: JSON.stringify({ schoolId: 7 }),
+        headers: { 'content-type': 'application/json' },
+        method: 'DELETE',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({ schoolId: 7, subscribed: false })
+    expect(payload.delete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-sub-channel-subscriptions',
+        overrideAccess: false,
+        user,
+        where: {
+          and: [{ user: { equals: user.id } }, { school: { equals: 7 } }],
+        },
+      }),
+    )
+    expect(payload.delete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-subscriptions',
+        overrideAccess: false,
+        user,
+        where: {
+          and: [{ user: { equals: user.id } }, { school: { equals: 7 } }],
+        },
+      }),
+    )
+  })
+
+  it('subscribes to a sub-channel and ensures the parent school is subscribed', async () => {
+    const payload = createPayloadMock()
+    payload.findByID.mockImplementation(async ({ collection, id }) => {
+      if (collection === 'school-sub-channels') return { id, school: 7 }
+      return { id }
+    })
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/subscriptions/channels/route')
+    const response = await POST(
+      new Request('https://example.com/api/subscriptions/channels', {
+        body: JSON.stringify({ channelId: 16 }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      channelId: 16,
+      schoolId: 7,
+      schoolSubscribed: true,
+      subscribed: true,
+    })
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-subscriptions',
+        data: { school: 7, user: user.id },
+        overrideAccess: false,
+        user,
+      }),
+    )
+    expect(payload.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-sub-channel-subscriptions',
+        data: { channel: 16, school: 7, user: user.id },
+        overrideAccess: false,
+        user,
+      }),
+    )
+  })
+
+  it('treats the sub-channel subscription uniqueness hook error as an idempotent success', async () => {
+    const payload = createPayloadMock()
+    payload.findByID.mockImplementation(async ({ collection, id }) => {
+      if (collection === 'school-sub-channels') return { id, school: 7 }
+      return { id }
+    })
+    payload.create
+      .mockResolvedValueOnce({ id: 1001, school: 7, user: user.id })
+      .mockRejectedValueOnce(new Error('This relationship already exists.'))
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/subscriptions/channels/route')
+    const response = await POST(
+      new Request('https://example.com/api/subscriptions/channels', {
+        body: JSON.stringify({ channelId: 16 }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      channelId: 16,
+      schoolId: 7,
+      schoolSubscribed: true,
+      subscribed: true,
+    })
+  })
+
+  it('returns the current user subscription list', async () => {
+    const payload = createPayloadMock()
+    payload.find
+      .mockResolvedValueOnce({
+        docs: [{ id: 501, school: 7 }],
+        totalDocs: 1,
+      })
+      .mockResolvedValueOnce({
+        docs: [{ channel: 16, id: 601, school: 7 }],
+        totalDocs: 1,
+      })
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { GET } = await import('@/app/api/subscriptions/me/route')
+    const response = await GET(
+      new Request('https://example.com/api/subscriptions/me', {
+        method: 'GET',
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      channels: [{ channelId: 16, schoolId: 7, subscriptionId: 601 }],
+      schools: [{ schoolId: 7, subscriptionId: 501 }],
+    })
+    expect(payload.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-subscriptions',
+        overrideAccess: false,
+        user,
+        where: { user: { equals: user.id } },
+      }),
+    )
+    expect(payload.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        collection: 'school-sub-channel-subscriptions',
+        overrideAccess: false,
+        user,
+        where: { user: { equals: user.id } },
+      }),
+    )
+  })
 })

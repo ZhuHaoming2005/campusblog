@@ -1,15 +1,9 @@
-﻿'use client'
+'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import {
-  IconCompass,
-  IconPencil,
-  IconPlus,
-  IconSchool,
-  IconSparkles,
-  IconUser,
-} from '@tabler/icons-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { IconCompass, IconPencil, IconSchool, IconSparkles, IconUser } from '@tabler/icons-react'
 
 import type { AppLocale } from '@/app/(frontend)/lib/i18n/config'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -17,6 +11,8 @@ import { GradientText } from '@/components/ui/gradient-text'
 import { PrimaryActionButton } from '@/components/ui/primary-action-button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
+import { ChannelManageButton } from '@/components/subscription/ChannelManageButton'
+import { SubscriptionManagerDialog } from '@/components/subscription/SubscriptionManagerDialog'
 import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import { buildAuthHref } from '@/lib/authNavigation'
 import type { SidebarUser } from '@/lib/sessionTypes'
@@ -39,28 +35,98 @@ type SidebarDictionary = {
     languageLabel: string
     languageZh: string
     languageEn: string
+    cancel: string
   }
   sidebar: {
     discover: string
     channels: string
     addChannel: string
+    noSubscribedChannels: string
+    subscribe: string
+    subscribed: string
+    subscriptionError: string
+    unsubscribe: string
   }
 }
 
 type SidebarNavProps = {
   schools: SchoolItem[]
+  subscribedSchoolIds?: Array<number | string>
   locale: AppLocale
   t: SidebarDictionary
   currentUser: SidebarUser | null
 }
 
-export default function SidebarNav({ schools, locale: _locale, t, currentUser }: SidebarNavProps) {
+export default function SidebarNav({
+  schools,
+  subscribedSchoolIds = [],
+  locale: _locale,
+  t,
+  currentUser,
+}: SidebarNavProps) {
+  const router = useRouter()
   const pathname = usePathname()
   const isDiscover = pathname === '/'
   const authNextPath =
     pathname && pathname !== '/login' && pathname !== '/register' ? pathname : undefined
   const loginHref = buildAuthHref('/login', authNextPath)
   const createPostHref = currentUser ? '/editor' : buildAuthHref('/login', '/editor')
+  const canManageSubscriptions = Boolean(currentUser)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [pendingSchoolId, setPendingSchoolId] = useState<string | null>(null)
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null)
+  const [subscribedIds, setSubscribedIds] = useState(
+    () => new Set(subscribedSchoolIds.map((id) => String(id))),
+  )
+  const visibleSchools = canManageSubscriptions
+    ? schools.filter((school) => subscribedIds.has(String(school.id)))
+    : schools
+
+  const handleAddChannelClick = () => {
+    if (!canManageSubscriptions) {
+      window.location.assign(loginHref)
+      return
+    }
+
+    setIsDialogOpen(true)
+  }
+
+  const handleToggleSchool = async (school: SchoolItem) => {
+    if (!canManageSubscriptions) {
+      window.location.assign(loginHref)
+      return
+    }
+
+    const schoolKey = String(school.id)
+    const isSubscribed = subscribedIds.has(schoolKey)
+    setPendingSchoolId(schoolKey)
+    setSubscriptionError(null)
+
+    try {
+      const response = await fetch('/api/subscriptions/schools', {
+        body: JSON.stringify({ schoolId: school.id }),
+        headers: { 'content-type': 'application/json' },
+        method: isSubscribed ? 'DELETE' : 'POST',
+      })
+
+      if (!response.ok) throw new Error(`Subscription update failed: ${response.status}`)
+
+      setSubscribedIds((current) => {
+        const next = new Set(current)
+        if (isSubscribed) {
+          next.delete(schoolKey)
+        } else {
+          next.add(schoolKey)
+        }
+        return next
+      })
+      router.refresh()
+    } catch {
+      setSubscriptionError(t.sidebar.subscriptionError)
+    } finally {
+      setPendingSchoolId(null)
+    }
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-50 hidden h-full w-72 flex-col border-r border-campus-primary/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,247,251,0.86))] shadow-[0_16px_40px_rgba(24,38,72,0.08)] backdrop-blur-xl lg:flex">
@@ -92,7 +158,9 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
               size={22}
               className={cn(
                 'shrink-0 transition-transform duration-200',
-                isDiscover ? 'text-campus-accent' : 'group-hover:scale-110 group-hover:text-campus-primary',
+                isDiscover
+                  ? 'text-campus-accent'
+                  : 'group-hover:scale-110 group-hover:text-campus-primary',
               )}
             />
             <span className="font-label text-base">{t.sidebar.discover}</span>
@@ -104,7 +172,7 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
             </h3>
 
             <div className="space-y-1">
-              {schools.map((school) => {
+              {visibleSchools.map((school) => {
                 const schoolPath = `/school/${school.slug}`
                 const isActive = pathname.startsWith(schoolPath)
 
@@ -124,7 +192,9 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
                           size={20}
                           className={cn(
                             'shrink-0 transition-all duration-200',
-                            isActive ? 'text-campus-teal' : 'group-hover:scale-110 group-hover:text-campus-teal',
+                            isActive
+                              ? 'text-campus-teal'
+                              : 'group-hover:scale-110 group-hover:text-campus-teal',
                           )}
                         />
                         <span className="truncate font-label text-base">{school.name}</span>
@@ -134,15 +204,17 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
                 )
               })}
 
-              <button className="group mt-2 flex w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-campus-accent/60 transition-all duration-200 hover:bg-campus-accent/5 hover:text-campus-accent">
-                <IconPlus
-                  size={20}
-                  className="shrink-0 transition-transform duration-300 group-hover:rotate-90"
-                />
-                <span className="font-label text-sm font-bold uppercase tracking-wider">
+              <div className="mt-2">
+                <ChannelManageButton
+                  data-testid="sidebar-add-channel"
+                  className="w-full justify-start"
+                  aria-expanded={isDialogOpen}
+                  onClick={handleAddChannelClick}
+                  type="button"
+                >
                   {t.sidebar.addChannel}
-                </span>
-              </button>
+                </ChannelManageButton>
+              </div>
             </div>
           </div>
         </nav>
@@ -151,11 +223,7 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
       <Separator className="mx-6 mt-2 bg-campus-primary/8" />
 
       <div className="space-y-4 p-5">
-        <PrimaryActionButton
-          asChild
-          data-testid="sidebar-create-post-button"
-          className="w-full"
-        >
+        <PrimaryActionButton asChild data-testid="sidebar-create-post-button" className="w-full">
           <Link href={createPostHref}>
             <IconPencil size={20} />
             {t.common.createPost}
@@ -180,7 +248,9 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
                 <p className="truncate font-label text-base font-semibold text-campus-primary">
                   {currentUser.displayName}
                 </p>
-                <p className="truncate text-xs font-label text-foreground/50">{currentUser.email}</p>
+                <p className="truncate text-xs font-label text-foreground/50">
+                  {currentUser.email}
+                </p>
                 <p className="mt-1 text-xs font-label text-campus-primary/65">
                   {t.common.userCenter}
                 </p>
@@ -211,9 +281,24 @@ export default function SidebarNav({ schools, locale: _locale, t, currentUser }:
           </Link>
         )}
       </div>
+
+      <SubscriptionManagerDialog
+        closeLabel={t.common.cancel}
+        error={subscriptionError}
+        items={schools.map((school) => ({
+          ...school,
+          subscribed: subscribedIds.has(String(school.id)),
+        }))}
+        onOpenChange={setIsDialogOpen}
+        onToggle={(school) => {
+          void handleToggleSchool(school)
+        }}
+        open={isDialogOpen}
+        pendingId={pendingSchoolId}
+        subscribeLabel={t.sidebar.subscribe}
+        title={t.sidebar.addChannel}
+        unsubscribeLabel={t.sidebar.unsubscribe}
+      />
     </aside>
   )
 }
-
-
-
