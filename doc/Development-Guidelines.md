@@ -30,7 +30,7 @@
 本项目的 CMS 公共内容缓存采用 tag-driven 模型：
 
 - 读取端：`'use cache'` + `cacheLife(...)` + `cacheTag(...)`
-- 写入端：Payload collection hooks 统一调用 `revalidateTag(tag, 'max')`
+- 写入端：Payload collection hooks 统一调用 `revalidateTag(tag, { expire: 0 })`
 - 不使用短周期 `cacheLife('minutes')` 作为 CMS 内容刷新机制
 - 不在自定义 API route 里分散写 `revalidateTag`，除非该 mutation 不经过 Payload collection
 
@@ -41,14 +41,20 @@
 公共 CMS 缓存应继续使用：
 
 ```ts
-cacheLife({
+export const CMS_CONTENT_CACHE_LIFE = {
   stale: 300,
-  revalidate: Infinity,
-  expire: Infinity,
-})
+  revalidate: 3600,
+  expire: 86400,
+} as const
+
+export const CMS_STRUCTURE_CACHE_LIFE = {
+  stale: 300,
+  revalidate: 3600,
+  expire: 604800,
+} as const
 ```
 
-这个配置表示服务端内容主要依赖 tag invalidation 刷新，避免重新引入 Cloudflare/OpenNext 的短周期 time-based revalidation 风险。
+这个配置表示服务端内容主要依赖 tag invalidation 刷新，同时保留有限的 time-based fallback，避免缓存因失效遗漏长期停留在旧值。Payload mutation 后使用 `{ expire: 0 }`，下一次访问对应 tag 的内容时应阻塞生成新值，而不是先返回 stale 内容再后台刷新。
 
 ### 2.1 新增 cached reader 的要求
 
@@ -57,7 +63,7 @@ cacheLife({
 1. 在读取函数内声明 `'use cache'`。
 2. 使用 `cacheLife`，优先复用 `CMS_CONTENT_CACHE_LIFE` 或 `CMS_STRUCTURE_CACHE_LIFE`。
 3. 使用稳定、细粒度的 `cacheTag`。
-4. 在对应 Payload collection hook 中补齐 `revalidateTag(tag, 'max')`。
+4. 在对应 Payload collection hook 中补齐 `revalidateTag(tag, { expire: 0 })`。
 5. 为 tag 计算或 hook 行为补测试。
 
 ### 2.2 禁止缓存用户态数据

@@ -1,5 +1,5 @@
 import { revalidateTag } from 'next/cache'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { postCacheTag } from '@/lib/cacheTags'
 
@@ -21,6 +21,10 @@ import {
 } from '@/hooks/revalidateFrontendCache'
 
 describe('frontend cache invalidation hooks', () => {
+  beforeEach(() => {
+    vi.mocked(revalidateTag).mockReset()
+  })
+
   it('includes new and previous post scopes when a post moves', () => {
     expect(
       getPostCacheInvalidationTags(
@@ -83,16 +87,16 @@ describe('frontend cache invalidation hooks', () => {
     await expect(revalidateMediaCacheAfterChange({ doc: mediaDoc } as never)).resolves.toBe(
       mediaDoc,
     )
-    expect(revalidateTag).toHaveBeenCalledWith('tag:78', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('media:56', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('tag:78', { expire: 0 })
+    expect(revalidateTag).toHaveBeenCalledWith('media:56', { expire: 0 })
   })
 
   it('runs user cache invalidation hooks without failing the mutation', async () => {
     const userDoc = { id: 98, avatar: { id: 56 } }
 
     await expect(revalidateUserCacheAfterChange({ doc: userDoc } as never)).resolves.toBe(userDoc)
-    expect(revalidateTag).toHaveBeenCalledWith('author:98', 'max')
-    expect(revalidateTag).toHaveBeenCalledWith('media:56', 'max')
+    expect(revalidateTag).toHaveBeenCalledWith('author:98', { expire: 0 })
+    expect(revalidateTag).toHaveBeenCalledWith('media:56', { expire: 0 })
   })
 
   it('does not fail a post mutation when Next cache revalidation throws', async () => {
