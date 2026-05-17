@@ -3,6 +3,7 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-d1-sqlite'
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`ALTER TABLE \`users\` ADD \`_verified\` integer;`)
   await db.run(sql`ALTER TABLE \`users\` ADD \`_verificationtoken\` text;`)
+  await db.run(sql`UPDATE \`users\` SET \`_verified\` = 1 WHERE \`_verified\` IS NULL;`)
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {

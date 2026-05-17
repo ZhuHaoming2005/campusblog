@@ -5,7 +5,6 @@ import {
   createFrontendPasswordResetToken,
   createFrontendUser,
   deleteFrontendUserByEmail,
-  getFrontendUserAuthState,
   seedFrontendUser,
   testFrontendUser,
   verifyFrontendUser,

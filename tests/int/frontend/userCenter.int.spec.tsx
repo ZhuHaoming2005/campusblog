@@ -105,6 +105,9 @@ describe('user center', () => {
     vi.doMock('next/navigation', () => ({
       redirect: vi.fn(),
     }))
+    vi.doMock('next/server', () => ({
+      connection: vi.fn(),
+    }))
     vi.doMock('@/app/api/auth/_lib/frontendAuth', () => ({
       requireFrontendAuth: requireFrontendAuthMock,
     }))
@@ -140,7 +143,9 @@ describe('user center', () => {
       default: userPostActionsMock,
     }))
 
-    const { UserCenterPageContent } = await import('@/app/(frontend)/user/me/UserCenterPageContent')
+    const { UserCenterPageContent } = await import(
+      '@/app/(frontend)/(site)/user/me/UserCenterPageContent'
+    )
 
     render(await UserCenterPageContent())
 

@@ -1,0 +1,45 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "worker.ts",
+  "name": "campusblog-dev-local",
+  "compatibility_date": "2026-04-21",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
+    "NEXT_PUBLIC_SITE_URL": "http://localhost:3000",
+    "PAYLOAD_PUBLIC_SERVER_URL": "http://localhost:3000",
+    "AUTH_EMAIL_FROM_ADDRESS": "noreply@mail.campusblog.net",
+    "AUTH_EMAIL_FROM_NAME": "CampusBlog",
+    "AUTH_EMAIL_DEBUG": "true",
+    "AUTH_EMAIL_DEBUG_DELIVER": "false",
+    "AUTH_EMAIL_DEBUG_PRINT_URLS": "true"
+  },
+  "d1_databases": [
+    {
+      "binding": "D1",
+      "database_name": "campusblog-dev",
+      "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
+      "remote": true
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "campusblog-dev",
+      "preview_bucket_name": "campusblog-dev"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "aabe3ed93f7c474f8accd5954fde760e"
+    }
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
+      "remote": true
+    }
+  ]
+}

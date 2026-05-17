@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename)
 const drizzleKitPackages = new Set(['drizzle-kit', 'drizzle-kit/api'])
 const drizzleKitShimPath = path.resolve(__dirname, 'src/shims/drizzle-kit-api.js')
 const drizzleKitShimSpecifier = './src/shims/drizzle-kit-api.js'
+const devWranglerConfigPath = path.resolve(__dirname, 'wrangler.dev.jsonc')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -86,7 +87,8 @@ payloadNextConfig.webpack = (webpackConfig, webpackOptions) => {
 
 if (process.env.NODE_ENV === 'development') {
   await initOpenNextCloudflareForDev({
-    environment: process.env.CLOUDFLARE_ENV,
+    configPath: devWranglerConfigPath,
+    remoteBindings: process.env.CLOUDFLARE_REMOTE_BINDINGS === 'true',
   })
 }
 

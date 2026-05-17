@@ -32,11 +32,6 @@ export default function AuthExperience({
   const switchTimerRef = useRef<number | null>(null)
   const [panelHeight, setPanelHeight] = useState<number | null>(null)
 
-  useEffect(() => {
-    setMode(initialMode)
-    setDisplayMode(initialMode)
-  }, [initialMode])
-
   const loginHref = useMemo(() => buildAuthHref('/login', nextPath), [nextPath])
   const registerHref = useMemo(() => buildAuthHref('/register', nextPath), [nextPath])
 

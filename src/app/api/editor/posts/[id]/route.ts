@@ -5,6 +5,7 @@ import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
+import { resolveCoverImageForQuota } from '../_lib/coverImageQuota'
 
 type PostRequestBody = {
   title?: string
@@ -46,12 +47,6 @@ function toNumericId(value: string | number | undefined | null): number | undefi
   if (value === undefined || value === null || value === '') return undefined
   const num = Number(value)
   return Number.isFinite(num) ? num : undefined
-}
-
-function toRelationId(value: RelationValue): number | string | null {
-  if (typeof value === 'number' || typeof value === 'string') return value
-  if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
-  return null
 }
 
 function formatBytes(value: number, locale: string): string {
@@ -146,7 +141,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const projection = await projectQuotaForPostREST({
       candidatePost: {
         content: normalizedContent,
-        coverImage: coverImageId ?? toRelationId(existingPost.coverImage) ?? null,
+        coverImage: resolveCoverImageForQuota({
+          existingCoverImage: existingPost.coverImage,
+          submittedCoverImage: coverImage,
+        }),
         excerpt: excerpt?.trim() || null,
         title: normalizedTitle,
       },

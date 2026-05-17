@@ -147,16 +147,19 @@ async function collectReferencedMediaIds(args: {
 export async function deleteUnreferencedMediaByIds(args: {
   mediaIds: number[]
   payload: Payload
+  referencedMediaIds?: Set<number>
   req?: PayloadRequest
 }): Promise<number[]> {
   const uniqueIds = Array.from(new Set(args.mediaIds.filter((id) => Number.isFinite(id))))
   if (uniqueIds.length === 0) return []
 
-  const referencedMediaIds = await collectReferencedMediaIds({
-    candidateIds: uniqueIds,
-    payload: args.payload,
-    req: args.req,
-  })
+  const referencedMediaIds =
+    args.referencedMediaIds ??
+    (await collectReferencedMediaIds({
+      candidateIds: uniqueIds,
+      payload: args.payload,
+      req: args.req,
+    }))
 
   const deletedIds: number[] = []
 
@@ -218,6 +221,7 @@ export async function cleanupAllOrphanMedia(args: {
   const deletedIds = await deleteUnreferencedMediaByIds({
     mediaIds: orphanIds,
     payload: args.payload,
+    referencedMediaIds,
     req: args.req,
   })
 

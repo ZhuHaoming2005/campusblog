@@ -74,7 +74,10 @@ export function resolveSpawnSpec(command, args = [], options = {}) {
  */
 export function createWranglerEnv(processEnv = process.env, cwd = process.cwd()) {
   const environment = processEnv.CLOUDFLARE_ENV || undefined
-  const wranglerConfigPath = path.resolve(cwd, 'wrangler.jsonc')
+  const wranglerConfigPath = path.resolve(
+    cwd,
+    processEnv.WRANGLER_CONFIG_PATH || processEnv.CLOUDFLARE_WRANGLER_CONFIG_PATH || 'wrangler.jsonc',
+  )
 
   return {
     ...processEnv,

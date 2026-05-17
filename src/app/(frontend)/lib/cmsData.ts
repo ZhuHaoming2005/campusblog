@@ -9,6 +9,7 @@ import {
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
+  getPostRelationshipCacheTags,
   postCacheTag,
   postsBySchoolCacheTag,
   postsBySchoolChannelCacheTag,
@@ -39,8 +40,25 @@ type ChannelPageData = {
   posts: Post[]
 }
 
+function shouldSkipCmsQueriesDuringStaticGeneration() {
+  return (
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.npm_lifecycle_event === 'build'
+  )
+}
+
 async function getPayloadClient() {
   return getFrontendPayload()
+}
+
+function cachePostRelationshipTags(
+  posts: Post | Post[] | null,
+  options?: Parameters<typeof getPostRelationshipCacheTags>[1],
+) {
+  const relationshipTags = getPostRelationshipCacheTags(posts, options)
+  if (relationshipTags.length > 0) {
+    cacheTag(...relationshipTags)
+  }
 }
 
 export async function getActiveSchools() {
@@ -48,6 +66,10 @@ export async function getActiveSchools() {
 
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOLS_CACHE_TAG)
+
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -66,6 +88,10 @@ export async function getSchoolBySlug(slug: string) {
 
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOLS_CACHE_TAG)
+
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return null
+  }
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -86,6 +112,10 @@ export async function getSubChannelsBySchool(schoolId: number) {
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
 
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'school-sub-channels',
@@ -105,6 +135,10 @@ export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: s
 
   cacheLife(CMS_STRUCTURE_CACHE_LIFE)
   cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
+
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return null
+  }
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -129,6 +163,10 @@ export async function getPublishedPosts() {
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(POST_LIST_CACHE_TAG)
 
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -138,7 +176,10 @@ export async function getPublishedPosts() {
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getPublishedPostBySlug(slug: string) {
@@ -146,6 +187,10 @@ export async function getPublishedPostBySlug(slug: string) {
 
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postCacheTag(slug))
+
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return null
+  }
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -157,10 +202,17 @@ export async function getPublishedPostBySlug(slug: string) {
     depth: 2,
   })
 
-  return (docs[0] as Post | undefined) ?? null
+  const post = (docs[0] as Post | undefined) ?? null
+  cachePostRelationshipTags(post, { includeAllPostTags: true })
+
+  return post
 }
 
 export async function getVisiblePostBySlug(slug: string, user: User | null) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return null
+  }
+
   const payload = await getPayloadClient()
 
   const where = user
@@ -171,10 +223,7 @@ export async function getVisiblePostBySlug(slug: string, user: User | null) {
             or: [
               { status: { equals: 'published' } },
               {
-                and: [
-                  { status: { equals: 'hidden' } },
-                  { author: { equals: user.id } },
-                ],
+                and: [{ status: { equals: 'hidden' } }, { author: { equals: user.id } }],
               },
             ],
           },
@@ -201,6 +250,10 @@ export async function getPublishedPostsBySchool(schoolId: number) {
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postsBySchoolCacheTag(schoolId))
 
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -212,7 +265,10 @@ export async function getPublishedPostsBySchool(schoolId: number) {
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
@@ -220,6 +276,10 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
 
   cacheLife(CMS_CONTENT_CACHE_LIFE)
   cacheTag(postsBySchoolChannelCacheTag(schoolId, channelId))
+
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
 
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
@@ -236,7 +296,10 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
     depth: 2,
   })
 
-  return docs as Post[]
+  const posts = docs as Post[]
+  cachePostRelationshipTags(posts)
+
+  return posts
 }
 
 export async function getDiscoverPageData(): Promise<DiscoverPageData> {

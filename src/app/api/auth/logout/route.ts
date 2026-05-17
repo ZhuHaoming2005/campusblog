@@ -1,6 +1,5 @@
 import { createLocalReq, getPayload, logoutOperation } from 'payload'
 
-import config from '@/payload.config'
 import { jsonAuthError, jsonAuthSuccess } from '../_lib/authResponses'
 
 function generateExpiredPayloadCookie(args: {
@@ -37,6 +36,7 @@ function generateExpiredPayloadCookie(args: {
 
 export async function POST(request: Request) {
   try {
+    const { default: config } = await import('@/payload.config')
     const payload = await getPayload({ config: await config })
     const authResult = await payload.auth({ headers: request.headers })
     const usersCollection = payload.collections.users

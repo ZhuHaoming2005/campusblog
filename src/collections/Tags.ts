@@ -2,6 +2,10 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
+import {
+  revalidateTagCacheAfterChange,
+  revalidateTagCacheAfterDelete,
+} from '@/hooks/revalidateFrontendCache'
 
 export const Tags: CollectionConfig = {
   slug: 'tags',
@@ -14,6 +18,10 @@ export const Tags: CollectionConfig = {
     create: adminOnly,
     update: adminOnly,
     delete: adminOnly,
+  },
+  hooks: {
+    afterChange: [revalidateTagCacheAfterChange],
+    afterDelete: [revalidateTagCacheAfterDelete],
   },
   fields: [
     {

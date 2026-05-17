@@ -37,7 +37,7 @@ describe('Primary action buttons', () => {
 
   it('reuses the shared primary action button component for the user-center write button', () => {
     const source = readFileSync(
-      path.resolve(process.cwd(), 'src/app/(frontend)/user/me/page.tsx'),
+      path.resolve(process.cwd(), 'src/app/(frontend)/(site)/user/me/UserCenterPageContent.tsx'),
       'utf8',
     )
 

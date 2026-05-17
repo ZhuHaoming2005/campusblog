@@ -75,6 +75,73 @@ describe('run-with-wrangler-env helpers', () => {
     })
   })
 
+  it('uses the explicitly selected wrangler config for local dev vars', async () => {
+    const { createWranglerEnv } = await import('../../../scripts/lib/run-with-wrangler-env.mjs')
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'campusblog-run-env-config-'))
+    tempDirs.push(root)
+
+    fs.writeFileSync(
+      path.join(root, 'wrangler.jsonc'),
+      JSON.stringify({
+        vars: {
+          NEXT_PUBLIC_SITE_URL: 'https://production.example',
+        },
+      }),
+    )
+    fs.writeFileSync(
+      path.join(root, 'wrangler.dev.jsonc'),
+      JSON.stringify({
+        vars: {
+          NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+          PAYLOAD_PUBLIC_SERVER_URL: 'http://localhost:3000',
+        },
+      }),
+    )
+
+    expect(
+      createWranglerEnv(
+        {
+          NEXT_PUBLIC_SITE_URL: 'https://from-dotenv.example',
+          PATH: '/usr/bin',
+          PAYLOAD_SECRET: 'secret-from-env-file',
+          WRANGLER_CONFIG_PATH: 'wrangler.dev.jsonc',
+        },
+        root,
+      ),
+    ).toMatchObject({
+      NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+      PATH: '/usr/bin',
+      PAYLOAD_PUBLIC_SERVER_URL: 'http://localhost:3000',
+      PAYLOAD_SECRET: 'secret-from-env-file',
+      WRANGLER_CONFIG_PATH: 'wrangler.dev.jsonc',
+    })
+  })
+
+  it('does not invent secrets from wrangler vars', async () => {
+    const { createWranglerEnv } = await import('../../../scripts/lib/run-with-wrangler-env.mjs')
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'campusblog-run-env-no-secret-'))
+    tempDirs.push(root)
+
+    fs.writeFileSync(
+      path.join(root, 'wrangler.dev.jsonc'),
+      JSON.stringify({
+        vars: {
+          NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+        },
+      }),
+    )
+
+    expect(
+      createWranglerEnv(
+        {
+          PATH: '/usr/bin',
+          WRANGLER_CONFIG_PATH: 'wrangler.dev.jsonc',
+        },
+        root,
+      ),
+    ).not.toHaveProperty('PAYLOAD_SECRET')
+  })
+
   it('appends .cmd for bare commands on Windows while preserving shell=false usage', async () => {
     const { resolveCommandForPlatform } = await import('../../../scripts/lib/run-with-wrangler-env.mjs')
 

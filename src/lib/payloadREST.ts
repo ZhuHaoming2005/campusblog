@@ -80,10 +80,14 @@ function buildForwardHeaders(request: Request, hasBody: boolean): Headers {
   const cookie = request.headers.get('cookie')
   const authorization = request.headers.get('authorization')
   const acceptLanguage = request.headers.get('accept-language')
+  const origin = request.headers.get('origin')
+  const secFetchSite = request.headers.get('sec-fetch-site')
 
   if (cookie) headers.set('cookie', cookie)
   if (authorization) headers.set('authorization', authorization)
   if (acceptLanguage) headers.set('accept-language', acceptLanguage)
+  if (origin) headers.set('origin', origin)
+  if (secFetchSite) headers.set('sec-fetch-site', secFetchSite)
   if (hasBody) headers.set('content-type', 'application/json')
 
   return headers
