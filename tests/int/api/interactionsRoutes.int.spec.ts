@@ -74,6 +74,30 @@ describe('interaction routes', () => {
     )
   })
 
+  it('rejects cross-site state-changing interaction requests before auth', async () => {
+    const payload = createPayloadMock()
+    getFrontendPayloadMock.mockResolvedValue(payload)
+
+    const { POST } = await import('@/app/api/interactions/users/[userId]/follow/route')
+    const response = await POST(
+      new Request('https://example.com/api/interactions/users/77/follow', {
+        headers: {
+          'sec-fetch-site': 'cross-site',
+        },
+        method: 'POST',
+      }),
+      { params: Promise.resolve({ userId: '77' }) },
+    )
+
+    expect(response.status).toBe(403)
+    expect(requireFrontendAuthMock).not.toHaveBeenCalled()
+    expect(payload.findByID).not.toHaveBeenCalled()
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'csrf_rejected',
+      ok: false,
+    })
+  })
+
   it('creates a post comment for a verified frontend user', async () => {
     const payload = createPayloadMock()
     payload.create.mockResolvedValueOnce({

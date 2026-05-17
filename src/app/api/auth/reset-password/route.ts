@@ -1,12 +1,17 @@
 import { AuthInputError, parseResetPasswordInput } from '../_lib/authInput'
 import { buildFormRedirectURL } from '../_lib/formRedirects'
 import {
-  appendSetCookieHeaders,
   AUTH_MESSAGES,
   jsonAuthError,
   jsonAuthSuccess,
   sanitizeAuthNextPath,
 } from '../_lib/authResponses'
+import {
+  generatePayloadAuthCookie,
+  type PayloadAuthCookieConfig,
+} from '../_lib/payloadAuthCookie'
+import { rejectCrossSiteStateChangingRequest } from '../_lib/stateChangingRequestGuard'
+import { getFrontendPayload } from '@/lib/frontendSession'
 
 async function readResetPasswordInput(request: Request) {
   const contentType = request.headers.get('content-type') ?? ''
@@ -39,6 +44,9 @@ async function readResetPasswordInput(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const clonedRequest = request.clone()
   const requestURL = new URL(request.url)
   let rawNext: string | null = null
@@ -51,24 +59,35 @@ export async function POST(request: Request) {
     rawToken = inputResult.rawToken
     isFormSubmission = inputResult.isFormSubmission
     const { input } = inputResult
-    const upstream = await fetch(new URL('/api/users/reset-password', request.url), {
-      body: JSON.stringify({
+    const payload = await getFrontendPayload()
+    const payloadResponse = await payload.resetPassword({
+      collection: 'users',
+      data: {
         password: input.password,
         token: input.token,
-      }),
-      headers: {
-        'accept-language': request.headers.get('accept-language') ?? '',
-        'content-type': 'application/json',
       },
-      method: 'POST',
+      overrideAccess: true,
+      req: {
+        headers: request.headers,
+        url: request.url,
+      },
     })
-
-    if (!upstream.ok) {
-      throw new Error('invalid reset-password response')
-    }
+    const token = typeof payloadResponse.token === 'string' ? payloadResponse.token : ''
 
     const headers = new Headers()
-    appendSetCookieHeaders(upstream.headers, headers)
+
+    if (token) {
+      const usersCollection = payload.collections.users
+      headers.append(
+        'set-cookie',
+        generatePayloadAuthCookie({
+          auth: usersCollection.config.auth as PayloadAuthCookieConfig,
+          cookiePrefix: payload.config.cookiePrefix,
+          request,
+          token,
+        }),
+      )
+    }
 
     if (isFormSubmission) {
       const redirectURL = buildFormRedirectURL({

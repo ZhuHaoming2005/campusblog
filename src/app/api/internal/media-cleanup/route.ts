@@ -2,6 +2,7 @@ import { headers as getHeaders } from 'next/headers.js'
 import { getPayload } from 'payload'
 
 import { hasAdminRole } from '@/access/admin'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 import { readCloudflareRuntimeEnvString } from '@/cloudflare/runtimeEnv'
 import { cleanupAllOrphanMedia } from '@/media/orphanCleanup'
 
@@ -12,6 +13,9 @@ function getBearerToken(authorization: string | null): string | null {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const cleanupSecret = (
     await readCloudflareRuntimeEnvString('MEDIA_CLEANUP_SECRET', {
       processEnv: process.env,

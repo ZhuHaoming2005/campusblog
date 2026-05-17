@@ -37,7 +37,7 @@ describe('authRateLimit', () => {
     expect(kv.put).toHaveBeenCalled()
   })
 
-  it('fails open when kv is unavailable', async () => {
+  it('fails closed when kv read is unavailable', async () => {
     const { checkAuthRateLimit } = await import('@/app/api/auth/_lib/authRateLimit')
 
     await expect(
@@ -52,7 +52,20 @@ describe('authRateLimit', () => {
           put: vi.fn(),
         },
       }),
-    ).resolves.toMatchObject({ limited: false })
+    ).resolves.toMatchObject({ limited: true, retryAfterSeconds: 60 })
+  })
+
+  it('fails closed when kv binding is unavailable', async () => {
+    const { checkAuthRateLimit } = await import('@/app/api/auth/_lib/authRateLimit')
+
+    await expect(
+      checkAuthRateLimit({
+        action: 'login',
+        email: 'user@example.com',
+        ip: '127.0.0.1',
+        kv: undefined,
+      }),
+    ).resolves.toMatchObject({ limited: true, retryAfterSeconds: 60 })
   })
 
   it('stores TTL as the remaining window duration instead of an absolute timestamp', async () => {
@@ -150,6 +163,23 @@ describe('authRateLimit', () => {
       limited: false,
       retryAfterSeconds: 0,
     })
+  })
+
+  it('fails closed when cooldown storage is unavailable', async () => {
+    const { checkAuthCooldown } = await import('@/app/api/auth/_lib/authRateLimit')
+
+    await expect(
+      checkAuthCooldown({
+        action: 'forgotPassword',
+        email: 'user@example.com',
+        kv: {
+          get: vi.fn(async () => {
+            throw new Error('kv offline')
+          }),
+          put: vi.fn(),
+        },
+      }),
+    ).resolves.toMatchObject({ limited: true, retryAfterSeconds: 60 })
   })
 
   it('stores cooldown entries by action and email hash without depending on IP', async () => {

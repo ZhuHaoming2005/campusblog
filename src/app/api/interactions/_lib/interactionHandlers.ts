@@ -3,6 +3,7 @@ import type { Where } from 'payload'
 import type { User } from '@/payload-types'
 import { getFrontendPayload } from '@/lib/frontendSession'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 
 type AuthUser = User & {
   _verified?: boolean | null
@@ -113,6 +114,9 @@ export async function POSTPostLike(
   request: Request,
   context: { params: Promise<{ postId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { postId } = await context.params
   const numericPostId = toNumericId(postId)
   if (!numericPostId) return Response.json({ error: 'postId is required.' }, { status: 400 })
@@ -130,6 +134,9 @@ export async function DELETEPostLike(
   request: Request,
   context: { params: Promise<{ postId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { postId } = await context.params
   const numericPostId = toNumericId(postId)
   if (!numericPostId) return Response.json({ error: 'postId is required.' }, { status: 400 })
@@ -147,6 +154,9 @@ export async function POSTPostBookmark(
   request: Request,
   context: { params: Promise<{ postId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { postId } = await context.params
   const numericPostId = toNumericId(postId)
   if (!numericPostId) return Response.json({ error: 'postId is required.' }, { status: 400 })
@@ -164,6 +174,9 @@ export async function DELETEPostBookmark(
   request: Request,
   context: { params: Promise<{ postId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { postId } = await context.params
   const numericPostId = toNumericId(postId)
   if (!numericPostId) return Response.json({ error: 'postId is required.' }, { status: 400 })
@@ -238,6 +251,9 @@ export async function POSTUserFollow(
   request: Request,
   context: { params: Promise<{ userId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { userId } = await context.params
   const numericUserId = toNumericId(userId)
   if (!numericUserId) return Response.json({ error: 'userId is required.' }, { status: 400 })
@@ -253,6 +269,9 @@ export async function DELETEUserFollow(
   request: Request,
   context: { params: Promise<{ userId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { userId } = await context.params
   const numericUserId = toNumericId(userId)
   if (!numericUserId) return Response.json({ error: 'userId is required.' }, { status: 400 })

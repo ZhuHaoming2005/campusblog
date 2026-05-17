@@ -3,6 +3,7 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
 
@@ -55,6 +56,9 @@ function formatBytes(value: number, locale: string): string {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const auth = await requireFrontendAuth({
       headers: request.headers,

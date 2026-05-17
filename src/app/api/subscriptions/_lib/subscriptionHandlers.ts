@@ -3,6 +3,7 @@ import type { Where } from 'payload'
 import type { SchoolSubChannel, User } from '@/payload-types'
 import { getFrontendPayload } from '@/lib/frontendSession'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 
 type AuthUser = User & {
   _verified?: boolean | null
@@ -112,6 +113,9 @@ async function getChannelSchoolId(args: { channelId: number; user: AuthUser }) {
 }
 
 export async function POSTSchoolSubscription(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const auth = await requireSubscriptionAuth(request.headers)
   if (!auth.user) return auth.response
 
@@ -134,6 +138,9 @@ export async function POSTSchoolSubscription(request: Request) {
 }
 
 export async function DELETESchoolSubscription(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const auth = await requireSubscriptionAuth(request.headers)
   if (!auth.user) return auth.response
 
@@ -160,6 +167,9 @@ export async function DELETESchoolSubscription(request: Request) {
 }
 
 export async function POSTChannelSubscription(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const auth = await requireSubscriptionAuth(request.headers)
   if (!auth.user) return auth.response
 
@@ -214,6 +224,9 @@ export async function POSTChannelSubscription(request: Request) {
 }
 
 export async function DELETEChannelSubscription(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const auth = await requireSubscriptionAuth(request.headers)
   if (!auth.user) return auth.response
 

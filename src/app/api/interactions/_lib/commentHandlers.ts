@@ -2,6 +2,7 @@ import type { Comment } from '@/payload-types'
 import { toFrontendComment } from '@/lib/commentPresentation'
 import { getCurrentFrontendUser, getFrontendPayload } from '@/lib/frontendSession'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 
 type CommentBody = {
   content?: string
@@ -59,6 +60,9 @@ export async function POSTPostComment(
   request: Request,
   context: { params: Promise<{ postId: string }> },
 ) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const { postId } = await context.params
   const numericPostId = toNumericId(postId)
   if (!numericPostId) return Response.json({ error: 'postId is required.' }, { status: 400 })

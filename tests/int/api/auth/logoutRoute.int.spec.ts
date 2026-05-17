@@ -11,8 +11,13 @@ vi.mock('payload', () => ({
   logoutOperation: logoutOperationMock,
 }))
 
+const payloadConfigMock = Promise.resolve({
+  csrf: ['https://example.com'],
+  fake: 'config',
+})
+
 vi.mock('@/payload.config', () => ({
-  default: Promise.resolve({ fake: 'config' }),
+  default: payloadConfigMock,
 }))
 
 describe('POST /api/auth/logout', () => {
@@ -61,6 +66,7 @@ describe('POST /api/auth/logout', () => {
       new Request('https://example.com/api/auth/logout', {
         headers: {
           cookie: 'payload-token=abc',
+          origin: 'https://example.com',
         },
         method: 'POST',
       }),
@@ -72,6 +78,28 @@ describe('POST /api/auth/logout', () => {
       ok: false,
     })
     expect(logoutOperationMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects cross-origin logout requests before reading the session', async () => {
+    const { POST } = await import('@/app/api/auth/logout/route')
+
+    const response = await POST(
+      new Request('https://evil.example.com/api/auth/logout', {
+        headers: {
+          cookie: 'payload-token=abc',
+          origin: 'https://evil.example.com',
+        },
+        method: 'POST',
+      }),
+    )
+
+    expect(response.status).toBe(403)
+    expect(authMock).not.toHaveBeenCalled()
+    expect(logoutOperationMock).not.toHaveBeenCalled()
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'csrf_rejected',
+      ok: false,
+    })
   })
 
   it('expires the Payload auth cookie after a successful local logout operation', async () => {
@@ -116,6 +144,9 @@ describe('POST /api/auth/logout', () => {
     expect(response.headers.get('set-cookie')).toContain('payload-token=')
     expect(response.headers.get('set-cookie')).toContain('Expires=')
     expect(response.headers.get('set-cookie')).toContain('Path=/')
+    expect(response.headers.get('set-cookie')).toContain('Secure')
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly')
+    expect(response.headers.get('set-cookie')).toContain('SameSite=Lax')
     await expect(response.json()).resolves.toMatchObject({
       ok: true,
       status: 'logged_out',
