@@ -80,7 +80,7 @@ export default function SidebarNav({
   )
   const visibleSchools = canManageSubscriptions
     ? schools.filter((school) => subscribedIds.has(String(school.id)))
-    : schools
+    : []
 
   const handleAddChannelClick = () => {
     if (!canManageSubscriptions) {
@@ -143,7 +143,7 @@ export default function SidebarNav({
 
       <Separator className="mx-6 mb-2 bg-campus-primary/8" />
 
-      <ScrollArea className="flex-1 px-3">
+      <ScrollArea className="min-h-0 flex-1 px-3">
         <nav className="space-y-1 py-2">
           <Link
             href="/"

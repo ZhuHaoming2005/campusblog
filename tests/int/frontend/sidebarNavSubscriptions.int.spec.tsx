@@ -119,4 +119,62 @@ describe('SidebarNav subscriptions', () => {
     expect(screen.queryByTestId('sidebar-no-subscribed-channels')).toBeNull()
     expect(screen.getByTestId('sidebar-add-channel')).toBeTruthy()
   })
+
+  it('does not show subscribed schools to anonymous users', () => {
+    pathnameMock = '/'
+
+    render(
+      <TooltipProvider>
+        <SidebarNav
+          currentUser={null}
+          locale="en-US"
+          schools={[
+            { id: 1, name: 'North Campus', slug: 'north-campus' },
+            { id: 2, name: 'South Campus', slug: 'south-campus' },
+          ]}
+          subscribedSchoolIds={[1]}
+          t={dictionary}
+        />
+      </TooltipProvider>,
+    )
+
+    expect(screen.queryByRole('link', { name: /North Campus/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: /South Campus/ })).toBeNull()
+    expect(screen.queryByText('No subscribed channels')).toBeNull()
+    expect(screen.queryByTestId('sidebar-no-subscribed-channels')).toBeNull()
+    expect(screen.getByTestId('sidebar-add-channel')).toBeTruthy()
+  })
+
+  it('keeps long subscribed school lists inside a scrollable sidebar area', () => {
+    pathnameMock = '/'
+    const schools = Array.from({ length: 40 }, (_, index) => ({
+      id: index + 1,
+      name: `School ${index + 1}`,
+      slug: `school-${index + 1}`,
+    }))
+
+    const { container } = render(
+      <TooltipProvider>
+        <SidebarNav
+          currentUser={{
+            avatarUrl: null,
+            displayName: 'Test User',
+            email: 'test@example.com',
+            id: 42,
+          }}
+          locale="en-US"
+          schools={schools}
+          subscribedSchoolIds={schools.map((school) => school.id)}
+          t={dictionary}
+        />
+      </TooltipProvider>,
+    )
+
+    const scrollArea = container.querySelector('[data-slot="scroll-area"]')
+
+    expect(scrollArea?.className).toContain('min-h-0')
+    expect(scrollArea?.className).toContain('flex-1')
+    expect(container.querySelector('[data-slot="scroll-area-viewport"]')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /School 40/ })).toBeTruthy()
+  })
 })

@@ -215,35 +215,42 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 font-label text-sm text-campus-text-soft">
-                  {publishedLabel ? (
+                <div
+                  data-testid="post-detail-meta-actions"
+                  className="flex flex-col gap-2 lg:items-end"
+                >
+                  <div
+                    data-testid="post-detail-metadata"
+                    className="flex flex-wrap gap-3 font-label text-sm text-campus-text-soft lg:justify-end"
+                  >
+                    {publishedLabel ? (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
+                        <IconMapPin size={16} />
+                        {t.post.published}: {publishedLabel}
+                      </span>
+                    ) : null}
                     <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
-                      <IconMapPin size={16} />
-                      {t.post.published}: {publishedLabel}
+                      <IconClockHour4 size={16} />
+                      {readingMinutes} {t.post.readTime}
                     </span>
-                  ) : null}
-                  <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
-                    <IconClockHour4 size={16} />
-                    {readingMinutes} {t.post.readTime}
-                  </span>
+                  </div>
+
+                  <PostInteractionBar
+                    authorId={authorId}
+                    initialState={interactionState}
+                    labels={{
+                      bookmark: t.post.bookmark,
+                      bookmarked: t.post.bookmarked,
+                      follow: t.post.followAuthor,
+                      following: t.post.followingAuthor,
+                      like: t.post.like,
+                      liked: t.post.liked,
+                    }}
+                    postId={post.id}
+                    viewerId={currentUser?.id}
+                  />
                 </div>
               </div>
-
-              <PostInteractionBar
-                authorId={authorId}
-                className="mt-5"
-                initialState={interactionState}
-                labels={{
-                  bookmark: t.post.bookmark,
-                  bookmarked: t.post.bookmarked,
-                  follow: t.post.followAuthor,
-                  following: t.post.followingAuthor,
-                  like: t.post.like,
-                  liked: t.post.liked,
-                }}
-                postId={post.id}
-                viewerId={currentUser?.id}
-              />
             </header>
 
             <section className="rounded-[2rem] border border-campus-border-soft/80 bg-[linear-gradient(180deg,#FFFFFF_0%,#F9FBFE_100%)] p-6 shadow-[0_14px_36px_rgba(27,75,122,0.04)] sm:p-8">

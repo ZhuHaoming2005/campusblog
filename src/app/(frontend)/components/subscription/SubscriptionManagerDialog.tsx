@@ -279,8 +279,11 @@ export function SubscriptionManagerDialog({
             ) : null}
           </div>
 
-          <div className="flex items-start justify-center">
-            <div className="sticky top-0 flex flex-col items-center gap-1 rounded-full border border-campus-primary/8 bg-campus-surface-container/70 px-1 py-1">
+          <div className="flex min-h-0 items-start justify-center">
+            <div
+              data-testid="subscription-dialog-index"
+              className="sticky top-0 flex max-h-[min(60vh,32rem)] flex-col items-center gap-1 overflow-y-auto rounded-full border border-campus-primary/8 bg-campus-surface-container/70 px-1 py-1 no-scrollbar"
+            >
               {groupedItems.map((group) => {
                 const indexKey = getIndexKey(group.letter)
 

@@ -75,4 +75,44 @@ describe('SchoolTopBar', () => {
     expect(screen.getByTestId('subscription-dialog-index-c')).toBeTruthy()
     expect(screen.getByTestId('subscription-dialog-index-e')).toBeTruthy()
   })
+
+  it('keeps many subscribed channel tabs horizontally scrollable', () => {
+    pathnameMock = '/school/north-campus'
+    const subChannels = Array.from({ length: 12 }, (_, index) => ({
+      id: index + 1,
+      name: `Channel ${index + 1}`,
+      slug: `channel-${index + 1}`,
+    }))
+
+    render(
+      <SchoolTopBar
+        canManageSubscriptions
+        schoolId={10}
+        schoolName="North Campus"
+        schoolSlug="north-campus"
+        subChannels={subChannels}
+        subscribedChannelIds={subChannels.map((channel) => channel.id)}
+        t={{
+          common: { cancel: 'Cancel', login: 'Login', searchPlaceholder: 'Search campus news...' },
+          school: {
+            addSubChannel: 'Add Channel',
+            allPosts: 'All Posts',
+            homepage: 'Homepage',
+            subscribe: 'Subscribe',
+            subscribed: 'Subscribed',
+            subscriptionError: 'Unable to update subscription.',
+            unsubscribe: 'Unsubscribe',
+          },
+        }}
+      />,
+    )
+
+    const scrollRail = screen.getByTestId('school-channel-tabs-scroll')
+    const tabs = screen.getByTestId('school-channel-tabs')
+
+    expect(scrollRail.className).toContain('overflow-x-auto')
+    expect(tabs.className).not.toContain('max-w-full')
+    expect(tabs.getAttribute('style')).toContain('min-width: max(min(100%, 19rem), 84.5rem)')
+    expect(screen.getByText('Channel 12')).toBeTruthy()
+  })
 })

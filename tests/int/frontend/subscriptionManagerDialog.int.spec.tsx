@@ -60,4 +60,39 @@ describe('SubscriptionManagerDialog accessibility', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add Channel' })).toBeNull())
     expect(document.activeElement).toBe(trigger)
   })
+
+  it('keeps long item lists and the letter index scrollable inside the dialog', () => {
+    const items = Array.from({ length: 26 }, (_, index) => {
+      const letter = String.fromCharCode(65 + index)
+
+      return {
+        id: index + 1,
+        name: `${letter} Channel`,
+        slug: `${letter.toLowerCase()}-channel`,
+        subscribed: index % 2 === 0,
+      }
+    })
+
+    render(
+      <SubscriptionManagerDialog
+        closeLabel="Close"
+        items={items}
+        onOpenChange={vi.fn()}
+        onToggle={vi.fn()}
+        open
+        subscribeLabel="Subscribe"
+        title="Add Channel"
+        unsubscribeLabel="Unsubscribe"
+      />,
+    )
+
+    const list = screen.getByTestId('subscription-dialog-list')
+    const index = screen.getByTestId('subscription-dialog-index')
+
+    expect(list.className).toContain('max-h-[min(60vh,32rem)]')
+    expect(list.className).toContain('overflow-y-auto')
+    expect(index.className).toContain('max-h-[min(60vh,32rem)]')
+    expect(index.className).toContain('overflow-y-auto')
+    expect(screen.getByTestId('subscription-dialog-index-z')).toBeTruthy()
+  })
 })

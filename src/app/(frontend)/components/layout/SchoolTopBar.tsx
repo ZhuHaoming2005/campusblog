@@ -79,6 +79,7 @@ export default function SchoolTopBar({
     tabItems.findIndex((item) => pathname === item.href),
     0,
   )
+  const tabGridMinWidth = `max(min(100%, 19rem), ${tabItems.length * 6.5}rem)`
 
   const handleManageChannelsClick = () => {
     if (!canManageSubscriptions) {
@@ -144,13 +145,19 @@ export default function SchoolTopBar({
         </div>
 
         <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex items-start gap-1.5">
-            <div className="min-w-0 overflow-x-auto no-scrollbar">
+          <div className="flex min-w-0 flex-1 items-start gap-1.5">
+            <div
+              data-testid="school-channel-tabs-scroll"
+              className="min-w-0 overflow-x-auto no-scrollbar"
+            >
               <div className="rounded-[1.35rem] p-1">
                 <div
                   data-testid="school-channel-tabs"
-                  className="relative inline-grid w-fit max-w-full min-w-[min(100%,19rem)] overflow-hidden rounded-full border border-campus-primary/10 bg-[rgba(255,255,255,0.68)] p-0.5"
-                  style={{ gridTemplateColumns: `repeat(${tabItems.length}, minmax(0, 1fr))` }}
+                  className="relative inline-grid w-fit overflow-hidden rounded-full border border-campus-primary/10 bg-[rgba(255,255,255,0.68)] p-0.5"
+                  style={{
+                    gridTemplateColumns: `repeat(${tabItems.length}, minmax(0, 1fr))`,
+                    minWidth: tabGridMinWidth,
+                  }}
                 >
                   <span
                     data-testid="school-channel-tabs-indicator"
