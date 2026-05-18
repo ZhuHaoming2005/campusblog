@@ -19,6 +19,7 @@ import {
   revalidatePostCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
 import { validatePostChannelRelation } from '@/hooks/validatePostChannelRelation'
+import { cleanupPostInteractionsBeforeDelete } from '@/collections/Interactions'
 
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
@@ -43,6 +44,7 @@ export const Posts: CollectionConfig = {
   hooks: {
     beforeValidate: [setCurrentAuthor, validatePostChannelRelation],
     beforeChange: [setPublishedAt, validatePostQuota],
+    beforeDelete: [cleanupPostInteractionsBeforeDelete],
     afterChange: [syncUserPostQuotaAfterChange, revalidatePostCacheAfterChange],
     afterDelete: [syncUserPostQuotaAfterDelete, revalidatePostCacheAfterDelete],
   },

@@ -1,6 +1,11 @@
-import type { CollectionBeforeValidateHook, CollectionConfig } from 'payload'
+import type { CollectionBeforeValidateHook, CollectionConfig, FieldAccess } from 'payload'
 
-import { adminOrAuthor, adminOrPublishedOrAuthor, authenticated } from '@/access/admin'
+import {
+  adminOrAuthor,
+  adminOrPublishedOrAuthor,
+  adminOrVerifiedActiveUser,
+  hasAdminRole,
+} from '@/access/admin'
 import { setCurrentAuthor } from '@/hooks/setCurrentAuthor'
 
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
@@ -15,6 +20,8 @@ const extractRelationID = (value: RelationValue): number | string | null => {
   if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
   return null
 }
+
+const adminFieldOnly: FieldAccess = ({ req: { user } }) => hasAdminRole(user)
 
 const validateCommentParentRelation: CollectionBeforeValidateHook = async ({
   data,
@@ -60,7 +67,7 @@ export const Comments: CollectionConfig = {
   },
   access: {
     read: adminOrPublishedOrAuthor,
-    create: authenticated,
+    create: adminOrVerifiedActiveUser,
     update: adminOrAuthor,
     delete: adminOrAuthor,
   },
@@ -121,6 +128,10 @@ export const Comments: CollectionConfig = {
       admin: {
         description: 'Moderation status. Hidden comments are excluded from public view.',
         position: 'sidebar',
+      },
+      access: {
+        create: adminFieldOnly,
+        update: adminFieldOnly,
       },
     },
     {

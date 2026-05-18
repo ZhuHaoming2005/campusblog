@@ -1,40 +1,13 @@
 import { createLocalReq, getPayload, logoutOperation } from 'payload'
 
 import { jsonAuthError, jsonAuthSuccess } from '../_lib/authResponses'
-
-function generateExpiredPayloadCookie(args: {
-  cookiePrefix: string
-  cookies: {
-    domain?: string | null
-    sameSite?: boolean | 'Lax' | 'None' | 'Strict' | null
-    secure?: boolean | null
-  }
-}) {
-  const sameSite =
-    typeof args.cookies.sameSite === 'string'
-      ? args.cookies.sameSite
-      : args.cookies.sameSite
-        ? 'Strict'
-        : undefined
-  const expires = new Date(Date.now() - 1000).toUTCString()
-  let cookie = `${args.cookiePrefix}-token=; Expires=${expires}; Path=/; HttpOnly=true`
-
-  if (args.cookies.domain) {
-    cookie += `; Domain=${args.cookies.domain}`
-  }
-
-  if (args.cookies.secure || sameSite === 'None') {
-    cookie += '; Secure=true'
-  }
-
-  if (sameSite) {
-    cookie += `; SameSite=${sameSite}`
-  }
-
-  return cookie
-}
+import { generateExpiredPayloadCookie } from '../_lib/payloadAuthCookie'
+import { rejectCrossSiteStateChangingRequest } from '../_lib/stateChangingRequestGuard'
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const { default: config } = await import('@/payload.config')
     const payload = await getPayload({ config: await config })
@@ -68,6 +41,7 @@ export async function POST(request: Request) {
       generateExpiredPayloadCookie({
         cookiePrefix: payload.config.cookiePrefix,
         cookies: usersCollection.config.auth.cookies,
+        request,
       }),
     )
 

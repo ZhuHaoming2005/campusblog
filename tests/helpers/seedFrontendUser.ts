@@ -1,6 +1,7 @@
 import { getPayload } from 'payload'
 
 import config from '../../src/payload.config.js'
+import { withD1Retry } from './d1Retry'
 
 export const testFrontendUser = {
   email: 'frontend-user@campusblog.test',
@@ -31,14 +32,16 @@ type FrontendAuthState = {
 export async function deleteFrontendUserByEmail(email: string) {
   const payload = await getPayload({ config })
 
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: email,
+  await withD1Retry(() =>
+    payload.delete({
+      collection: 'users',
+      where: {
+        email: {
+          equals: email,
+        },
       },
-    },
-  })
+    }),
+  )
 }
 
 export async function seedFrontendUser(): Promise<void> {
@@ -57,15 +60,17 @@ export async function createFrontendUser(
 
   await deleteFrontendUserByEmail(user.email)
 
-  const created = await payload.create({
-    collection: 'users',
-    data: {
-      ...user,
-      isActive: options.isActive ?? true,
-      roles: options.roles ?? ['user'],
-    },
-    disableVerificationEmail: true,
-  })
+  const created = await withD1Retry(() =>
+    payload.create({
+      collection: 'users',
+      data: {
+        ...user,
+        isActive: options.isActive ?? true,
+        roles: options.roles ?? ['user'],
+      },
+      disableVerificationEmail: true,
+    }),
+  )
 
   const nextData: Record<string, boolean | null | string> = {}
   const hasVerificationTokenOverride = Object.prototype.hasOwnProperty.call(options, 'verificationToken')
@@ -79,13 +84,15 @@ export async function createFrontendUser(
   }
 
   if (Object.keys(nextData).length > 0) {
-    await payload.update({
-      collection: 'users',
-      id: created.id,
-      data: nextData as never,
-      overrideAccess: true,
-      showHiddenFields: true,
-    })
+    await withD1Retry(() =>
+      payload.update({
+        collection: 'users',
+        id: created.id,
+        data: nextData as never,
+        overrideAccess: true,
+        showHiddenFields: true,
+      }),
+    )
   }
 }
 

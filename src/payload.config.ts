@@ -25,6 +25,13 @@ import { Comments } from './collections/Comments'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
+import {
+  PostBookmarks,
+  PostLikes,
+  SchoolSubChannelSubscriptions,
+  SchoolSubscriptions,
+  UserFollows,
+} from './collections/Interactions'
 import { createCloudflareEmailAdapter } from './email/cloudflareEmailAdapter'
 
 type EmailBindingLike = {
@@ -144,7 +151,20 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
   },
-  collections: [Users, Media, Schools, SchoolSubChannels, Tags, Posts, Comments],
+  collections: [
+    Users,
+    Media,
+    Schools,
+    SchoolSubChannels,
+    Tags,
+    Posts,
+    Comments,
+    PostLikes,
+    PostBookmarks,
+    UserFollows,
+    SchoolSubscriptions,
+    SchoolSubChannelSubscriptions,
+  ],
   csrf: csrfOrigins,
   i18n: {
     fallbackLanguage: 'zh',

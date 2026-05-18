@@ -98,6 +98,9 @@ describe('POST /api/auth/login', () => {
       showHiddenFields: true,
     })
     expect(response.headers.get('set-cookie')).toContain('payload-token=abc')
+    expect(response.headers.get('set-cookie')).toContain('Secure')
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly')
+    expect(response.headers.get('set-cookie')).toContain('SameSite=Lax')
 
     const body = await response.json()
     expect(body).toMatchObject({

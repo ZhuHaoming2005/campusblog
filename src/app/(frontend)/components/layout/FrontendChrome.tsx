@@ -27,11 +27,17 @@ type FrontendChromeDictionary = {
     languageLabel: string
     languageZh: string
     languageEn: string
+    cancel: string
   }
   sidebar: {
     discover: string
     channels: string
     addChannel: string
+    noSubscribedChannels: string
+    subscribe: string
+    subscribed: string
+    subscriptionError: string
+    unsubscribe: string
   }
 }
 
@@ -41,6 +47,7 @@ type FrontendChromeProps = {
   githubUrl?: string
   locale: AppLocale
   schools: SchoolItem[]
+  subscribedSchoolIds: Array<number | string>
   t: FrontendChromeDictionary
 }
 
@@ -52,6 +59,7 @@ export default function FrontendChrome({
   githubUrl,
   locale,
   schools,
+  subscribedSchoolIds,
   t,
 }: FrontendChromeProps) {
   const pathname = usePathname()
@@ -62,7 +70,14 @@ export default function FrontendChrome({
   return (
     <>
       {hideSidebar ? null : (
-        <SidebarNav schools={schools} locale={locale} t={t} currentUser={currentUser} />
+        <SidebarNav
+          key={`${currentUser?.id ?? 'anonymous'}:${subscribedSchoolIds.map((id) => String(id)).join(':')}`}
+          schools={schools}
+          subscribedSchoolIds={subscribedSchoolIds}
+          locale={locale}
+          t={t}
+          currentUser={currentUser}
+        />
       )}
 
       {isEditorPage ? null : (
@@ -90,11 +105,7 @@ export default function FrontendChrome({
       )}
 
       <main
-        className={cn(
-          'min-h-screen',
-          !hideSidebar && 'lg:ml-72',
-          isAuthPage && 'overflow-hidden',
-        )}
+        className={cn('min-h-screen', !hideSidebar && 'lg:ml-72', isAuthPage && 'overflow-hidden')}
       >
         {children}
       </main>

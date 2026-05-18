@@ -3,6 +3,7 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 import { resolveCoverImageForQuota } from '../_lib/coverImageQuota'
@@ -61,6 +62,9 @@ function formatBytes(value: number, locale: string): string {
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const auth = await requireFrontendAuth({
       headers: request.headers,
@@ -194,6 +198,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const locale = resolveRequestLocale({
       acceptLanguage: request.headers.get('accept-language'),

@@ -15,6 +15,8 @@ import {
   tagCacheTag,
 } from '@/app/(frontend)/lib/cacheTags'
 
+const IMMEDIATE_REVALIDATION_PROFILE = { expire: 0 } as const
+
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
 type PostCacheDoc = {
@@ -48,7 +50,7 @@ function getDocumentId(doc?: DocumentWithId | null) {
 function revalidateTags(tags: string[]) {
   for (const tag of tags) {
     try {
-      revalidateTag(tag, 'max')
+      revalidateTag(tag, IMMEDIATE_REVALIDATION_PROFILE)
     } catch (error) {
       console.warn('Unable to revalidate frontend cache tag.', {
         error: error instanceof Error ? error.message : error,

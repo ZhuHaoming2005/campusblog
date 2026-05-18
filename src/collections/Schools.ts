@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
+import { cleanupSchoolSubscriptionsBeforeDelete } from '@/collections/Interactions'
 import {
   revalidateSchoolCacheAfterChange,
   revalidateSchoolCacheAfterDelete,
@@ -20,6 +21,7 @@ export const Schools: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    beforeDelete: [cleanupSchoolSubscriptionsBeforeDelete],
     afterChange: [revalidateSchoolCacheAfterChange],
     afterDelete: [revalidateSchoolCacheAfterDelete],
   },

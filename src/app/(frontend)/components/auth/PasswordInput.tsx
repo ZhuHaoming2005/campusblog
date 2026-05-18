@@ -36,7 +36,7 @@ export default function PasswordInput({
         {...props}
         id={inputId}
         type={visible ? 'text' : 'password'}
-        className={cn('pr-24', inputClassName)}
+        className={cn('campus-password-input pr-24', inputClassName)}
       />
       <div className="absolute inset-y-0 right-1 flex items-center">
         <Button

@@ -1,6 +1,7 @@
 import { AuthInputError, parseRegisterInput } from '../_lib/authInput'
 import { checkAuthRateLimit, getRequestIP } from '../_lib/authRateLimit'
 import { AUTH_MESSAGES, jsonAuthError, jsonAuthSuccess, sanitizeAuthNextPath } from '../_lib/authResponses'
+import { rejectCrossSiteStateChangingRequest } from '../_lib/stateChangingRequestGuard'
 import { getFrontendPayload } from '@/lib/frontendSession'
 
 type PayloadFieldError = {
@@ -55,6 +56,9 @@ function getPayloadValidationError(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const input = parseRegisterInput(await request.json())
     const rateLimit = await checkAuthRateLimit({

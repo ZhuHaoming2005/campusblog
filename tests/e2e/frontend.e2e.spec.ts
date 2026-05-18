@@ -103,7 +103,7 @@ test.describe('Frontend auth', () => {
     expect((await registerResponsePromise).status()).toBe(201)
 
     await expect(page).toHaveURL(/\/verify\/pending/, { timeout: 15000 })
-    await expect(page.getByText(/check your inbox|请检查你的邮箱/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /check your inbox|请检查你的邮箱/i })).toBeVisible()
 
     await deleteFrontendUserByEmail(newUser.email)
   })
@@ -235,11 +235,15 @@ test.describe('Frontend auth', () => {
 
     await page.goto('http://localhost:3000/forgot-password?next=%2Fuser%2Fme')
     await page.getByLabel(/email|邮箱/i).fill(recoveryUser.email)
+    const forgotPasswordResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/api/auth/forgot-password') &&
+        response.request().method() === 'POST',
+    )
     await page.locator('form button[type="submit"]').click()
 
-    await expect(page).toHaveURL(
-      new RegExp(`/forgot-password\\?email=${encodeURIComponent(recoveryUser.email)}.*status=sent`),
-    )
+    expect((await forgotPasswordResponsePromise).status()).toBe(200)
+    await expect(page.getByRole('status')).toContainText(/reset link|重置链接/i)
     await expect(page.locator('input[name="next"]')).toHaveValue('/user/me')
 
     const resetToken = await createFrontendPasswordResetToken(recoveryUser.email)

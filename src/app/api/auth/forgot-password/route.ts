@@ -2,6 +2,7 @@ import { AuthInputError, parseEmailOnlyInput } from '../_lib/authInput'
 import { buildFormRedirectURL } from '../_lib/formRedirects'
 import { checkAuthCooldown, checkAuthRateLimit, getRequestIP, recordAuthCooldown } from '../_lib/authRateLimit'
 import { AUTH_MESSAGES, jsonAuthError, jsonAuthSuccess } from '../_lib/authResponses'
+import { rejectCrossSiteStateChangingRequest } from '../_lib/stateChangingRequestGuard'
 import { getFrontendPayload } from '@/lib/frontendSession'
 import { sendAuthActionEmail } from '@/email/authEmailTemplates'
 
@@ -34,6 +35,9 @@ async function readForgotPasswordInput(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   const requestURL = new URL(request.url)
   let rawEmail = ''
   let rawNext: string | null = null

@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 
-import type { Post } from '@/payload-types'
+import type { Post, PostBookmark, PostLike } from '@/payload-types'
 import LogoutButton from '@/components/auth/LogoutButton'
 import UserProfileEditor from '@/components/user/UserProfileEditor'
 import UserPostActions from '@/components/user/UserPostActions'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrimaryActionButton } from '@/components/ui/primary-action-button'
+import { UserCenterPostTabs } from '@/components/user/UserCenterPostTabs'
 import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import { getFrontendPayload } from '@/lib/frontendSession'
 import { getPostSchool, getPostSubChannel } from '@/lib/postPresentation'
@@ -133,6 +134,16 @@ function UserPostList({
   )
 }
 
+function getInteractionPost(interaction: PostLike | PostBookmark): Post | null {
+  return interaction.post && typeof interaction.post === 'object' ? interaction.post : null
+}
+
+function toInteractionPosts(interactions: Array<PostLike | PostBookmark>): Post[] {
+  return interactions
+    .map((interaction) => getInteractionPost(interaction))
+    .filter((post): post is Post => Boolean(post))
+}
+
 export async function UserCenterPageContent() {
   await connection()
 
@@ -147,7 +158,13 @@ export async function UserCenterPageContent() {
   }
   const currentUser = auth.user
   const payload = await getFrontendPayload()
-  const [draftPostsResult, publishedPostsResult, hiddenPostsResult] = await Promise.all([
+  const [
+    draftPostsResult,
+    publishedPostsResult,
+    hiddenPostsResult,
+    likedPostsResult,
+    bookmarkedPostsResult,
+  ] = await Promise.all([
     payload.find({
       collection: 'posts',
       where: {
@@ -181,7 +198,31 @@ export async function UserCenterPageContent() {
       user: currentUser,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'post-likes',
+      where: {
+        user: { equals: currentUser.id },
+      },
+      sort: '-createdAt',
+      depth: 2,
+      limit: 50,
+      user: currentUser,
+      overrideAccess: false,
+    }),
+    payload.find({
+      collection: 'post-bookmarks',
+      where: {
+        user: { equals: currentUser.id },
+      },
+      sort: '-createdAt',
+      depth: 2,
+      limit: 50,
+      user: currentUser,
+      overrideAccess: false,
+    }),
   ])
+  const likedPosts = toInteractionPosts(likedPostsResult.docs as PostLike[])
+  const bookmarkedPosts = toInteractionPosts(bookmarkedPostsResult.docs as PostBookmark[])
   const postUsageBytes = await getPostUsageBytesMap({
     payload,
     posts: [...draftPostsResult.docs, ...publishedPostsResult.docs, ...hiddenPostsResult.docs],
@@ -293,65 +334,84 @@ export async function UserCenterPageContent() {
           </Card>
         </div>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft via-campus-panel to-campus-page py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.draftsTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/editor?draft=${post.id}`}
-              emptyLabel={t.userCenter.emptyDrafts}
-              hrefLabel={t.userCenter.editDraft}
-              locale={locale}
-              metaLabel={t.userCenter.updatedAt}
-              posts={draftPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+        <UserCenterPostTabs
+          locale={locale}
+          labels={{
+            bookmarked: t.userCenter.bookmarkedTitle,
+            emptyBookmarked: t.userCenter.emptyBookmarked,
+            emptyLiked: t.userCenter.emptyLiked,
+            liked: t.userCenter.likedTitle,
+            mine: t.userCenter.myArticlesTitle,
+            tabList: t.userCenter.contentTabsLabel,
+          }}
+          mineContent={
+            <div className="space-y-6">
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft via-campus-panel to-campus-page py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.draftsTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/editor?draft=${post.id}`}
+                    emptyLabel={t.userCenter.emptyDrafts}
+                    hrefLabel={t.userCenter.editDraft}
+                    locale={locale}
+                    metaLabel={t.userCenter.updatedAt}
+                    posts={draftPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.publishedTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/post/${post.slug}`}
-              emptyLabel={t.userCenter.emptyPublished}
-              hrefLabel={t.userCenter.viewPublicPost}
-              locale={locale}
-              metaLabel={null}
-              posts={publishedPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.publishedTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/post/${post.slug}`}
+                    emptyLabel={t.userCenter.emptyPublished}
+                    hrefLabel={t.userCenter.viewPublicPost}
+                    locale={locale}
+                    metaLabel={null}
+                    posts={publishedPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.hiddenTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/post/${post.slug}`}
-              emptyLabel={t.userCenter.emptyHidden}
-              hrefLabel={t.userCenter.previewHiddenPost}
-              locale={locale}
-              metaLabel={t.userCenter.updatedAt}
-              posts={hiddenPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.hiddenTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/post/${post.slug}`}
+                    emptyLabel={t.userCenter.emptyHidden}
+                    hrefLabel={t.userCenter.previewHiddenPost}
+                    locale={locale}
+                    metaLabel={t.userCenter.updatedAt}
+                    posts={hiddenPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          }
+          posts={{
+            bookmarked: bookmarkedPosts,
+            liked: likedPosts,
+          }}
+        />
       </div>
     </section>
   )
