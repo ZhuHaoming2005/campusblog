@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": "src/worker/databaseProxyWorker.ts",
+  "name": "campusblog-database-proxy",
+  "compatibility_date": "2026-04-21",
+  "compatibility_flags": [
+    "nodejs_compat",
+  ],
+  "vars": {
+    "GITHUB_URL": "https://github.com/ZhuHaoming2005/campusblog",
+    "NEXT_PUBLIC_SITE_URL": "https://campusblog.net",
+    "PAYLOAD_PUBLIC_SERVER_URL": "https://campusblog.net",
+    "AUTH_EMAIL_FROM_ADDRESS": "noreply@mail.campusblog.net",
+    "AUTH_EMAIL_FROM_NAME": "CampusBlog",
+    "AUTH_EMAIL_DEBUG": "false",
+  },
+  "d1_databases": [
+    {
+      "binding": "D1",
+      "database_name": "campusblog",
+      "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
+      "remote": true,
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "campusblog",
+      "preview_bucket_name": "campusblog",
+    },
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "KV",
+      "id": "031e28dcedc94d33bc2bf357aebb88cf",
+    },
+  ],
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
+    },
+  ],
+}

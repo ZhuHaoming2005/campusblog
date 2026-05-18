@@ -40,13 +40,11 @@
       "binding": "D1",
       "database_name": "campusblog",
       "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
-      "remote": true,
     },
     {
       "binding": "NEXT_TAG_CACHE_D1",
       "database_name": "campusblog",
       "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
-      "remote": true,
     },
   ],
   "services": [
@@ -91,7 +89,6 @@
     {
       "name": "EMAIL",
       "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
-      "remote": true,
     },
   ],
   "observability": {
@@ -125,13 +122,11 @@
           "binding": "D1",
           "database_name": "campusblog-dev",
           "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
-          "remote": true,
         },
         {
           "binding": "NEXT_TAG_CACHE_D1",
           "database_name": "campusblog-dev",
           "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
-          "remote": true,
         },
       ],
       "services": [
@@ -176,7 +171,6 @@
         {
           "name": "EMAIL",
           "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
-          "remote": true,
         },
       ],
     },
