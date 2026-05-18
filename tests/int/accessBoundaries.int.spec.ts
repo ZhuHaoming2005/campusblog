@@ -292,4 +292,15 @@ describe('Cloudflare context mode', () => {
       }),
     ).toBe(path.resolve('D:\\code\\project\\campusblog', 'wrangler.dev.jsonc'))
   })
+
+  it('uses the development Wrangler proxy config for production-mode dev Payload migrations', () => {
+    expect(
+      resolveWranglerPlatformProxyConfigPath({
+        env: { CLOUDFLARE_ENV: 'dev' },
+        isPayloadCLI: true,
+        isProduction: true,
+        projectDir: 'D:\\code\\project\\campusblog',
+      }),
+    ).toBe(path.resolve('D:\\code\\project\\campusblog', 'wrangler.dev.jsonc'))
+  })
 })

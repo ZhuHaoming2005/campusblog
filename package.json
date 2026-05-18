@@ -14,7 +14,7 @@
     "deploy:app:dev": "opennextjs-cloudflare deploy --env=dev",
     "deploy:app:production": "pnpm run deploy:app",
     "deploy:database": "cross-env NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute D1 --command 'PRAGMA optimize' --remote",
-    "deploy:database:dev": "cross-env CLOUDFLARE_ENV=dev NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute D1 --command 'PRAGMA optimize' --env=dev --remote",
+    "deploy:database:dev": "cross-env WRANGLER_CONFIG_PATH=wrangler.dev.jsonc NODE_ENV=production PAYLOAD_SECRET=ignore payload migrate && wrangler d1 execute D1 --command 'PRAGMA optimize' --env=dev --remote",
     "deploy:database:production": "pnpm run deploy:database",
     "deploy:dev": "pnpm run deploy:database:dev && pnpm run deploy:app:dev",
     "deploy:production": "pnpm run deploy:database:production && pnpm run deploy:app:production",
