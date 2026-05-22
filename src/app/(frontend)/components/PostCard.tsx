@@ -104,9 +104,18 @@ export default function PostCard({
                 ? 'rounded-[1.35rem] shadow-[0_14px_32px_rgba(24,38,72,0.09)] hover:shadow-[0_18px_40px_rgba(24,38,72,0.13)]'
                 : 'rounded-xl shadow-sm hover:shadow-[0_8px_30px_rgba(13,59,102,0.1)]',
           )}
-          spotlightColor={isDiscoverFeatured ? 'rgba(47, 109, 246, 0.12)' : 'rgba(13, 59, 102, 0.06)'}
+          spotlightColor={
+            isDiscoverFeatured ? 'rgba(47, 109, 246, 0.12)' : 'rgba(13, 59, 102, 0.06)'
+          }
         >
-          <div className={cn('relative w-full overflow-hidden', aspectClass, isDiscoverFeatured && 'max-h-[18rem] sm:max-h-[21rem]', !isDiscoverFeatured && 'max-h-56 sm:max-h-60')}>
+          <div
+            className={cn(
+              'relative w-full overflow-hidden',
+              aspectClass,
+              isDiscoverFeatured && 'max-h-[18rem] sm:max-h-[21rem]',
+              !isDiscoverFeatured && 'max-h-56 sm:max-h-60',
+            )}
+          >
             {hasImage ? (
               <Image
                 alt={getMediaImageAlt(coverImageAlt, 'cover-image')}
@@ -125,7 +134,7 @@ export default function PostCard({
           </div>
 
           <div className={cn(isDiscoverFeatured ? 'space-y-3.5 p-5 sm:p-6' : 'space-y-2.5 p-4')}>
-            {(tagLabel || schoolName || channelName) ? (
+            {tagLabel || schoolName || channelName ? (
               <div className="flex flex-wrap gap-1.5">
                 {tagLabel ? (
                   <Badge
@@ -157,7 +166,7 @@ export default function PostCard({
             <div className="space-y-2">
               <h3
                 className={cn(
-                  'font-headline leading-snug text-campus-primary transition-colors duration-200 group-hover:text-campus-teal',
+                  'font-headline leading-snug text-campus-primary transition-colors duration-200 group-hover:text-campus-teal line-clamp-2',
                   isDiscoverFeatured ? 'text-xl sm:text-[1.45rem]' : 'text-lg',
                 )}
               >
@@ -165,10 +174,19 @@ export default function PostCard({
               </h3>
             </div>
 
-            <div className={cn('flex gap-3', isDiscoverFeatured ? 'flex-col sm:flex-row sm:items-end sm:justify-between' : 'items-center justify-between')}>
+            <div
+              className={cn(
+                'flex gap-3',
+                isDiscoverFeatured
+                  ? 'flex-col sm:flex-row sm:items-end sm:justify-between'
+                  : 'items-center justify-between',
+              )}
+            >
               <div className="flex items-center gap-2.5">
                 <Avatar className="h-6 w-6 border border-campus-primary/10">
-                  {authorAvatarUrl ? <AvatarImage src={authorAvatarUrl} alt={authorName || ''} /> : null}
+                  {authorAvatarUrl ? (
+                    <AvatarImage src={authorAvatarUrl} alt={authorName || ''} />
+                  ) : null}
                   <AvatarFallback className="bg-campus-surface-container text-campus-on-surface-variant text-xs">
                     <IconUser size={14} />
                   </AvatarFallback>
@@ -184,7 +202,8 @@ export default function PostCard({
                   isDiscoverFeatured
                     ? 'flex flex-wrap justify-end gap-x-3 gap-y-1 sm:max-w-[12rem]'
                     : 'flex flex-col items-end gap-1',
-                )}>
+                )}
+              >
                 {publishedLabel ? (
                   <span className="inline-flex items-center justify-end gap-1">
                     <IconCalendarEvent size={14} />
