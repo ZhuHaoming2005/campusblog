@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { IconSearch } from '@tabler/icons-react'
 
 import { Input } from '@/components/ui/input'
@@ -10,14 +11,29 @@ type SearchBarProps = {
   placeholder: string
   className?: string
   inputClassName?: string
+  searchPath?: string
 }
 
 export default function SearchBar({
   placeholder,
   className,
   inputClassName,
+  searchPath = '/search',
 }: SearchBarProps) {
+  const router = useRouter()
   const [focused, setFocused] = useState(false)
+  const [query, setQuery] = useState('')
+
+  const handleSearch = () => {
+    if (!query.trim()) return
+    router.push(`${searchPath}?q=${encodeURIComponent(query)}`)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
 
   return (
     <div
@@ -34,16 +50,26 @@ export default function SearchBar({
         )}
       />
       <div className="relative flex items-center">
-        <IconSearch
-          size={18}
-          className={cn(
-            'absolute left-4 z-10 transition-colors duration-200',
-            focused ? 'text-campus-primary' : 'text-campus-outline',
-          )}
-        />
+        <button
+          type="button"
+          onClick={handleSearch}
+          className="absolute left-4 z-10 flex items-center justify-center p-0 transition-colors duration-200 hover:opacity-70"
+          aria-label="Search"
+        >
+          <IconSearch
+            size={18}
+            className={cn(
+              'transition-colors duration-200',
+              focused ? 'text-campus-primary' : 'text-campus-outline',
+            )}
+          />
+        </button>
         <Input
           type="text"
           placeholder={placeholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={handleKeyPress}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className={cn(

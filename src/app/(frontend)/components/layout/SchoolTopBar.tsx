@@ -207,6 +207,7 @@ export default function SchoolTopBar({
               placeholder={t.common.searchPlaceholder}
               className="max-w-none"
               inputClassName="h-10 border-campus-primary/12 text-sm shadow-[0_12px_28px_rgba(24,38,72,0.10)]"
+              searchPath={`/school/${schoolSlug}/search`}
             />
           </div>
         </div>

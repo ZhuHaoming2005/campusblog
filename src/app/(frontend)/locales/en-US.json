@@ -305,5 +305,14 @@
     "relatedSchool": "More from this school",
     "school": "School",
     "notFoundTitle": "Article not found"
+  },
+  "search": {
+    "results": "Search Results",
+    "articlesFound": "articles found",
+    "noResults": "No articles found",
+    "tryDifferentQuery": "Try a different search query",
+    "enterQuery": "Please enter a search query",
+    "error": "Search error",
+    "errorMsg": "An error occurred during search. Please try again."
   }
 }
