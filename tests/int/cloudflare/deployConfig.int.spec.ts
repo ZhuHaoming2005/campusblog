@@ -109,8 +109,26 @@ describe('Cloudflare deploy configuration', () => {
       class_name: 'DOQueueHandler',
     })
     expect(findDoBinding(dev, 'NEXT_CACHE_DO_QUEUE')?.script_name).toBeUndefined()
+    expect(findDoBinding(production, 'NEXT_TAG_CACHE_DO_SHARDED')).toMatchObject({
+      class_name: 'DOShardedTagCache',
+    })
+    expect(findDoBinding(production, 'NEXT_TAG_CACHE_DO_SHARDED')?.script_name).toBeUndefined()
+    expect(findDoBinding(dev, 'NEXT_TAG_CACHE_DO_SHARDED')).toMatchObject({
+      class_name: 'DOShardedTagCache',
+    })
+    expect(findDoBinding(dev, 'NEXT_TAG_CACHE_DO_SHARDED')?.script_name).toBeUndefined()
     expect(hasDoQueueMigration(production)).toBe(true)
     expect(hasDoQueueMigration(dev)).toBe(true)
+    expect(
+      production.migrations?.some((migration) =>
+        migration.new_sqlite_classes?.includes('DOShardedTagCache'),
+      ),
+    ).toBe(true)
+    expect(
+      dev.migrations?.some((migration) =>
+        migration.new_sqlite_classes?.includes('DOShardedTagCache'),
+      ),
+    ).toBe(true)
     expect(findServiceBinding(production, 'WORKER_SELF_REFERENCE')).toMatchObject({
       service: 'campusblog',
     })
@@ -122,6 +140,24 @@ describe('Cloudflare deploy configuration', () => {
     expect(workerEntrypoint).toContain(
       "export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js'",
     )
+    expect(workerEntrypoint).toContain(
+      "export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js'",
+    )
+  })
+
+  it('uses the high-traffic OpenNext cache adapters', () => {
+    const openNextConfig = fs.readFileSync(path.resolve(process.cwd(), 'open-next.config.ts'), 'utf8')
+
+    expect(openNextConfig).toContain(
+      "import { withRegionalCache } from '@opennextjs/cloudflare/overrides/incremental-cache/regional-cache'",
+    )
+    expect(openNextConfig).toContain(
+      "import doShardedTagCache from '@opennextjs/cloudflare/overrides/tag-cache/do-sharded-tag-cache'",
+    )
+    expect(openNextConfig).toContain(
+      "incrementalCache: withRegionalCache(r2IncrementalCache, { mode: 'long-lived' })",
+    )
+    expect(openNextConfig).toContain('tagCache: doShardedTagCache(')
   })
 
   it('does not use local-development remote bindings in the app deploy config', () => {
@@ -129,10 +165,10 @@ describe('Cloudflare deploy configuration', () => {
     const dev = readConfig('wrangler.jsonc', 'dev')
 
     expect(findD1Binding(production, 'D1')?.remote).toBeUndefined()
-    expect(findD1Binding(production, 'NEXT_TAG_CACHE_D1')?.remote).toBeUndefined()
+    expect(findD1Binding(production, 'NEXT_TAG_CACHE_D1')).toBeUndefined()
     expect(findEmailBinding(production, 'EMAIL')?.remote).toBeUndefined()
     expect(findD1Binding(dev, 'D1')?.remote).toBeUndefined()
-    expect(findD1Binding(dev, 'NEXT_TAG_CACHE_D1')?.remote).toBeUndefined()
+    expect(findD1Binding(dev, 'NEXT_TAG_CACHE_D1')).toBeUndefined()
     expect(findEmailBinding(dev, 'EMAIL')?.remote).toBeUndefined()
   })
 

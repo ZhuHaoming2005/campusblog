@@ -90,6 +90,7 @@ export default function PostCard({
   const hasImage = Boolean(coverImageUrl)
   const isDiscoverFeatured = variant === 'discover-featured'
   const isDiscover = variant !== 'default'
+  const shouldShowInlinePreview = hasImage && !isDiscover && previewText
 
   return (
     <div className="masonry-item w-full" data-card-variant={variant}>
@@ -172,6 +173,11 @@ export default function PostCard({
               >
                 {title}
               </h3>
+              {shouldShowInlinePreview ? (
+                <p className="font-body line-clamp-3 text-[14px] leading-6 text-[#4a4540]/70">
+                  {previewText}
+                </p>
+              ) : null}
             </div>
 
             <div

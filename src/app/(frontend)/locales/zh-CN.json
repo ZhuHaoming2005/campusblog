@@ -305,5 +305,14 @@
     "relatedSchool": "更多来自该学校",
     "school": "学校",
     "notFoundTitle": "未找到文章"
+  },
+  "search": {
+    "results": "搜索结果",
+    "articlesFound": "篇文章",
+    "noResults": "未找到相关文章",
+    "tryDifferentQuery": "尝试使用不同的搜索词",
+    "enterQuery": "请输入搜索内容",
+    "error": "搜索出错",
+    "errorMsg": "搜索过程中出现错误，请稍后重试"
   }
 }

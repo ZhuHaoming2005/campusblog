@@ -1,26 +1,45 @@
 ﻿'use client'
 
+import type { FormEvent } from 'react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { IconSearch } from '@tabler/icons-react'
 
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
 type SearchBarProps = {
-  placeholder: string
   className?: string
+  initialQuery?: string
   inputClassName?: string
+  placeholder: string
+  searchPath?: string
 }
 
 export default function SearchBar({
-  placeholder,
   className,
+  initialQuery = '',
   inputClassName,
+  placeholder,
+  searchPath = '/search',
 }: SearchBarProps) {
+  const router = useRouter()
   const [focused, setFocused] = useState(false)
+  const [query, setQuery] = useState(initialQuery)
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const nextQuery = query.trim()
+    if (!nextQuery) return
+
+    router.push(`${searchPath}?q=${encodeURIComponent(nextQuery)}`)
+  }
 
   return (
-    <div
+    <form
+      role="search"
+      onSubmit={handleSubmit}
       className={cn(
         'relative w-full max-w-xl transition-all duration-300',
         focused && 'scale-[1.02]',
@@ -34,16 +53,26 @@ export default function SearchBar({
         )}
       />
       <div className="relative flex items-center">
-        <IconSearch
-          size={18}
-          className={cn(
-            'absolute left-4 z-10 transition-colors duration-200',
-            focused ? 'text-campus-primary' : 'text-campus-outline',
-          )}
-        />
+        <button
+          type="submit"
+          className="absolute left-4 z-10 flex items-center justify-center p-0 transition-colors duration-200 hover:opacity-70"
+          aria-label="Search"
+        >
+          <IconSearch
+            size={18}
+            className={cn(
+              'transition-colors duration-200',
+              focused ? 'text-campus-primary' : 'text-campus-outline',
+            )}
+          />
+        </button>
         <Input
+          enterKeyHint="search"
+          name="q"
           type="text"
           placeholder={placeholder}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className={cn(
@@ -52,6 +81,6 @@ export default function SearchBar({
           )}
         />
       </div>
-    </div>
+    </form>
   )
 }

@@ -4,6 +4,12 @@ export const CMS_CONTENT_CACHE_LIFE = {
   expire: 86400,
 } as const
 
+export const CMS_SEARCH_CACHE_LIFE = {
+  stale: 30,
+  revalidate: 300,
+  expire: 900,
+} as const
+
 export const CMS_STRUCTURE_CACHE_LIFE = {
   stale: 300,
   revalidate: 3600,
