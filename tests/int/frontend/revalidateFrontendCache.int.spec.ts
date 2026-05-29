@@ -69,14 +69,14 @@ describe('frontend cache invalidation hooks', () => {
   })
 
   it('invalidates post caches that embedded tags or media', () => {
-    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual(['posts:list', 'tag:78'])
-    expect(getMediaCacheInvalidationTags({ id: 56 })).toEqual(['posts:list', 'media:56'])
+    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual(['tag:78'])
+    expect(getMediaCacheInvalidationTags({ id: 56 })).toEqual(['media:56'])
   })
 
   it('invalidates post caches that embedded author profiles or avatars', () => {
     expect(
       getUserCacheInvalidationTags({ id: 98, avatar: { id: 56 } }, { id: 98, avatar: { id: 57 } }),
-    ).toEqual(['posts:list', 'author:98', 'media:56', 'media:57'])
+    ).toEqual(['author:98', 'media:56', 'media:57'])
   })
 
   it('runs tag and media cache invalidation hooks without failing the mutation', async () => {
