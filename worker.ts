@@ -7,6 +7,9 @@ export { DOQueueHandler } from './.open-next/.build/durable-objects/queue.js'
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore OpenNext generates this file during the Cloudflare build step.
 export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js'
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore OpenNext generates this file during the Cloudflare build step.
+export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js'
 
 import { runMediaCleanupCron } from './src/worker/mediaCleanupCron'
 

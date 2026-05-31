@@ -6,6 +6,7 @@ import {
   revalidateTagCacheAfterChange,
   revalidateTagCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
+import { EDITOR_POST_TAG_NAME_MAX_LENGTH } from '@/tags/tagRules'
 
 export const Tags: CollectionConfig = {
   slug: 'tags',
@@ -30,6 +31,7 @@ export const Tags: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      maxLength: EDITOR_POST_TAG_NAME_MAX_LENGTH,
       admin: {
         description: 'Tag name shown on posts and used for filtering.',
       },

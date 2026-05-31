@@ -10,6 +10,7 @@ import { tiptapJsonAdminComponents } from '@/fields/tiptapJsonAdmin'
 import { setCurrentAuthor } from '@/hooks/setCurrentAuthor'
 import { setPublishedAt } from '@/hooks/setPublishedAt'
 import { validatePostQuota } from '@/hooks/validatePostQuota'
+import { validatePostTags } from '@/hooks/validatePostTags'
 import {
   syncUserPostQuotaAfterChange,
   syncUserPostQuotaAfterDelete,
@@ -42,7 +43,7 @@ export const Posts: CollectionConfig = {
     delete: adminOrVerifiedActiveAuthor,
   },
   hooks: {
-    beforeValidate: [setCurrentAuthor, validatePostChannelRelation],
+    beforeValidate: [setCurrentAuthor, validatePostChannelRelation, validatePostTags],
     beforeChange: [setPublishedAt, validatePostQuota],
     beforeDelete: [cleanupPostInteractionsBeforeDelete],
     afterChange: [syncUserPostQuotaAfterChange, revalidatePostCacheAfterChange],

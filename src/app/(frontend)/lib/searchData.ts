@@ -7,6 +7,7 @@ import type { Post, PostsSelect } from '@/payload-types'
 import {
   CMS_SEARCH_CACHE_LIFE,
   POST_LIST_CACHE_TAG,
+  TAGS_CACHE_TAG,
   getPostRelationshipCacheTags,
   postsBySchoolCacheTag,
 } from './cacheTags'
@@ -14,8 +15,13 @@ import { getFrontendPayload } from './frontendSession'
 import { extractTextFromTiptapJson } from './tiptap-text'
 
 export const SEARCH_POST_LIMIT = 20
+export const SEARCH_TAG_MATCH_LIMIT = 20
+export const SEARCH_TAG_MATCH_MAX_IDS = 60
 export const SEARCH_QUERY_MAX_LENGTH = 100
 export const SEARCH_CONTENT_PREVIEW_MAX_LENGTH = 220
+
+const SEARCH_TAG_MATCH_MAX_PAGES = Math.ceil(SEARCH_TAG_MATCH_MAX_IDS / SEARCH_TAG_MATCH_LIMIT)
+const SINGLE_ASCII_ALPHANUMERIC_QUERY = /^[A-Za-z0-9]$/
 
 const SEARCH_POST_SELECT: PostsSelect = {
   title: true,
@@ -57,6 +63,9 @@ export type SearchResultPost = Pick<
 }
 
 type SearchContentPreviewPost = Pick<Post, 'id' | 'content'>
+type SearchTagMatch = {
+  id: number | string
+}
 
 export type SearchPublishedPostsResult = {
   posts: SearchResultPost[]
@@ -73,6 +82,10 @@ function emptySearchResult(): SearchPublishedPostsResult {
     posts: [],
     totalDocs: 0,
   }
+}
+
+function shouldSearchTags(normalizedQuery: string) {
+  return !SINGLE_ASCII_ALPHANUMERIC_QUERY.test(normalizedQuery)
 }
 
 async function addContentPreviewsForPostsWithoutExcerpts(
@@ -115,6 +128,54 @@ async function addContentPreviewsForPostsWithoutExcerpts(
   })
 }
 
+async function findMatchingTagIds(
+  payload: FrontendPayload,
+  normalizedQuery: string,
+): Promise<Array<number | string>> {
+  const tagIds = new Set<number | string>()
+  const queryOptions = {
+    collection: 'tags' as const,
+    depth: 0,
+    limit: SEARCH_TAG_MATCH_LIMIT,
+    overrideAccess: false,
+    where: {
+      and: [
+        { isActive: { equals: true } },
+        {
+          or: [
+            { name: { contains: normalizedQuery } },
+            { slug: { contains: normalizedQuery } },
+            { description: { contains: normalizedQuery } },
+          ],
+        },
+      ],
+    },
+  }
+  let page = 1
+  let totalPages = 1
+
+  do {
+    const result = await payload.find({
+      ...queryOptions,
+      ...(page > 1 ? { page } : {}),
+    })
+
+    for (const tag of result.docs as SearchTagMatch[]) {
+      if (tagIds.size >= SEARCH_TAG_MATCH_MAX_IDS) break
+      tagIds.add(tag.id)
+    }
+
+    totalPages = typeof result.totalPages === 'number' ? result.totalPages : 1
+    page += 1
+  } while (
+    page <= totalPages &&
+    page <= SEARCH_TAG_MATCH_MAX_PAGES &&
+    tagIds.size < SEARCH_TAG_MATCH_MAX_IDS
+  )
+
+  return [...tagIds]
+}
+
 async function searchPublishedPostsCached(
   normalizedQuery: string,
   schoolId?: number | string,
@@ -123,9 +184,16 @@ async function searchPublishedPostsCached(
 
   cacheLife(CMS_SEARCH_CACHE_LIFE)
   cacheTag(POST_LIST_CACHE_TAG)
+  const includeTagMatches = shouldSearchTags(normalizedQuery)
+  if (includeTagMatches) {
+    cacheTag(TAGS_CACHE_TAG)
+  }
   if (schoolId !== undefined && schoolId !== null) {
     cacheTag(postsBySchoolCacheTag(schoolId))
   }
+
+  const payload = await getFrontendPayload()
+  const matchingTagIds = includeTagMatches ? await findMatchingTagIds(payload, normalizedQuery) : []
 
   const andConditions: Where[] = [
     { status: { equals: 'published' } },
@@ -134,11 +202,11 @@ async function searchPublishedPostsCached(
       or: [
         { title: { contains: normalizedQuery } },
         { excerpt: { contains: normalizedQuery } },
+        ...(matchingTagIds.length > 0 ? [{ tags: { in: matchingTagIds } }] : []),
       ],
     },
   ]
 
-  const payload = await getFrontendPayload()
   const result = await payload.find({
     collection: 'posts',
     depth: 1,

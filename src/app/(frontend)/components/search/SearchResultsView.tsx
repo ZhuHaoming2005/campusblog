@@ -9,9 +9,10 @@ import SearchBar from '@/components/layout/SearchBar'
 import {
   getPostAuthor,
   getPostCoverImage,
-  getPostPrimaryTag,
   getPostPublishedLabel,
+  getPostSchool,
   getPostSubChannel,
+  getPostTags,
 } from '@/lib/postPresentation'
 import type { SearchResultPost } from '@/lib/searchData'
 
@@ -66,10 +67,10 @@ function SearchResultFeed({
     <div className="masonry-grid">
       {posts.map((post, index) => {
         const coverImage = getPostCoverImage(post)
-        const primaryTag = getPostPrimaryTag(post)
         const author = getPostAuthor(post)
         const authorAvatar =
           author?.avatar && typeof author.avatar === 'object' ? author.avatar.url : null
+        const school = getPostSchool(post)
         const subChannel = getPostSubChannel(post)
 
         return (
@@ -83,7 +84,8 @@ function SearchResultFeed({
             coverImageAlt={getMediaImageAlt(coverImage?.alt, 'cover-image')}
             authorName={author?.displayName}
             authorAvatarUrl={authorAvatar}
-            tagLabel={primaryTag?.name}
+            tagLabels={getPostTags(post).map((tag) => tag.name)}
+            schoolName={school?.name}
             channelName={showChannelName ? subChannel?.name : null}
             publishedLabel={getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)}
             readingMinutes={null}

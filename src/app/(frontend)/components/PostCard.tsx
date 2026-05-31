@@ -20,7 +20,7 @@ type PostCardProps = {
   coverImageAlt?: string | null
   authorName?: string | null
   authorAvatarUrl?: string | null
-  tagLabel?: string | null
+  tagLabels?: string[]
   schoolName?: string | null
   channelName?: string | null
   publishedLabel?: string | null
@@ -76,7 +76,7 @@ export default function PostCard({
   coverImageAlt,
   authorName,
   authorAvatarUrl,
-  tagLabel,
+  tagLabels = [],
   schoolName,
   channelName,
   publishedLabel,
@@ -91,6 +91,8 @@ export default function PostCard({
   const isDiscoverFeatured = variant === 'discover-featured'
   const isDiscover = variant !== 'default'
   const shouldShowInlinePreview = hasImage && !isDiscover && previewText
+  const visibleTagLabels = tagLabels.filter(Boolean)
+  const hasMetadataLabels = visibleTagLabels.length > 0 || Boolean(schoolName) || Boolean(channelName)
 
   return (
     <div className="masonry-item w-full" data-card-variant={variant}>
@@ -135,20 +137,16 @@ export default function PostCard({
           </div>
 
           <div className={cn(isDiscoverFeatured ? 'space-y-3.5 p-5 sm:p-6' : 'space-y-2.5 p-4')}>
-            {tagLabel || schoolName || channelName ? (
-              <div className="flex flex-wrap gap-1.5">
-                {tagLabel ? (
-                  <Badge
-                    variant="secondary"
-                    className="border-[#4a4540]/10 bg-[#4a4540]/8 text-[#4a4540]/70"
-                  >
-                    {tagLabel}
-                  </Badge>
-                ) : null}
+            {hasMetadataLabels ? (
+              <div
+                data-testid="post-card-tags"
+                className="flex max-w-full flex-nowrap gap-1.5 overflow-hidden"
+              >
                 {schoolName ? (
                   <Badge
                     variant="secondary"
-                    className="border-campus-primary/10 bg-campus-primary/8 text-campus-primary"
+                    className="max-w-[9rem] shrink-0 truncate border-campus-primary/10 bg-campus-primary/8 text-campus-primary"
+                    title={schoolName}
                   >
                     {schoolName}
                   </Badge>
@@ -156,11 +154,22 @@ export default function PostCard({
                 {channelName ? (
                   <Badge
                     variant="secondary"
-                    className="border-campus-teal/10 bg-campus-teal/10 text-campus-teal"
+                    className="max-w-[9rem] shrink-0 truncate border-campus-teal/10 bg-campus-teal/10 text-campus-teal"
+                    title={channelName}
                   >
                     {channelName}
                   </Badge>
                 ) : null}
+                {visibleTagLabels.map((label, index) => (
+                  <Badge
+                    key={`${label}-${index}`}
+                    variant="secondary"
+                    className="max-w-[9rem] shrink-0 truncate border-[#4a4540]/10 bg-[#4a4540]/8 text-[#4a4540]/70"
+                    title={label}
+                  >
+                    {label}
+                  </Badge>
+                ))}
               </div>
             ) : null}
 

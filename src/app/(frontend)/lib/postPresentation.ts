@@ -28,10 +28,13 @@ export function getPostSubChannel(post: Pick<Post, 'subChannel'>): SchoolSubChan
 }
 
 export function getPostPrimaryTag(post: Pick<Post, 'tags'>): Tag | null {
-  if (!Array.isArray(post.tags)) return null
+  return getPostTags(post)[0] ?? null
+}
 
-  const firstTag = post.tags[0]
-  return isRelationDoc<Tag>(firstTag) ? firstTag : null
+export function getPostTags(post: Pick<Post, 'tags'>): Tag[] {
+  if (!Array.isArray(post.tags)) return []
+
+  return post.tags.filter((tag): tag is Tag => isRelationDoc<Tag>(tag))
 }
 
 export function getPostPreviewText(post: Post, maxLength = 220): string {

@@ -8,10 +8,10 @@ import {
   getPostAuthor,
   getPostCoverImage,
   getPostPreviewText,
-  getPostPrimaryTag,
   getPostPublishedLabel,
   getPostSchool,
   getPostSubChannel,
+  getPostTags,
 } from '@/lib/postPresentation'
 import PostCard, { getAspectClass, type PostCardVariant } from '@/components/PostCard'
 
@@ -55,7 +55,6 @@ export default function PostFeed({
     >
       {posts.map((post, index) => {
         const coverImage = getPostCoverImage(post)
-        const primaryTag = getPostPrimaryTag(post)
         const author = getPostAuthor(post)
         const authorAvatar =
           author?.avatar && typeof author.avatar === 'object' ? author.avatar.url : null
@@ -76,7 +75,7 @@ export default function PostFeed({
             coverImageAlt={getMediaImageAlt(coverImage?.alt, 'cover-image')}
             authorName={author?.displayName}
             authorAvatarUrl={authorAvatar}
-            tagLabel={primaryTag?.name}
+            tagLabels={getPostTags(post).map((tag) => tag.name)}
             schoolName={showSchoolName ? school?.name : null}
             channelName={showChannelName ? subChannel?.name : null}
             publishedLabel={getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)}
@@ -91,5 +90,4 @@ export default function PostFeed({
     </div>
   )
 }
-
 

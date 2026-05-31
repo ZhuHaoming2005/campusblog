@@ -24,6 +24,15 @@ function toRelationId(value: unknown): string {
   return ''
 }
 
+function toRelationName(value: unknown): string {
+  if (value && typeof value === 'object' && 'name' in value) {
+    const name = (value as { name?: string | null }).name
+    if (typeof name === 'string') return name
+  }
+
+  return ''
+}
+
 function toMediaData(value: unknown): { alt?: string | null; id: string; url?: string | null } | null {
   if (!value || typeof value !== 'object' || !('id' in value)) return null
 
@@ -68,7 +77,7 @@ async function EditorPageContent({
   const payload = await getFrontendPayload()
 
   const draftId = toNumericId(draft)
-  const [schoolsResult, subChannelsResult, tagsResult, initialPostResult] = await Promise.all([
+  const [schoolsResult, subChannelsResult, initialPostResult] = await Promise.all([
     payload.find({
       collection: 'schools',
       where: { isActive: { equals: true } },
@@ -81,12 +90,6 @@ async function EditorPageContent({
       where: { isActive: { equals: true } },
       sort: 'sortOrder',
       limit: 500,
-      depth: 0,
-    }),
-    payload.find({
-      collection: 'tags',
-      where: { isActive: { equals: true } },
-      limit: 100,
       depth: 0,
     }),
     draftId
@@ -118,11 +121,6 @@ async function EditorPageContent({
         : (ch.school as string | number),
   }))
 
-  const tags = tagsResult.docs.map((tag) => ({
-    id: tag.id,
-    name: tag.name,
-  }))
-
   if (draftId && (!initialPostResult || initialPostResult.status !== 'draft')) {
     redirect('/user/me')
   }
@@ -135,8 +133,8 @@ async function EditorPageContent({
           excerpt: initialPostResult.excerpt ?? '',
           schoolId: toRelationId(initialPostResult.school),
           subChannelId: toRelationId(initialPostResult.subChannel),
-          tagIds: (initialPostResult.tags ?? [])
-            .map((tag: number | string | { id?: number | string | null }) => toRelationId(tag))
+          tagNames: (initialPostResult.tags ?? [])
+            .map((tag: number | string | { name?: string | null }) => toRelationName(tag))
             .filter(Boolean),
           content: toEditorContent(initialPostResult.content),
           coverImageAlt: toMediaData(initialPostResult.coverImage)?.alt,
@@ -149,7 +147,6 @@ async function EditorPageContent({
     <EditorForm
       schools={schools}
       subChannels={subChannels}
-      tags={tags}
       t={t}
       initialPost={initialPost}
     />

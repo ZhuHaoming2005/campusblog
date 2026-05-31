@@ -33,8 +33,16 @@ const channel = {
 
 const tag = {
   id: 201,
-  name: 'Events',
-  slug: 'events',
+  name: 'Campus Life',
+  slug: 'campus-life',
+  createdAt: '2026-03-20T00:00:00.000Z',
+  updatedAt: '2026-03-20T00:00:00.000Z',
+} as Tag
+
+const secondTag = {
+  id: 202,
+  name: 'Admissions',
+  slug: 'admissions',
   createdAt: '2026-03-20T00:00:00.000Z',
   updatedAt: '2026-03-20T00:00:00.000Z',
 } as Tag
@@ -48,7 +56,7 @@ function makePost(id: number): Post {
     school,
     subChannel: channel,
     author,
-    tags: [tag],
+    tags: [tag, secondTag],
     excerpt: `Excerpt ${id}`,
     content: { type: 'doc', content: [] },
     publishedAt: `2026-03-27T0${id}:00:00.000Z`,
@@ -112,6 +120,27 @@ describe('PostFeed discover mode', () => {
 
     expect(container.querySelectorAll('[data-card-variant="discover-featured"] .space-y-2 > p').length).toBe(0)
   })
+
+  it('renders post, school, and channel tags in a single card row', () => {
+    const { container } = render(
+      <PostFeed
+        posts={[makePost(1)]}
+        locale="en-US"
+        showSchoolName
+        showChannelName
+        variant="discover"
+        featuredCount={1}
+      />,
+    )
+
+    const tagRow = container.querySelector('[data-testid="post-card-tags"]')
+    const tagRowText = tagRow?.textContent ?? ''
+
+    expect(tagRow?.className).toContain('flex-nowrap')
+    expect(tagRow?.className).toContain('overflow-hidden')
+    expect(tagRowText.indexOf('North Campus')).toBeLessThan(tagRowText.indexOf('Events'))
+    expect(tagRowText.indexOf('Events')).toBeLessThan(tagRowText.indexOf('Campus Life'))
+    expect(tagRowText.indexOf('Campus Life')).toBeLessThan(tagRowText.indexOf('Admissions'))
+    expect(container.querySelectorAll('[data-testid="post-card-tags"]').length).toBe(1)
+  })
 })
-
-

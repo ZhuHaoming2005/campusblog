@@ -18,24 +18,18 @@ pnpm install
 cp .env.example .env
 ```
 
-3. Log in to Cloudflare (required on first setup)
-
-```bash
-pnpm wrangler login
-```
-
-4. Start the development server
+3. Start the development server
 
 ```bash
 pnpm dev
 ```
 
-5. Open the app
+4. Open the app
 
 - Frontend: `http://localhost:3000`
 - Admin: `http://localhost:3000/admin`
 
-6. When you change Payload schema/content config, update generated artifacts
+5. When you change Payload schema/content config, update generated artifacts
 
 ```bash
 # 1) Create migration files for schema changes

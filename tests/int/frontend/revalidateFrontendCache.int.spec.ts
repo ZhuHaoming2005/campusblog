@@ -1,7 +1,7 @@
 import { revalidateTag } from 'next/cache'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { postCacheTag } from '@/lib/cacheTags'
+import { TAGS_CACHE_TAG, postCacheTag } from '@/lib/cacheTags'
 
 vi.mock('next/cache', () => ({
   revalidateTag: vi.fn(),
@@ -69,7 +69,7 @@ describe('frontend cache invalidation hooks', () => {
   })
 
   it('invalidates post caches that embedded tags or media', () => {
-    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual(['tag:78'])
+    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual([TAGS_CACHE_TAG, 'tag:78'])
     expect(getMediaCacheInvalidationTags({ id: 56 })).toEqual(['media:56'])
   })
 
@@ -87,6 +87,7 @@ describe('frontend cache invalidation hooks', () => {
     await expect(revalidateMediaCacheAfterChange({ doc: mediaDoc } as never)).resolves.toBe(
       mediaDoc,
     )
+    expect(revalidateTag).toHaveBeenCalledWith(TAGS_CACHE_TAG, { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('tag:78', { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('media:56', { expire: 0 })
   })
