@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   POST_LIST_CACHE_TAG,
+  TAGS_CACHE_TAG,
   authorCacheTag,
   mediaCacheTag,
   postsBySchoolCacheTag,
@@ -70,10 +71,15 @@ describe('searchPublishedPosts', () => {
       createdAt: '2026-04-30T00:00:00.000Z',
       updatedAt: '2026-05-02T00:00:00.000Z',
     }
-    findMock.mockResolvedValueOnce({
-      docs: [post],
-      totalDocs: 1,
-    })
+    findMock
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+      })
+      .mockResolvedValueOnce({
+        docs: [post],
+        totalDocs: 1,
+      })
 
     const { searchPublishedPosts } = await import('@/lib/searchData')
 
@@ -82,7 +88,25 @@ describe('searchPublishedPosts', () => {
     expect(result.totalDocs).toBe(1)
     expect(result.posts[0]).toEqual(post)
     expect(result.posts[0]).not.toHaveProperty('content')
-    expect(findMock).toHaveBeenCalledWith({
+    expect(findMock).toHaveBeenNthCalledWith(1, {
+      collection: 'tags',
+      depth: 0,
+      limit: 20,
+      overrideAccess: false,
+      where: {
+        and: [
+          { isActive: { equals: true } },
+          {
+            or: [
+              { name: { contains: 'campus life' } },
+              { slug: { contains: 'campus life' } },
+              { description: { contains: 'campus life' } },
+            ],
+          },
+        ],
+      },
+    })
+    expect(findMock).toHaveBeenNthCalledWith(2, {
       collection: 'posts',
       depth: 1,
       limit: 20,
@@ -106,10 +130,7 @@ describe('searchPublishedPosts', () => {
           { status: { equals: 'published' } },
           { school: { equals: 10 } },
           {
-            or: [
-              { title: { contains: 'campus life' } },
-              { excerpt: { contains: 'campus life' } },
-            ],
+            or: [{ title: { contains: 'campus life' } }, { excerpt: { contains: 'campus life' } }],
           },
         ],
       },
@@ -117,6 +138,7 @@ describe('searchPublishedPosts', () => {
     expect(cacheTagMock.mock.calls.flat()).toEqual(
       expect.arrayContaining([
         POST_LIST_CACHE_TAG,
+        TAGS_CACHE_TAG,
         postsBySchoolCacheTag(10),
         authorCacheTag(2),
         mediaCacheTag(3),
@@ -138,6 +160,111 @@ describe('searchPublishedPosts', () => {
     expect(findMock).not.toHaveBeenCalled()
   })
 
+  it('matches published posts by tag text', async () => {
+    findMock
+      .mockResolvedValueOnce({
+        docs: [{ id: 13, name: 'Campus Life' }],
+        totalDocs: 1,
+      })
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+      })
+
+    const { searchPublishedPosts } = await import('@/lib/searchData')
+
+    await expect(searchPublishedPosts({ query: 'campus' })).resolves.toEqual({
+      posts: [],
+      totalDocs: 0,
+    })
+
+    expect(findMock).toHaveBeenNthCalledWith(1, {
+      collection: 'tags',
+      depth: 0,
+      limit: 20,
+      overrideAccess: false,
+      where: {
+        and: [
+          { isActive: { equals: true } },
+          {
+            or: [
+              { name: { contains: 'campus' } },
+              { slug: { contains: 'campus' } },
+              { description: { contains: 'campus' } },
+            ],
+          },
+        ],
+      },
+    })
+    expect(findMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        collection: 'posts',
+        where: {
+          and: [
+            { status: { equals: 'published' } },
+            {
+              or: [
+                { title: { contains: 'campus' } },
+                { excerpt: { contains: 'campus' } },
+                { tags: { in: [13] } },
+              ],
+            },
+          ],
+        },
+      }),
+    )
+  })
+
+  it('includes tag matches from later tag result pages', async () => {
+    const firstPageTagIds = Array.from({ length: 20 }, (_, index) => ({ id: index + 1 }))
+    findMock
+      .mockResolvedValueOnce({
+        docs: firstPageTagIds,
+        totalDocs: 21,
+        totalPages: 2,
+      })
+      .mockResolvedValueOnce({
+        docs: [{ id: 21 }],
+        totalDocs: 21,
+        totalPages: 2,
+      })
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+      })
+
+    const { searchPublishedPosts } = await import('@/lib/searchData')
+
+    await searchPublishedPosts({ query: 'campus' })
+
+    expect(findMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        collection: 'tags',
+        page: 2,
+      }),
+    )
+    expect(findMock).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        collection: 'posts',
+        where: {
+          and: [
+            { status: { equals: 'published' } },
+            {
+              or: [
+                { title: { contains: 'campus' } },
+                { excerpt: { contains: 'campus' } },
+                { tags: { in: [...firstPageTagIds.map((tag) => tag.id), 21] } },
+              ],
+            },
+          ],
+        },
+      }),
+    )
+  })
+
   it('hydrates a bounded content preview only for posts without excerpts', async () => {
     const postWithoutExcerpt = {
       id: 1,
@@ -149,6 +276,10 @@ describe('searchPublishedPosts', () => {
       updatedAt: '2026-05-02T00:00:00.000Z',
     }
     findMock
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+      })
       .mockResolvedValueOnce({
         docs: [postWithoutExcerpt],
         totalDocs: 1,
@@ -175,8 +306,8 @@ describe('searchPublishedPosts', () => {
 
     const result = await searchPublishedPosts({ query: 'campus' })
 
-    expect(findMock).toHaveBeenCalledTimes(2)
-    expect(findMock.mock.calls[1]?.[0]).toEqual({
+    expect(findMock).toHaveBeenCalledTimes(3)
+    expect(findMock.mock.calls[2]?.[0]).toEqual({
       collection: 'posts',
       depth: 0,
       limit: 1,
@@ -197,7 +328,7 @@ describe('searchPublishedPosts', () => {
     expect(result.posts[0]).not.toHaveProperty('content')
   })
 
-  it('queries Payload for a single-character search term', async () => {
+  it('skips tag prequery for a single-character search term', async () => {
     findMock.mockResolvedValueOnce({
       docs: [],
       totalDocs: 0,
@@ -209,13 +340,65 @@ describe('searchPublishedPosts', () => {
       posts: [],
       totalDocs: 0,
     })
-    expect(findMock).toHaveBeenCalledWith(
+    expect(findMock).toHaveBeenCalledTimes(1)
+    expect(findMock).toHaveBeenNthCalledWith(1, expect.objectContaining({ collection: 'posts' }))
+    expect(findMock).toHaveBeenNthCalledWith(1, expect.not.objectContaining({ collection: 'tags' }))
+  })
+
+  it('caps tag prequery results before building the posts query', async () => {
+    const tagPage = (offset: number) =>
+      Array.from({ length: 20 }, (_, index) => ({ id: offset + index + 1 }))
+    findMock
+      .mockResolvedValueOnce({
+        docs: tagPage(0),
+        totalDocs: 80,
+        totalPages: 4,
+      })
+      .mockResolvedValueOnce({
+        docs: tagPage(20),
+        totalDocs: 80,
+        totalPages: 4,
+      })
+      .mockResolvedValueOnce({
+        docs: tagPage(40),
+        totalDocs: 80,
+        totalPages: 4,
+      })
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+        totalPages: 4,
+      })
+      .mockResolvedValueOnce({
+        docs: [],
+        totalDocs: 0,
+      })
+
+    const { searchPublishedPosts, SEARCH_TAG_MATCH_MAX_IDS } = await import('@/lib/searchData')
+
+    await searchPublishedPosts({ query: 'campus' })
+
+    expect(findMock).toHaveBeenCalledTimes(4)
+    expect(findMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ collection: 'tags', page: 4 }),
+    )
+    expect(findMock).toHaveBeenNthCalledWith(
+      4,
       expect.objectContaining({
+        collection: 'posts',
         where: {
           and: [
             { status: { equals: 'published' } },
             {
-              or: [{ title: { contains: 'a' } }, { excerpt: { contains: 'a' } }],
+              or: [
+                { title: { contains: 'campus' } },
+                { excerpt: { contains: 'campus' } },
+                {
+                  tags: {
+                    in: Array.from({ length: SEARCH_TAG_MATCH_MAX_IDS }, (_, index) => index + 1),
+                  },
+                },
+              ],
             },
           ],
         },

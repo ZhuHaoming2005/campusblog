@@ -97,7 +97,13 @@ describe('SearchResultsView', () => {
           updatedAt: '2026-05-01T00:00:00.000Z',
           collection: 'users',
         },
-        school: 10,
+        school: {
+          id: 10,
+          name: 'North Campus',
+          slug: 'north-campus',
+          createdAt: '2026-05-01T00:00:00.000Z',
+          updatedAt: '2026-05-01T00:00:00.000Z',
+        },
         tags: [{ id: 3, name: 'Art', slug: 'art', createdAt: '', updatedAt: '' }],
         subChannel: {
           id: 4,
@@ -134,6 +140,12 @@ describe('SearchResultsView', () => {
     expect(container.querySelector('[data-card-variant="default"]')).not.toBeNull()
     expect(screen.getByRole('heading', { name: 'Campus Art Fair' })).not.toBeNull()
     expect(screen.getByText('A short campus story.')).not.toBeNull()
+
+    const tagRow = container.querySelector('[data-testid="post-card-tags"]')
+    const tagRowText = tagRow?.textContent ?? ''
+    expect(tagRowText).toContain('North Campus')
+    expect(tagRowText.indexOf('North Campus')).toBeLessThan(tagRowText.indexOf('Events'))
+    expect(tagRowText.indexOf('Events')).toBeLessThan(tagRowText.indexOf('Art'))
   })
 
   it('renders a content preview when a search result has no excerpt', () => {

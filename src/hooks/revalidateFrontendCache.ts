@@ -5,6 +5,7 @@ import {
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
+  TAGS_CACHE_TAG,
   authorCacheTag,
   getPostRevalidationTags,
   mediaCacheTag,
@@ -119,7 +120,7 @@ export function getTagCacheInvalidationTags(
   current?: DocumentWithId | null,
   previous?: DocumentWithId | null,
 ) {
-  const tags: string[] = []
+  const tags: string[] = [TAGS_CACHE_TAG]
 
   for (const doc of [current, previous]) {
     const tagId = getDocumentId(doc)

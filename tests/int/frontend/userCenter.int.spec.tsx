@@ -184,8 +184,11 @@ describe('user center', () => {
             docs: [
               {
                 id: 11,
+                school: { id: 301, name: 'North Campus', slug: 'north-campus' },
+                subChannel: { id: 401, name: 'Events', slug: 'events' },
                 title: 'Draft title',
                 status: 'draft',
+                tags: [{ id: 101, name: 'Campus Life', slug: 'campus-life' }],
                 updatedAt: '2026-04-23T00:00:00.000Z',
               },
             ],
@@ -194,9 +197,12 @@ describe('user center', () => {
             docs: [
               {
                 id: 12,
+                school: { id: 302, name: 'South Campus', slug: 'south-campus' },
+                subChannel: { id: 402, name: 'Guides', slug: 'guides' },
                 slug: 'published-title',
                 title: 'Published title',
                 status: 'published',
+                tags: [{ id: 102, name: 'Admissions', slug: 'admissions' }],
                 updatedAt: '2026-04-22T00:00:00.000Z',
               },
             ],
@@ -253,6 +259,25 @@ describe('user center', () => {
     expect(screen.getByText(dictionary.userCenter.publishedTitle)).toBeTruthy()
     expect(screen.getByText('Draft title')).toBeTruthy()
     expect(screen.getByText('Published title')).toBeTruthy()
+    expect(screen.getByText('Campus Life')).toBeTruthy()
+    expect(screen.getByText('Admissions')).toBeTruthy()
+    const userPostTagRows = screen.getAllByTestId('user-post-card-tags')
+    const draftTagRowText = userPostTagRows[0]?.textContent ?? ''
+    const publishedTagRowText = userPostTagRows[1]?.textContent ?? ''
+
+    expect(userPostTagRows).toHaveLength(2)
+    expect(draftTagRowText.indexOf('North Campus')).toBeLessThan(
+      draftTagRowText.indexOf('Events'),
+    )
+    expect(draftTagRowText.indexOf('Events')).toBeLessThan(
+      draftTagRowText.indexOf('Campus Life'),
+    )
+    expect(publishedTagRowText.indexOf('South Campus')).toBeLessThan(
+      publishedTagRowText.indexOf('Guides'),
+    )
+    expect(publishedTagRowText.indexOf('Guides')).toBeLessThan(
+      publishedTagRowText.indexOf('Admissions'),
+    )
     expect(screen.getAllByTestId('row-post-actions')).toHaveLength(2)
     fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.likedTitle }))
     expect(screen.getByText('Liked title')).toBeTruthy()

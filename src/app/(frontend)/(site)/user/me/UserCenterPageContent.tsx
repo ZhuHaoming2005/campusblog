@@ -13,7 +13,7 @@ import { PrimaryActionButton } from '@/components/ui/primary-action-button'
 import { UserCenterPostTabs } from '@/components/user/UserCenterPostTabs'
 import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import { getFrontendPayload } from '@/lib/frontendSession'
-import { getPostSchool, getPostSubChannel } from '@/lib/postPresentation'
+import { getPostSchool, getPostSubChannel, getPostTags } from '@/lib/postPresentation'
 import { getPostUsageBytesMap } from '@/quota/postQuota'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getFrontendRequestContext } from '@/lib/requestContext'
@@ -70,6 +70,7 @@ function UserPostList({
       {posts.map((post) => {
         const school = getPostSchool(post)
         const channel = getPostSubChannel(post)
+        const postTags = getPostTags(post)
 
         return (
           <div
@@ -86,24 +87,41 @@ function UserPostList({
                 <h3 className="mt-2 font-headline text-xl leading-snug text-campus-primary">
                   {post.title}
                 </h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {school ? (
-                    <Badge
-                      variant="secondary"
-                      className="border-campus-border-soft bg-campus-panel-strong text-campus-primary"
-                    >
-                      {school.name}
-                    </Badge>
-                  ) : null}
-                  {channel ? (
-                    <Badge
-                      variant="secondary"
-                      className="border-campus-border-soft bg-campus-panel-strong text-campus-secondary"
-                    >
-                      {channel.name}
-                    </Badge>
-                  ) : null}
-                </div>
+                {postTags.length > 0 || school || channel ? (
+                  <div
+                    data-testid="user-post-card-tags"
+                    className="mt-2 flex max-w-full flex-nowrap gap-2 overflow-hidden"
+                  >
+                    {school ? (
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-campus-border-soft bg-campus-panel-strong text-campus-primary"
+                        title={school.name}
+                      >
+                        {school.name}
+                      </Badge>
+                    ) : null}
+                    {channel ? (
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-campus-border-soft bg-campus-panel-strong text-campus-secondary"
+                        title={channel.name}
+                      >
+                        {channel.name}
+                      </Badge>
+                    ) : null}
+                    {postTags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-[#4a4540]/10 bg-[#4a4540]/8 text-[#4a4540]/70"
+                        title={tag.name}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-3 text-sm font-label text-foreground/55">
                   {formatDate(post.publishedAt ?? post.updatedAt, locale)}
                 </p>

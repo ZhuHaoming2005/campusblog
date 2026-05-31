@@ -64,12 +64,13 @@ export default function DiscoverMetaRail({
           </h2>
           <div className="mt-4 flex flex-wrap gap-2">
             {tagChips.map((tag) => (
-              <span
+              <Link
                 key={tag.label}
+                href={tag.href}
                 className="rounded-full border border-campus-primary/10 bg-campus-primary/[0.04] px-3 py-1.5 text-sm text-campus-primary/80"
               >
                 {tag.label}
-              </span>
+              </Link>
             ))}
           </div>
         </section>

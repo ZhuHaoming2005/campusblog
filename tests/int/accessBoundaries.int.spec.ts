@@ -12,6 +12,7 @@ import {
 } from '@/cloudflare/contextMode'
 import { Media } from '@/collections/Media'
 import { Posts } from '@/collections/Posts'
+import { Tags } from '@/collections/Tags'
 
 type AccessFunction = (args: { req: { payload?: unknown; user: unknown } }) => unknown
 
@@ -96,6 +97,53 @@ describe('collection access boundaries', () => {
     expect(beforeChangeHooks.map((hook) => hook.name)).toContain('validatePostQuota')
   })
 
+  it('validates post tag relationships inside the Payload collection lifecycle', async () => {
+    const beforeValidateHooks = Posts.hooks?.beforeValidate ?? []
+    const validatePostTags = beforeValidateHooks.find((hook) => hook.name === 'validatePostTags')
+    const req = {
+      payload: {
+        find: vi.fn(async () => ({
+          docs: [{ id: 11 }],
+        })),
+      },
+    }
+
+    expect(validatePostTags).toEqual(expect.any(Function))
+    await expect(
+      validatePostTags?.({
+        collection: Posts,
+        context: {},
+        data: {
+          tags: [11, 12],
+        },
+        operation: 'create',
+        req,
+      } as never),
+    ).rejects.toThrow('Tags must be active.')
+    expect(req.payload.find).toHaveBeenCalledWith({
+      collection: 'tags',
+      depth: 0,
+      limit: 2,
+      overrideAccess: true,
+      pagination: false,
+      req,
+      where: {
+        and: [
+          {
+            id: {
+              in: [11, 12],
+            },
+          },
+          {
+            isActive: {
+              equals: true,
+            },
+          },
+        ],
+      },
+    })
+  })
+
   it('does not leave media mutations on Payload default authenticated access', async () => {
     await expect(
       runAccess(Media.access?.create, activeVerifiedUser, createUserLookup(activeVerifiedUser)),
@@ -106,6 +154,13 @@ describe('collection access boundaries', () => {
     await expect(runAccess(Media.access?.update, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, activeVerifiedUser)).resolves.toBe(false)
     await expect(runAccess(Media.access?.delete, adminUser)).resolves.toBe(true)
+  })
+
+  it('keeps global tag collection creation restricted to admins', async () => {
+    await expect(
+      runAccess(Tags.access?.create, activeVerifiedUser, createUserLookup(activeVerifiedUser)),
+    ).resolves.toBe(false)
+    await expect(runAccess(Tags.access?.create, adminUser)).resolves.toBe(true)
   })
 
   it('does not allow anonymous users to read draft-only media', async () => {

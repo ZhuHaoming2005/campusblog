@@ -11,7 +11,7 @@ const data: DiscoverHomeData = {
   featuredPost: null,
   schoolLinks: [{ label: 'North Campus', href: '/school/north-campus', count: 2 }],
   channelLinks: [{ label: 'Events', href: '/school/north-campus/channel/events', count: 2 }],
-  tagChips: [{ label: 'Campus Life', count: 2 }],
+  tagChips: [{ label: 'Campus Life', href: '/search?q=Campus%20Life', count: 2 }],
   views: [
     {
       key: 'recommended',

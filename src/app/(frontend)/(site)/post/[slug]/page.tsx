@@ -31,10 +31,10 @@ import {
   estimatePostReadingMinutes,
   getPostAuthor,
   getPostPreviewText,
-  getPostPrimaryTag,
   getPostPublishedLabel,
   getPostSchool,
   getPostSubChannel,
+  getPostTags,
 } from '@/lib/postPresentation'
 
 function dedupePosts(posts: Post[]): Post[] {
@@ -112,7 +112,7 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
     getPublishedCommentsByPost(post.id),
     getPostInteractionState(post.id, authorId, currentUser),
   ])
-  const primaryTag = getPostPrimaryTag(post)
+  const postTags = getPostTags(post)
   const publishedLabel = getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)
   const readingMinutes = estimatePostReadingMinutes(post)
   const backHref = channel
@@ -163,12 +163,7 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-6">
             <header className="rounded-[2rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/55 to-campus-page p-6 shadow-[0_18px_44px_rgba(27,75,122,0.05)] sm:p-8">
-              <div className="flex flex-wrap gap-2">
-                {primaryTag ? (
-                  <Badge className="bg-campus-primary text-white hover:bg-campus-primary">
-                    {primaryTag.name}
-                  </Badge>
-                ) : null}
+              <div data-testid="post-detail-tags" className="flex flex-wrap gap-2">
                 {school ? (
                   <Badge
                     variant="secondary"
@@ -185,6 +180,14 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                     {channel.name}
                   </Badge>
                 ) : null}
+                {postTags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    className="bg-campus-primary text-white hover:bg-campus-primary"
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
 
               <h1 className="mt-5 font-headline text-4xl leading-tight text-campus-primary sm:text-5xl">

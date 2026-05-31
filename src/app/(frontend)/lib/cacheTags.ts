@@ -19,6 +19,7 @@ export const CMS_STRUCTURE_CACHE_LIFE = {
 export const POST_LIST_CACHE_TAG = 'posts:list'
 export const SCHOOLS_CACHE_TAG = 'schools'
 export const SCHOOL_SUB_CHANNELS_CACHE_TAG = 'school-sub-channels'
+export const TAGS_CACHE_TAG = 'tags'
 export const NEXT_CUSTOM_CACHE_TAG_LIMIT = 128
 export const RELATIONSHIP_CACHE_TAG_BUDGET = NEXT_CUSTOM_CACHE_TAG_LIMIT - 1
 
@@ -142,7 +143,7 @@ export function getPostRelationshipCacheTags(
   posts: PostRelationshipCacheReference | PostRelationshipCacheReference[] | null | undefined,
   options: PostRelationshipCacheTagOptions = {},
 ) {
-  const { includeAllPostTags = false, maxTags = RELATIONSHIP_CACHE_TAG_BUDGET } = options
+  const { includeAllPostTags = true, maxTags = RELATIONSHIP_CACHE_TAG_BUDGET } = options
   const postList = Array.isArray(posts) ? posts : posts ? [posts] : []
   const tags: string[] = []
 

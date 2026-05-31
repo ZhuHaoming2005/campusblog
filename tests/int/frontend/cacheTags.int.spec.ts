@@ -79,19 +79,25 @@ describe('cache tag helpers', () => {
       'channel:34',
       'media:56',
       'tag:78',
+      'tag:90',
       'author:99',
       'channel:35',
     ])
   })
 
-  it('allows all embedded post tags for detail caches only', () => {
+  it('includes every rendered post tag in relationship cache dependencies', () => {
     const post = {
       author: 98,
       school: 12,
       tags: [{ id: 78 }, 90],
     }
 
-    expect(getPostRelationshipCacheTags(post)).toEqual(['author:98', 'school:12', 'tag:78'])
+    expect(getPostRelationshipCacheTags(post)).toEqual([
+      'author:98',
+      'school:12',
+      'tag:78',
+      'tag:90',
+    ])
     expect(getPostRelationshipCacheTags(post, { includeAllPostTags: true })).toEqual([
       'author:98',
       'school:12',

@@ -21,6 +21,7 @@ export type DiscoverRailLink = {
 
 export type DiscoverTagChip = {
   label: string
+  href: string
   count: number
 }
 
@@ -129,6 +130,7 @@ export function buildDiscoverHomeData({
       const existing = tagMap.get(tag.slug)
       tagMap.set(tag.slug, {
         label: tag.name,
+        href: `/search?q=${encodeURIComponent(tag.name)}`,
         count: (existing?.count ?? 0) + 1,
       })
     }

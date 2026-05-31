@@ -79,7 +79,9 @@ function hasDoQueueMigration(config: WranglerConfig) {
 }
 
 function relativeMain(config: WranglerConfig) {
-  return config.main ? path.relative(process.cwd(), config.main).replaceAll(path.sep, '/') : undefined
+  return config.main
+    ? path.relative(process.cwd(), config.main).replaceAll(path.sep, '/')
+    : undefined
 }
 
 describe('Cloudflare deploy configuration', () => {
@@ -113,10 +115,18 @@ describe('Cloudflare deploy configuration', () => {
       class_name: 'DOShardedTagCache',
     })
     expect(findDoBinding(production, 'NEXT_TAG_CACHE_DO_SHARDED')?.script_name).toBeUndefined()
+    expect(findDoBinding(production, 'NEXT_CACHE_DO_PURGE')).toMatchObject({
+      class_name: 'BucketCachePurge',
+    })
+    expect(findDoBinding(production, 'NEXT_CACHE_DO_PURGE')?.script_name).toBeUndefined()
     expect(findDoBinding(dev, 'NEXT_TAG_CACHE_DO_SHARDED')).toMatchObject({
       class_name: 'DOShardedTagCache',
     })
     expect(findDoBinding(dev, 'NEXT_TAG_CACHE_DO_SHARDED')?.script_name).toBeUndefined()
+    expect(findDoBinding(dev, 'NEXT_CACHE_DO_PURGE')).toMatchObject({
+      class_name: 'BucketCachePurge',
+    })
+    expect(findDoBinding(dev, 'NEXT_CACHE_DO_PURGE')?.script_name).toBeUndefined()
     expect(hasDoQueueMigration(production)).toBe(true)
     expect(hasDoQueueMigration(dev)).toBe(true)
     expect(
@@ -125,8 +135,18 @@ describe('Cloudflare deploy configuration', () => {
       ),
     ).toBe(true)
     expect(
+      production.migrations?.some((migration) =>
+        migration.new_sqlite_classes?.includes('BucketCachePurge'),
+      ),
+    ).toBe(true)
+    expect(
       dev.migrations?.some((migration) =>
         migration.new_sqlite_classes?.includes('DOShardedTagCache'),
+      ),
+    ).toBe(true)
+    expect(
+      dev.migrations?.some((migration) =>
+        migration.new_sqlite_classes?.includes('BucketCachePurge'),
       ),
     ).toBe(true)
     expect(findServiceBinding(production, 'WORKER_SELF_REFERENCE')).toMatchObject({
@@ -143,10 +163,16 @@ describe('Cloudflare deploy configuration', () => {
     expect(workerEntrypoint).toContain(
       "export { DOShardedTagCache } from './.open-next/.build/durable-objects/sharded-tag-cache.js'",
     )
+    expect(workerEntrypoint).toContain(
+      "export { BucketCachePurge } from './.open-next/.build/durable-objects/bucket-cache-purge.js'",
+    )
   })
 
   it('uses the high-traffic OpenNext cache adapters', () => {
-    const openNextConfig = fs.readFileSync(path.resolve(process.cwd(), 'open-next.config.ts'), 'utf8')
+    const openNextConfig = fs.readFileSync(
+      path.resolve(process.cwd(), 'open-next.config.ts'),
+      'utf8',
+    )
 
     expect(openNextConfig).toContain(
       "import { withRegionalCache } from '@opennextjs/cloudflare/overrides/incremental-cache/regional-cache'",
@@ -155,9 +181,13 @@ describe('Cloudflare deploy configuration', () => {
       "import doShardedTagCache from '@opennextjs/cloudflare/overrides/tag-cache/do-sharded-tag-cache'",
     )
     expect(openNextConfig).toContain(
+      "import { purgeCache } from '@opennextjs/cloudflare/overrides/cache-purge/index'",
+    )
+    expect(openNextConfig).toContain(
       "incrementalCache: withRegionalCache(r2IncrementalCache, { mode: 'long-lived' })",
     )
     expect(openNextConfig).toContain('tagCache: doShardedTagCache(')
+    expect(openNextConfig).toContain("cachePurge: purgeCache({ type: 'durableObject' })")
   })
 
   it('does not use local-development remote bindings in the app deploy config', () => {
@@ -170,6 +200,17 @@ describe('Cloudflare deploy configuration', () => {
     expect(findD1Binding(dev, 'D1')?.remote).toBeUndefined()
     expect(findD1Binding(dev, 'NEXT_TAG_CACHE_D1')).toBeUndefined()
     expect(findEmailBinding(dev, 'EMAIL')?.remote).toBeUndefined()
+  })
+
+  it('keeps OpenNext cache purge Durable Object out of the local platform proxy config', () => {
+    const localDev = readConfig('wrangler.dev.jsonc')
+
+    expect(findDoBinding(localDev, 'NEXT_CACHE_DO_PURGE')).toBeUndefined()
+    expect(
+      localDev.migrations?.some((migration) =>
+        migration.new_sqlite_classes?.includes('BucketCachePurge'),
+      ),
+    ).not.toBe(true)
   })
 
   it('uses Durable-Object-free remote D1 configs for Payload migrations', async () => {

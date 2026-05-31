@@ -1,9 +1,15 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import DiscoverHomepage from '@/components/discover/DiscoverHomepage'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import type { Post, School, SchoolSubChannel, Tag, User } from '@/payload-types'
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
+}))
 
 const dictionary = getDictionary('en-US')
 
@@ -36,8 +42,8 @@ const channel = {
 
 const tag = {
   id: 201,
-  name: 'Events',
-  slug: 'events',
+  name: 'Campus Life',
+  slug: 'campus-life',
   createdAt: '2026-03-20T00:00:00.000Z',
   updatedAt: '2026-03-20T00:00:00.000Z',
 } as Tag
@@ -69,12 +75,20 @@ describe('DiscoverHomepage', () => {
     expect(container.querySelector('[data-testid="discover-homepage-shell"]')?.className).toContain(
       'pt-[var(--floating-toolbar-top)]',
     )
-    expect(container.querySelector('[data-testid="discover-homepage-content"]')?.className).toContain('w-full')
-    expect(container.querySelector('[data-testid="discover-top-search-shell"]')?.className).toContain(
-      'xl:grid-cols-[minmax(0,1fr)_15rem]',
-    )
-    expect(container.querySelector('[data-testid="discover-top-search-slot"]')?.className).toContain(
-      'justify-center',
+    expect(
+      container.querySelector('[data-testid="discover-homepage-content"]')?.className,
+    ).toContain('w-full')
+    expect(
+      container.querySelector('[data-testid="discover-top-search-shell"]')?.className,
+    ).toContain('xl:grid-cols-[minmax(0,1fr)_13rem]')
+    expect(
+      container.querySelector('[data-testid="discover-top-search-slot"]')?.className,
+    ).toContain('justify-center')
+    expect(
+      container.querySelector('[data-testid="discover-meta-rail"]')?.parentElement?.className,
+    ).toContain('xl:grid-cols-[minmax(0,1fr)_13rem]')
+    expect(container.querySelector('a[href="/search?q=Campus%20Life"]')?.textContent).toContain(
+      'Campus Life',
     )
   })
 })

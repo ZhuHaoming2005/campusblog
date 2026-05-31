@@ -28,7 +28,7 @@ export default function DiscoverHomepage({ posts, locale, t }: DiscoverHomepageP
       <div data-testid="discover-homepage-content" className="w-full space-y-6">
         <div
           data-testid="discover-top-search-shell"
-          className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]"
+          className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_13rem]"
         >
           <div data-testid="discover-top-search-slot" className="flex justify-center">
             <SearchBar

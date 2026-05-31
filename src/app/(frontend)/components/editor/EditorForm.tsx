@@ -14,7 +14,9 @@ import {
   IconLoader2,
   IconPencil,
   IconPhoto,
+  IconPlus,
   IconTrash,
+  IconX,
 } from '@tabler/icons-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +44,6 @@ import { resolveTiptapEditorCopy, type TiptapEditorCopy } from './tiptapEditorCo
 
 type SchoolOption = { id: string | number; name: string; slug: string }
 type SubChannelOption = { id: string | number; name: string; slug: string; school: string | number }
-type TagOption = { id: string | number; name: string }
 
 type EditorDictionary = {
   editor: {
@@ -57,7 +58,8 @@ type EditorDictionary = {
     subChannelPlaceholder: string
     subChannelNone: string
     tagsLabel: string
-    tagsPlaceholder: string
+    customTagPlaceholder: string
+    addCustomTag: string
     coverLabel: string
     coverUpload: string
     coverUploading: string
@@ -117,7 +119,7 @@ type InitialPostData = {
   excerpt: string
   schoolId: string
   subChannelId: string
-  tagIds: string[]
+  tagNames: string[]
   content: JSONContent | null
   coverImageAlt?: string | null
   coverImageId?: string
@@ -127,7 +129,6 @@ type InitialPostData = {
 type EditorFormProps = {
   schools: SchoolOption[]
   subChannels: SubChannelOption[]
-  tags: TagOption[]
   t: EditorDictionary
   initialPost?: InitialPostData | null
 }
@@ -192,6 +193,10 @@ function getEditorOutline(json: JSONContent | null): OutlineItem[] {
   return items
 }
 
+function normalizeTagName(value: string): string {
+  return value.trim().replace(/\s+/g, ' ')
+}
+
 function ReadinessItem({ isReady, label }: { isReady: boolean; label: string }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg bg-campus-primary/[0.025] px-3 py-2">
@@ -208,7 +213,6 @@ function ReadinessItem({ isReady, label }: { isReady: boolean; label: string }) 
 export default function EditorForm({
   schools,
   subChannels,
-  tags,
   t,
   initialPost,
 }: EditorFormProps) {
@@ -218,7 +222,8 @@ export default function EditorForm({
   const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? '')
   const [schoolId, setSchoolId] = useState(initialPost?.schoolId ?? '')
   const [subChannelId, setSubChannelId] = useState(initialPost?.subChannelId ?? '')
-  const [selectedTags, setSelectedTags] = useState<string[]>(initialPost?.tagIds ?? [])
+  const [customTagInput, setCustomTagInput] = useState('')
+  const [customTags, setCustomTags] = useState<string[]>(initialPost?.tagNames ?? [])
   const [editorContent, setEditorContent] = useState<JSONContent | null>(
     initialPost?.content ?? null,
   )
@@ -305,7 +310,8 @@ export default function EditorForm({
     setExcerpt('')
     setSchoolId('')
     setSubChannelId('')
-    setSelectedTags([])
+    setCustomTagInput('')
+    setCustomTags([])
     setEditorContent(null)
     setCoverImage(null)
     setFeedback(null)
@@ -323,11 +329,36 @@ export default function EditorForm({
     setErrors((prev) => ({ ...prev, school: '' }))
   }, [])
 
-  const handleTagToggle = useCallback((tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+  const removeCustomTag = useCallback((tagName: string) => {
+    const key = normalizeTagName(tagName).toLocaleLowerCase()
+    setCustomTags((prev) =>
+      prev.filter((tag) => normalizeTagName(tag).toLocaleLowerCase() !== key),
     )
   }, [])
+
+  const handleAddCustomTag = useCallback(() => {
+    const tagName = normalizeTagName(customTagInput)
+    if (!tagName) return
+
+    const tagKey = tagName.toLocaleLowerCase()
+    setCustomTags((prev) =>
+      prev.some((tag) => normalizeTagName(tag).toLocaleLowerCase() === tagKey)
+        ? prev
+        : [...prev, tagName],
+    )
+
+    setCustomTagInput('')
+  }, [customTagInput])
+
+  const handleCustomTagKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== 'Enter') return
+
+      event.preventDefault()
+      handleAddCustomTag()
+    },
+    [handleAddCustomTag],
+  )
 
   const validatePublish = (): boolean => {
     const nextErrors: Record<string, string> = {}
@@ -368,7 +399,8 @@ export default function EditorForm({
 
       if (subChannelId && subChannelId !== '__none__') body.subChannel = subChannelId
       if (excerpt.trim()) body.excerpt = excerpt.trim()
-      if (selectedTags.length > 0) body.tags = selectedTags
+      const submittedTags = customTags.map((tagName) => ({ name: tagName }))
+      if (submittedTags.length > 0) body.tags = submittedTags
       body.coverImage = coverImage?.id ?? null
 
       const response = await fetch(
@@ -793,31 +825,36 @@ export default function EditorForm({
                   {t.editor.tagsLabel}
                 </Label>
                 <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => {
-                    const isSelected = selectedTags.includes(String(tag.id))
-
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => handleTagToggle(String(tag.id))}
-                        className={cn(
-                          'rounded-full px-3 py-1.5 text-sm font-label transition-all duration-200',
-                          isSelected
-                            ? 'bg-campus-primary/10 font-semibold text-campus-primary'
-                            : 'border border-border/50 text-foreground/50 hover:bg-foreground/[0.04] hover:text-foreground/80',
-                        )}
-                      >
-                        {tag.name}
-                      </button>
-                    )
-                  })}
-
-                  {tags.length === 0 ? (
-                    <p className="text-sm font-label text-foreground/30">
-                      {t.editor.tagsPlaceholder}
-                    </p>
-                  ) : null}
+                  {customTags.map((tagName) => (
+                    <button
+                      key={tagName}
+                      type="button"
+                      onClick={() => removeCustomTag(tagName)}
+                      className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-campus-primary/10 px-3 py-1.5 text-sm font-label font-semibold text-campus-primary transition-colors hover:bg-campus-primary/15"
+                    >
+                      <span>{tagName}</span>
+                      <IconX size={14} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customTagInput}
+                    onChange={(event) => setCustomTagInput(event.target.value)}
+                    onKeyDown={handleCustomTagKeyDown}
+                    placeholder={t.editor.customTagPlaceholder}
+                    className="min-w-0 flex-1 rounded-xl border border-border/60 bg-transparent px-3 py-2 text-sm font-label outline-none transition-colors placeholder:text-foreground/30 focus:border-campus-primary/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomTag}
+                    disabled={!customTagInput.trim()}
+                    className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-campus-primary/10 bg-white/75 px-3 text-sm font-label font-semibold text-campus-primary transition-colors hover:bg-campus-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <IconPlus size={16} aria-hidden="true" />
+                    <span>{t.editor.addCustomTag}</span>
+                  </button>
                 </div>
               </div>
 

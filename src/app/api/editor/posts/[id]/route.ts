@@ -7,13 +7,18 @@ import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateCh
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 import { resolveCoverImageForQuota } from '../_lib/coverImageQuota'
+import { getEditorPostTagClient } from '../_lib/editorPostTagClient'
+import {
+  EditorPostTagValidationError,
+  resolveEditorPostTagIds,
+} from '../_lib/editorPostTags'
 
 type PostRequestBody = {
   title?: string
   content?: unknown
   school?: string | number
   subChannel?: string | number
-  tags?: (string | number)[]
+  tags?: unknown
   excerpt?: string
   coverImage?: string | number | null
   status?: 'draft' | 'published'
@@ -137,11 +142,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       data.coverImage = coverImageId ?? null
     }
 
-    data.tags =
-      tags && Array.isArray(tags) && tags.length > 0
-        ? tags.map((tag) => toNumericId(tag)).filter(Boolean)
-        : []
-
     const projection = await projectQuotaForPostREST({
       candidatePost: {
         content: normalizedContent,
@@ -168,6 +168,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       )
     }
 
+    const tagClient = await getEditorPostTagClient()
+    data.tags = await resolveEditorPostTagIds(tagClient, tags)
+
     const post = await payload.update<PostDoc>('posts', postId, data)
 
     after(() => {
@@ -184,6 +187,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   } catch (err) {
     if (err instanceof PayloadRESTError && err.status === 404) {
       return Response.json({ error: 'Not found' }, { status: 404 })
+    }
+    if (err instanceof EditorPostTagValidationError) {
+      return Response.json({ error: err.message }, { status: 400 })
     }
 
     const message =
