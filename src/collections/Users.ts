@@ -10,6 +10,7 @@ import {
   revalidateUserCacheAfterChange,
   revalidateUserCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
+import { validateUserSchool } from '@/hooks/validateUserSchool'
 import { cleanupUserInteractionsBeforeDelete } from '@/collections/Interactions'
 import {
   getAuthEmailSubject,
@@ -86,6 +87,7 @@ export const Users: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    beforeValidate: [validateUserSchool],
     beforeChange: [preventAdminPasswordChange],
     beforeDelete: [cleanupUserInteractionsBeforeDelete],
     afterChange: [cleanupDetachedUserMediaAfterChange, revalidateUserCacheAfterChange],
@@ -114,6 +116,21 @@ export const Users: CollectionConfig = {
       relationTo: 'media',
       admin: {
         description: 'Profile image displayed for the user across the site.',
+      },
+    },
+    {
+      name: 'school',
+      type: 'relationship',
+      relationTo: 'schools',
+      index: true,
+      saveToJWT: true,
+      filterOptions: {
+        isActive: {
+          equals: true,
+        },
+      },
+      admin: {
+        description: 'User-selected school used for profile context and recommendations.',
       },
     },
     {

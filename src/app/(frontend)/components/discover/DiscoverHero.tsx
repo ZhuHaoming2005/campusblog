@@ -1,9 +1,9 @@
 ﻿import type { FrontendDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
-import type { Post } from '@/payload-types'
+import type { PostFeedItem } from '@/app/(frontend)/lib/postFeedData'
 
 type DiscoverHeroProps = {
   copy: FrontendDictionary['discoverHome']
-  featuredPost: Post | null
+  featuredPost: PostFeedItem | null
 }
 
 export default function DiscoverHero({ copy, featuredPost }: DiscoverHeroProps) {

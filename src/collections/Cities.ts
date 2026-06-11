@@ -2,16 +2,15 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
-import { cleanupSchoolSubscriptionsBeforeDelete } from '@/collections/Interactions'
 import {
-  revalidateSchoolCacheAfterChange,
-  revalidateSchoolCacheAfterDelete,
+  revalidateCityCacheAfterChange,
+  revalidateCityCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
 
-export const Schools: CollectionConfig = {
-  slug: 'schools',
+export const Cities: CollectionConfig = {
+  slug: 'cities',
   admin: {
-    defaultColumns: ['name', 'city', 'isActive', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'isActive', 'sortOrder', 'updatedAt'],
     useAsTitle: 'name',
   },
   access: {
@@ -21,9 +20,8 @@ export const Schools: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
-    beforeDelete: [cleanupSchoolSubscriptionsBeforeDelete],
-    afterChange: [revalidateSchoolCacheAfterChange],
-    afterDelete: [revalidateSchoolCacheAfterDelete],
+    afterChange: [revalidateCityCacheAfterChange],
+    afterDelete: [revalidateCityCacheAfterDelete],
   },
   defaultSort: 'sortOrder',
   fields: [
@@ -34,30 +32,15 @@ export const Schools: CollectionConfig = {
       unique: true,
       index: true,
       admin: {
-        description: 'School display name used in navigation, listing, and search.',
+        description: 'City display name used to group nearby schools.',
       },
     },
     buildSlugField('name'),
     {
-      name: 'city',
-      type: 'relationship',
-      relationTo: 'cities',
-      index: true,
-      filterOptions: {
-        isActive: {
-          equals: true,
-        },
-      },
-      admin: {
-        description: 'City used to group schools for nearby recommendations.',
-        position: 'sidebar',
-      },
-    },
-    {
       name: 'description',
       type: 'textarea',
       admin: {
-        description: 'Short introduction shown on the school page and in previews.',
+        description: 'Optional city summary for future location-based surfaces.',
       },
     },
     {
@@ -66,7 +49,7 @@ export const Schools: CollectionConfig = {
       defaultValue: true,
       index: true,
       admin: {
-        description: 'Controls whether the school is visible on the frontend.',
+        description: 'Controls whether schools can be associated with this city.',
         position: 'sidebar',
       },
     },
