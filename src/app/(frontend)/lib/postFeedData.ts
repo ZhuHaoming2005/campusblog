@@ -99,7 +99,7 @@ function getAuthorAvatarUrl(author: User | null): string | null {
   return isRelationDoc<Media>(avatar) ? (avatar.url ?? null) : null
 }
 
-function hasContent(post: Post): post is Post & { content: NonNullable<Post['content']> } {
+function hasContent(post: Pick<Post, 'content'>): boolean {
   return Boolean(post.content)
 }
 
