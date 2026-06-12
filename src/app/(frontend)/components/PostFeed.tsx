@@ -2,23 +2,14 @@
 
 import type { AppLocale } from '@/lib/i18n/config'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
-import { getMediaImageAlt } from '@/app/(frontend)/lib/mediaAlt'
-import {
-  estimatePostReadingMinutes,
-  getPostAuthor,
-  getPostCoverImage,
-  getPostPreviewText,
-  getPostPublishedLabel,
-  getPostSchool,
-  getPostSubChannel,
-  getPostTags,
-} from '@/lib/postPresentation'
+import { toPostFeedItem, type PostFeedItem } from '@/app/(frontend)/lib/postFeedData'
+import { getPostPublishedLabel } from '@/lib/postPresentation'
 import PostCard, { getAspectClass, type PostCardVariant } from '@/components/PostCard'
 
 export type PostFeedVariant = 'default' | 'discover'
 
 type PostFeedProps = {
-  posts: Post[]
+  posts: Array<Post | PostFeedItem>
   locale: AppLocale
   showSchoolName?: boolean
   showChannelName?: boolean
@@ -54,32 +45,27 @@ export default function PostFeed({
       className={variant === 'discover' ? 'masonry-grid masonry-grid--discover' : 'masonry-grid'}
     >
       {posts.map((post, index) => {
-        const coverImage = getPostCoverImage(post)
-        const author = getPostAuthor(post)
-        const authorAvatar =
-          author?.avatar && typeof author.avatar === 'object' ? author.avatar.url : null
-        const school = getPostSchool(post)
-        const subChannel = getPostSubChannel(post)
+        const feedItem = toPostFeedItem(post)
         const cardVariant = getCardVariant(index, variant, featuredCount)
         const aspectClass =
           cardVariant === 'discover-featured' ? getDiscoverAspectClass(index) : getAspectClass(index)
 
         return (
           <PostCard
-            key={post.id}
-            title={post.title}
-            slug={post.slug}
-            excerpt={post.excerpt}
-            contentText={getPostPreviewText(post)}
-            coverImageUrl={coverImage?.url}
-            coverImageAlt={getMediaImageAlt(coverImage?.alt, 'cover-image')}
-            authorName={author?.displayName}
-            authorAvatarUrl={authorAvatar}
-            tagLabels={getPostTags(post).map((tag) => tag.name)}
-            schoolName={showSchoolName ? school?.name : null}
-            channelName={showChannelName ? subChannel?.name : null}
-            publishedLabel={getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)}
-            readingMinutes={estimatePostReadingMinutes(post)}
+            key={feedItem.id}
+            title={feedItem.title}
+            slug={feedItem.slug}
+            excerpt={feedItem.excerpt}
+            contentText={feedItem.previewText}
+            coverImageUrl={feedItem.coverImageUrl}
+            coverImageAlt={feedItem.coverImageAlt}
+            authorName={feedItem.authorName}
+            authorAvatarUrl={feedItem.authorAvatarUrl}
+            tagLabels={feedItem.tagLabels}
+            schoolName={showSchoolName ? feedItem.school?.name : null}
+            channelName={showChannelName ? feedItem.subChannel?.name : null}
+            publishedLabel={getPostPublishedLabel(feedItem.publishedAt ?? feedItem.createdAt, locale)}
+            readingMinutes={feedItem.readingMinutes}
             aspectClass={aspectClass}
             anonymousLabel={t.common.anonymous}
             readTimeLabel={t.post.readTimeShort}
@@ -90,4 +76,3 @@ export default function PostFeed({
     </div>
   )
 }
-

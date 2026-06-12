@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 
-import type { Post, PostBookmark, PostLike } from '@/payload-types'
+import type { Post, PostBookmark, PostLike, School } from '@/payload-types'
 import LogoutButton from '@/components/auth/LogoutButton'
 import UserProfileEditor from '@/components/user/UserProfileEditor'
 import UserPostActions from '@/components/user/UserPostActions'
@@ -38,6 +38,14 @@ function formatDate(value: string | null | undefined, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
   }).format(date)
+}
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
+
+function toRelationId(value: RelationValue): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
+  return null
 }
 
 function UserPostList({
@@ -177,12 +185,24 @@ export async function UserCenterPageContent() {
   const currentUser = auth.user
   const payload = await getFrontendPayload()
   const [
+    currentUserResult,
     draftPostsResult,
     publishedPostsResult,
     hiddenPostsResult,
     likedPostsResult,
     bookmarkedPostsResult,
+    schoolsResult,
   ] = await Promise.all([
+    payload.findByID({
+      collection: 'users',
+      depth: 0,
+      id: currentUser.id,
+      overrideAccess: false,
+      select: {
+        school: true,
+      },
+      user: currentUser,
+    }),
     payload.find({
       collection: 'posts',
       where: {
@@ -238,9 +258,23 @@ export async function UserCenterPageContent() {
       user: currentUser,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'schools',
+      where: { isActive: { equals: true } },
+      sort: 'sortOrder',
+      depth: 0,
+      limit: 50,
+    }),
   ])
   const likedPosts = toInteractionPosts(likedPostsResult.docs as PostLike[])
   const bookmarkedPosts = toInteractionPosts(bookmarkedPostsResult.docs as PostBookmark[])
+  const schoolOptions = (schoolsResult.docs as School[]).map((school) => ({
+    id: school.id,
+    name: school.name,
+  }))
+  const currentUserSchoolId = toRelationId(
+    (currentUserResult as { school?: RelationValue }).school,
+  )
   const postUsageBytes = await getPostUsageBytesMap({
     payload,
     posts: [...draftPostsResult.docs, ...publishedPostsResult.docs, ...hiddenPostsResult.docs],
@@ -311,8 +345,14 @@ export async function UserCenterPageContent() {
                   profileSaved: t.userCenter.profileSaved,
                   resetPassword: t.userCenter.resetPassword,
                   saveProfile: t.userCenter.saveProfile,
+                  schoolLabel: t.userCenter.schoolLabel,
+                  schoolNone: t.userCenter.schoolNone,
+                  schoolSearchEmpty: t.userCenter.schoolSearchEmpty,
+                  schoolSearchPlaceholder: t.userCenter.schoolSearchPlaceholder,
                   savingProfile: t.userCenter.savingProfile,
                 }}
+                schoolId={currentUserSchoolId}
+                schoolOptions={schoolOptions}
               />
             </CardContent>
           </Card>

@@ -66,6 +66,7 @@ describe('user center', () => {
   })
 
   async function renderUserCenterPage(args: {
+    currentUserResult?: Record<string, unknown>
     payloadFindDocs?: Array<{ docs: unknown[] }>
     postUsageBytesMap?: Map<string, number>
     user: Record<string, unknown>
@@ -80,9 +81,13 @@ describe('user center', () => {
     for (const result of args.payloadFindDocs ?? []) {
       payloadFindMock.mockResolvedValueOnce(result)
     }
+    const payloadFindByIDMock = vi.fn().mockResolvedValue(args.currentUserResult ?? args.user)
     const getPostUsageBytesMapMock = vi
       .fn()
       .mockResolvedValue(args.postUsageBytesMap ?? new Map())
+    const userProfileEditorMock = vi.fn((_props: Record<string, unknown>) => (
+      <div data-testid="user-profile-editor" />
+    ))
     const userPostActionsMock = vi.fn(
       ({
         actionLabel,
@@ -120,6 +125,7 @@ describe('user center', () => {
         ...actual,
         getFrontendPayload: vi.fn().mockResolvedValue({
           find: payloadFindMock,
+          findByID: payloadFindByIDMock,
         }),
       }
     })
@@ -137,7 +143,7 @@ describe('user center', () => {
       default: ({ label }: { label: string }) => <button type="button">{label}</button>,
     }))
     vi.doMock('@/components/user/UserProfileEditor', () => ({
-      default: () => <div data-testid="user-profile-editor" />,
+      default: userProfileEditorMock,
     }))
     vi.doMock('@/components/user/UserPostActions', () => ({
       default: userPostActionsMock,
@@ -160,8 +166,10 @@ describe('user center', () => {
 
     return {
       getPostUsageBytesMapMock,
+      payloadFindByIDMock,
       payloadFindMock,
       requireFrontendAuthMock,
+      userProfileEditorMock,
       userPostActionsMock,
     }
   }
@@ -175,10 +183,21 @@ describe('user center', () => {
       email: 'writer@example.com',
       id: 1,
       quotaBytes: 4096,
+      school: 999,
       usedBytes: 1536,
     }
-    const { getPostUsageBytesMapMock, payloadFindMock, userPostActionsMock } =
+    const {
+      getPostUsageBytesMapMock,
+      payloadFindByIDMock,
+      payloadFindMock,
+      userProfileEditorMock,
+      userPostActionsMock,
+    } =
       await renderUserCenterPage({
+        currentUserResult: {
+          id: 1,
+          school: 301,
+        },
         payloadFindDocs: [
           {
             docs: [
@@ -240,6 +259,12 @@ describe('user center', () => {
               },
             ],
           },
+          {
+            docs: [
+              { id: 301, name: 'North Campus', slug: 'north-campus' },
+              { id: 302, name: 'South Campus', slug: 'south-campus' },
+            ],
+          },
         ],
         postUsageBytesMap: new Map([
           ['11', 512],
@@ -283,8 +308,25 @@ describe('user center', () => {
     expect(screen.getByText('Liked title')).toBeTruthy()
     fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.bookmarkedTitle }))
     expect(screen.getByText('Bookmarked title')).toBeTruthy()
-    expect(payloadFindMock).toHaveBeenCalledTimes(5)
+    expect(payloadFindMock).toHaveBeenCalledTimes(6)
+    expect(payloadFindByIDMock).toHaveBeenCalledWith({
+      collection: 'users',
+      depth: 0,
+      id: 1,
+      overrideAccess: false,
+      select: {
+        school: true,
+      },
+      user: verifiedUser,
+    })
     expect(getPostUsageBytesMapMock).toHaveBeenCalledTimes(1)
+    expect(userProfileEditorMock.mock.calls[0]?.[0]).toMatchObject({
+      schoolId: 301,
+      schoolOptions: [
+        { id: 301, name: 'North Campus' },
+        { id: 302, name: 'South Campus' },
+      ],
+    })
     expect(userPostActionsMock).toHaveBeenCalledTimes(2)
     expect(payloadFindMock).toHaveBeenNthCalledWith(
       1,
@@ -326,6 +368,14 @@ describe('user center', () => {
         depth: 2,
         overrideAccess: false,
         user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      6,
+      expect.objectContaining({
+        collection: 'schools',
+        depth: 0,
+        where: { isActive: { equals: true } },
       }),
     )
   })

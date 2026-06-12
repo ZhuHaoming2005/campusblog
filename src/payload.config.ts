@@ -21,6 +21,7 @@ import { readRuntimeEnvFlag, readRuntimeEnvString } from './cloudflare/runtimeEn
 import { Posts } from './collections/Posts'
 import { SchoolSubChannels } from './collections/SchoolSubChannels'
 import { Schools } from './collections/Schools'
+import { Cities } from './collections/Cities'
 import { Comments } from './collections/Comments'
 import { Tags } from './collections/Tags'
 import { Users } from './collections/Users'
@@ -91,15 +92,14 @@ const cloudflareLogger = {
   silent: () => {},
 } as unknown as PayloadLogger
 
-const cloudflare =
-  useBuildTimeBindings
-    ? createBuildTimeCloudflareContext()
-    : useWranglerPlatformProxy
-      ? await getCloudflareContextFromWrangler({
-          configPath: wranglerPlatformProxyConfigPath,
-          remoteBindings: useRemoteBindings,
-        })
-      : await getCloudflareContext({ async: true })
+const cloudflare = useBuildTimeBindings
+  ? createBuildTimeCloudflareContext()
+  : useWranglerPlatformProxy
+    ? await getCloudflareContextFromWrangler({
+        configPath: wranglerPlatformProxyConfigPath,
+        remoteBindings: useRemoteBindings,
+      })
+    : await getCloudflareContext({ async: true })
 const cloudflareEnv = cloudflare.env as CloudflareEnv & {
   EMAIL?: EmailBindingLike
 }
@@ -154,6 +154,7 @@ export default buildConfig({
   collections: [
     Users,
     Media,
+    Cities,
     Schools,
     SchoolSubChannels,
     Tags,
@@ -194,7 +195,10 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
-  db: sqliteD1Adapter({ binding: cloudflareEnv.D1 }),
+  db: sqliteD1Adapter({
+    binding: cloudflareEnv.D1,
+    push: false,
+  }),
   logger: isProduction ? cloudflareLogger : undefined,
   plugins: [
     r2Storage({

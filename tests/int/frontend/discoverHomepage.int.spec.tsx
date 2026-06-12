@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 
 import DiscoverHomepage from '@/components/discover/DiscoverHomepage'
@@ -90,5 +92,19 @@ describe('DiscoverHomepage', () => {
     expect(container.querySelector('a[href="/search?q=Campus%20Life"]')?.textContent).toContain(
       'Campus Life',
     )
+  })
+
+  it('wires the current user school into homepage recommendations', () => {
+    const source = readFileSync(
+      path.resolve(process.cwd(), 'src/app/(frontend)/(site)/page.tsx'),
+      'utf8',
+    )
+
+    expect(source).toContain('getCurrentFrontendUser(headers)')
+    expect(source).toContain('getDiscoverPageData(currentUser)')
+    expect(source).toContain('nearbyPosts={nearbyPosts}')
+    expect(source).toContain('preferredCitySchoolIds={preferredCitySchoolIds}')
+    expect(source).toContain('preferredSchoolCityId={preferredSchoolCityId}')
+    expect(source).toContain('preferredSchoolId={preferredSchoolId}')
   })
 })

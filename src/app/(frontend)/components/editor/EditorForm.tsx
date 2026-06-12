@@ -20,6 +20,7 @@ import {
 } from '@tabler/icons-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import SchoolSearchSelect from '@/components/school/SchoolSearchSelect'
 import { Label } from '@/components/ui/label'
 import { PrimaryActionButton } from '@/components/ui/primary-action-button'
 import {
@@ -54,6 +55,8 @@ type EditorDictionary = {
     excerptPlaceholder: string
     schoolLabel: string
     schoolPlaceholder: string
+    schoolSearchEmpty: string
+    schoolSearchPlaceholder: string
     subChannelLabel: string
     subChannelPlaceholder: string
     subChannelNone: string
@@ -390,10 +393,11 @@ export default function EditorForm({
     setFeedback(null)
 
     try {
+      const selectedSchool = schools.find((school) => String(school.id) === schoolId)
       const body: Record<string, unknown> = {
         title: title.trim(),
         content: editorContent,
-        school: schoolId,
+        school: selectedSchool?.id ?? schoolId,
         status,
       }
 
@@ -772,24 +776,18 @@ export default function EditorForm({
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="font-label text-sm text-foreground/70">
-                  {t.editor.schoolLabel}
-                  <span className="ml-0.5 text-red-400">*</span>
-                </Label>
-                <Select value={schoolId} onValueChange={handleSchoolChange}>
-                  <SelectTrigger className={cn('w-full', errors.school && 'border-red-400')}>
-                    <SelectValue placeholder={t.editor.schoolPlaceholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {schools.map((school) => (
-                        <SelectItem key={school.id} value={String(school.id)}>
-                          {school.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                <SchoolSearchSelect
+                  id="editor-school"
+                  label={t.editor.schoolLabel}
+                  options={schools}
+                  value={schoolId}
+                  onValueChange={handleSchoolChange}
+                  placeholder={t.editor.schoolPlaceholder}
+                  searchPlaceholder={t.editor.schoolSearchPlaceholder}
+                  emptyResultsLabel={t.editor.schoolSearchEmpty}
+                  invalid={Boolean(errors.school)}
+                  required
+                />
                 {errors.school ? (
                   <p className="text-xs font-label text-red-500">{errors.school}</p>
                 ) : null}

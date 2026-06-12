@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    cities: City;
     schools: School;
     'school-sub-channels': SchoolSubChannel;
     tags: Tag;
@@ -88,6 +89,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    cities: CitiesSelect<false> | CitiesSelect<true>;
     schools: SchoolsSelect<false> | SchoolsSelect<true>;
     'school-sub-channels': SchoolSubChannelsSelect<false> | SchoolSubChannelsSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
@@ -155,6 +157,10 @@ export interface User {
    * Profile image displayed for the user across the site.
    */
   avatar?: (number | null) | Media;
+  /**
+   * User-selected school used for profile context and recommendations.
+   */
+  school?: (number | null) | School;
   /**
    * Controls whether this account can access author features.
    */
@@ -226,11 +232,45 @@ export interface School {
   generateSlug?: boolean | null;
   slug: string;
   /**
+   * City used to group schools for nearby recommendations.
+   */
+  city?: (number | null) | City;
+  /**
    * Short introduction shown on the school page and in previews.
    */
   description?: string | null;
   /**
    * Controls whether the school is visible on the frontend.
+   */
+  isActive?: boolean | null;
+  /**
+   * Manual ordering value. Lower numbers appear first.
+   */
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cities".
+ */
+export interface City {
+  id: number;
+  /**
+   * City display name used to group nearby schools.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Optional city summary for future location-based surfaces.
+   */
+  description?: string | null;
+  /**
+   * Controls whether schools can be associated with this city.
    */
   isActive?: boolean | null;
   /**
@@ -480,6 +520,10 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
+        relationTo: 'cities';
+        value: number | City;
+      } | null)
+    | ({
         relationTo: 'schools';
         value: number | School;
       } | null)
@@ -569,6 +613,7 @@ export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
   bio?: T;
   avatar?: T;
+  school?: T;
   isActive?: T;
   roles?: T;
   quotaBytes?: T;
@@ -611,12 +656,27 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cities_select".
+ */
+export interface CitiesSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "schools_select".
  */
 export interface SchoolsSelect<T extends boolean = true> {
   name?: T;
   generateSlug?: T;
   slug?: T;
+  city?: T;
   description?: T;
   isActive?: T;
   sortOrder?: T;

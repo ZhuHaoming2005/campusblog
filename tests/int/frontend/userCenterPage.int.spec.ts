@@ -13,6 +13,9 @@ describe('User center primary CTAs', () => {
     expect(source).toContain('data-testid="write-article-button"')
     expect(source).toContain('<PrimaryActionButton')
     expect(source).toContain('pt-[calc(var(--floating-toolbar-top)+var(--floating-toolbar-height)+1rem)]')
+    expect(source).toContain("collection: 'schools'")
+    expect(source).toContain('schoolOptions={schoolOptions}')
+    expect(source).toContain('schoolId={currentUserSchoolId}')
   })
 
   it('loads viewable own posts and interaction posts for the tabbed dashboard feed', () => {

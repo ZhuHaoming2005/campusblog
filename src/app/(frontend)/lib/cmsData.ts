@@ -23,7 +23,16 @@ export const STATIC_PARAMS_PLACEHOLDER_SLUG = '__placeholder__'
 export const STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG = '__placeholder_channel__'
 
 type DiscoverPageData = {
+  nearbyPosts: Post[]
+  preferredCitySchoolIds: Array<number | string>
+  preferredSchoolCityId: number | string | null
+  preferredSchoolId: number | string | null
   posts: Post[]
+}
+
+type PreferredSchoolContext = {
+  cityId: number | string | null
+  schoolId: number | string | null
 }
 
 type SchoolLayoutData = {
@@ -67,6 +76,14 @@ function cachePostRelationshipTags(
   if (relationshipTags.length > 0) {
     cacheTag(...relationshipTags)
   }
+}
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
+
+function getRelationId(value: RelationValue): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
+  return null
 }
 
 export async function getActiveSchools() {
@@ -310,9 +327,139 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
   return posts
 }
 
-export async function getDiscoverPageData(): Promise<DiscoverPageData> {
+export async function getUserPreferredSchoolContext(user: User | null): Promise<PreferredSchoolContext> {
+  if (!user?.id || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return { cityId: null, schoolId: null }
+  }
+
+  const payload = await getPayloadClient()
+  const userDoc = await payload.findByID({
+    collection: 'users',
+    depth: 0,
+    id: user.id,
+    overrideAccess: false,
+    select: {
+      school: true,
+    },
+    user,
+  })
+
+  const schoolId = getRelationId((userDoc as { school?: RelationValue }).school)
+  if (!schoolId) return { cityId: null, schoolId: null }
+
+  const schoolResult = await payload.find({
+    collection: 'schools',
+    depth: 0,
+    limit: 1,
+    select: {
+      city: true,
+    },
+    where: {
+      and: [
+        {
+          id: {
+            equals: schoolId,
+          },
+        },
+        {
+          isActive: {
+            equals: true,
+          },
+        },
+      ],
+    },
+  })
+  const school = schoolResult.docs[0] as { city?: RelationValue } | undefined
+
   return {
-    posts: await getPublishedPosts(),
+    cityId: getRelationId(school?.city),
+    schoolId,
+  }
+}
+
+export async function getUserPreferredSchoolId(user: User | null): Promise<number | string | null> {
+  const context = await getUserPreferredSchoolContext(user)
+  return context.schoolId
+}
+
+async function getPreferredCitySchoolIds(context: PreferredSchoolContext) {
+  if (!context.cityId || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'schools',
+    depth: 0,
+    limit: SCHOOL_LIST_LIMIT,
+    pagination: false,
+    where: {
+      and: [
+        {
+          city: {
+            equals: context.cityId,
+          },
+        },
+        {
+          isActive: {
+            equals: true,
+          },
+        },
+      ],
+    },
+  })
+
+  const preferredSchoolKey = context.schoolId == null ? null : String(context.schoolId)
+
+  return (docs as School[])
+    .map((school) => school.id)
+    .filter((schoolId) => String(schoolId) !== preferredSchoolKey)
+}
+
+async function getPublishedPostsBySchoolIds(schoolIds: Array<number | string>) {
+  if (schoolIds.length === 0 || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'posts',
+    depth: 2,
+    limit: POST_LIST_LIMIT,
+    sort: '-publishedAt',
+    where: {
+      and: [
+        {
+          status: {
+            equals: 'published',
+          },
+        },
+        {
+          school: {
+            in: schoolIds,
+          },
+        },
+      ],
+    },
+  })
+
+  return docs as Post[]
+}
+
+export async function getDiscoverPageData(user: User | null = null): Promise<DiscoverPageData> {
+  const [posts, preferredSchoolContext] = await Promise.all([
+    getPublishedPosts(),
+    getUserPreferredSchoolContext(user),
+  ])
+  const preferredCitySchoolIds = await getPreferredCitySchoolIds(preferredSchoolContext)
+  const nearbyPosts = await getPublishedPostsBySchoolIds(preferredCitySchoolIds)
+
+  return {
+    nearbyPosts,
+    posts,
+    preferredCitySchoolIds,
+    preferredSchoolCityId: preferredSchoolContext.cityId,
+    preferredSchoolId: preferredSchoolContext.schoolId,
   }
 }
 

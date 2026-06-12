@@ -17,6 +17,7 @@ export const CMS_STRUCTURE_CACHE_LIFE = {
 } as const
 
 export const POST_LIST_CACHE_TAG = 'posts:list'
+export const CITIES_CACHE_TAG = 'cities'
 export const SCHOOLS_CACHE_TAG = 'schools'
 export const SCHOOL_SUB_CHANNELS_CACHE_TAG = 'school-sub-channels'
 export const TAGS_CACHE_TAG = 'tags'

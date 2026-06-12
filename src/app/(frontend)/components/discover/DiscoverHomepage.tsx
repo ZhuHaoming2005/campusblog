@@ -9,15 +9,31 @@ import DiscoverExperience from './DiscoverExperience'
 import DiscoverHero from './DiscoverHero'
 
 type DiscoverHomepageProps = {
+  nearbyPosts?: Post[]
   posts: Post[]
   locale: AppLocale
+  preferredCitySchoolIds?: Array<number | string>
+  preferredSchoolCityId?: number | string | null
+  preferredSchoolId?: number | string | null
   t: FrontendDictionary
 }
 
-export default function DiscoverHomepage({ posts, locale, t }: DiscoverHomepageProps) {
+export default function DiscoverHomepage({
+  nearbyPosts,
+  posts,
+  locale,
+  preferredCitySchoolIds,
+  preferredSchoolCityId,
+  preferredSchoolId,
+  t,
+}: DiscoverHomepageProps) {
   const data = buildDiscoverHomeData({
+    nearbyPosts,
     posts,
     copy: t.discoverHome,
+    preferredCitySchoolIds,
+    preferredSchoolCityId,
+    preferredSchoolId,
   })
 
   return (

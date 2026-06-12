@@ -2,6 +2,7 @@ import { revalidateTag } from 'next/cache'
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
 import {
+  CITIES_CACHE_TAG,
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
@@ -95,6 +96,10 @@ export function getSchoolCacheInvalidationTags(
   return [...new Set(tags)]
 }
 
+export function getCityCacheInvalidationTags() {
+  return [CITIES_CACHE_TAG, SCHOOLS_CACHE_TAG, POST_LIST_CACHE_TAG]
+}
+
 export function getSchoolSubChannelCacheInvalidationTags(
   current?: SchoolSubChannelCacheDoc | null,
   previous?: SchoolSubChannelCacheDoc | null,
@@ -183,6 +188,16 @@ export const revalidateSchoolCacheAfterChange: CollectionAfterChangeHook = async
 
 export const revalidateSchoolCacheAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
   revalidateTags(getSchoolCacheInvalidationTags(doc as DocumentWithId | null))
+  return doc
+}
+
+export const revalidateCityCacheAfterChange: CollectionAfterChangeHook = async ({ doc }) => {
+  revalidateTags(getCityCacheInvalidationTags())
+  return doc
+}
+
+export const revalidateCityCacheAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
+  revalidateTags(getCityCacheInvalidationTags())
   return doc
 }
 
