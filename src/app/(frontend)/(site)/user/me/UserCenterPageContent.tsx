@@ -3,16 +3,17 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 
-import type { Post } from '@/payload-types'
+import type { Post, PostBookmark, PostLike, School } from '@/payload-types'
 import LogoutButton from '@/components/auth/LogoutButton'
 import UserProfileEditor from '@/components/user/UserProfileEditor'
 import UserPostActions from '@/components/user/UserPostActions'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PrimaryActionButton } from '@/components/ui/primary-action-button'
+import { UserCenterPostTabs } from '@/components/user/UserCenterPostTabs'
 import { requireFrontendAuth } from '@/app/api/auth/_lib/frontendAuth'
 import { getFrontendPayload } from '@/lib/frontendSession'
-import { getPostSchool, getPostSubChannel } from '@/lib/postPresentation'
+import { getPostSchool, getPostSubChannel, getPostTags } from '@/lib/postPresentation'
 import { getPostUsageBytesMap } from '@/quota/postQuota'
 import { getDictionary } from '@/lib/i18n/dictionaries'
 import { getFrontendRequestContext } from '@/lib/requestContext'
@@ -37,6 +38,14 @@ function formatDate(value: string | null | undefined, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
   }).format(date)
+}
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
+
+function toRelationId(value: RelationValue): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
+  return null
 }
 
 function UserPostList({
@@ -69,6 +78,7 @@ function UserPostList({
       {posts.map((post) => {
         const school = getPostSchool(post)
         const channel = getPostSubChannel(post)
+        const postTags = getPostTags(post)
 
         return (
           <div
@@ -85,24 +95,41 @@ function UserPostList({
                 <h3 className="mt-2 font-headline text-xl leading-snug text-campus-primary">
                   {post.title}
                 </h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {school ? (
-                    <Badge
-                      variant="secondary"
-                      className="border-campus-border-soft bg-campus-panel-strong text-campus-primary"
-                    >
-                      {school.name}
-                    </Badge>
-                  ) : null}
-                  {channel ? (
-                    <Badge
-                      variant="secondary"
-                      className="border-campus-border-soft bg-campus-panel-strong text-campus-secondary"
-                    >
-                      {channel.name}
-                    </Badge>
-                  ) : null}
-                </div>
+                {postTags.length > 0 || school || channel ? (
+                  <div
+                    data-testid="user-post-card-tags"
+                    className="mt-2 flex max-w-full flex-nowrap gap-2 overflow-hidden"
+                  >
+                    {school ? (
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-campus-border-soft bg-campus-panel-strong text-campus-primary"
+                        title={school.name}
+                      >
+                        {school.name}
+                      </Badge>
+                    ) : null}
+                    {channel ? (
+                      <Badge
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-campus-border-soft bg-campus-panel-strong text-campus-secondary"
+                        title={channel.name}
+                      >
+                        {channel.name}
+                      </Badge>
+                    ) : null}
+                    {postTags.map((tag) => (
+                      <Badge
+                        key={tag.id}
+                        variant="secondary"
+                        className="max-w-[9rem] shrink-0 truncate border-[#4a4540]/10 bg-[#4a4540]/8 text-[#4a4540]/70"
+                        title={tag.name}
+                      >
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
                 <p className="mt-3 text-sm font-label text-foreground/55">
                   {formatDate(post.publishedAt ?? post.updatedAt, locale)}
                 </p>
@@ -133,6 +160,16 @@ function UserPostList({
   )
 }
 
+function getInteractionPost(interaction: PostLike | PostBookmark): Post | null {
+  return interaction.post && typeof interaction.post === 'object' ? interaction.post : null
+}
+
+function toInteractionPosts(interactions: Array<PostLike | PostBookmark>): Post[] {
+  return interactions
+    .map((interaction) => getInteractionPost(interaction))
+    .filter((post): post is Post => Boolean(post))
+}
+
 export async function UserCenterPageContent() {
   await connection()
 
@@ -147,7 +184,25 @@ export async function UserCenterPageContent() {
   }
   const currentUser = auth.user
   const payload = await getFrontendPayload()
-  const [draftPostsResult, publishedPostsResult, hiddenPostsResult] = await Promise.all([
+  const [
+    currentUserResult,
+    draftPostsResult,
+    publishedPostsResult,
+    hiddenPostsResult,
+    likedPostsResult,
+    bookmarkedPostsResult,
+    schoolsResult,
+  ] = await Promise.all([
+    payload.findByID({
+      collection: 'users',
+      depth: 0,
+      id: currentUser.id,
+      overrideAccess: false,
+      select: {
+        school: true,
+      },
+      user: currentUser,
+    }),
     payload.find({
       collection: 'posts',
       where: {
@@ -181,7 +236,45 @@ export async function UserCenterPageContent() {
       user: currentUser,
       overrideAccess: false,
     }),
+    payload.find({
+      collection: 'post-likes',
+      where: {
+        user: { equals: currentUser.id },
+      },
+      sort: '-createdAt',
+      depth: 2,
+      limit: 50,
+      user: currentUser,
+      overrideAccess: false,
+    }),
+    payload.find({
+      collection: 'post-bookmarks',
+      where: {
+        user: { equals: currentUser.id },
+      },
+      sort: '-createdAt',
+      depth: 2,
+      limit: 50,
+      user: currentUser,
+      overrideAccess: false,
+    }),
+    payload.find({
+      collection: 'schools',
+      where: { isActive: { equals: true } },
+      sort: 'sortOrder',
+      depth: 0,
+      limit: 50,
+    }),
   ])
+  const likedPosts = toInteractionPosts(likedPostsResult.docs as PostLike[])
+  const bookmarkedPosts = toInteractionPosts(bookmarkedPostsResult.docs as PostBookmark[])
+  const schoolOptions = (schoolsResult.docs as School[]).map((school) => ({
+    id: school.id,
+    name: school.name,
+  }))
+  const currentUserSchoolId = toRelationId(
+    (currentUserResult as { school?: RelationValue }).school,
+  )
   const postUsageBytes = await getPostUsageBytesMap({
     payload,
     posts: [...draftPostsResult.docs, ...publishedPostsResult.docs, ...hiddenPostsResult.docs],
@@ -252,8 +345,14 @@ export async function UserCenterPageContent() {
                   profileSaved: t.userCenter.profileSaved,
                   resetPassword: t.userCenter.resetPassword,
                   saveProfile: t.userCenter.saveProfile,
+                  schoolLabel: t.userCenter.schoolLabel,
+                  schoolNone: t.userCenter.schoolNone,
+                  schoolSearchEmpty: t.userCenter.schoolSearchEmpty,
+                  schoolSearchPlaceholder: t.userCenter.schoolSearchPlaceholder,
                   savingProfile: t.userCenter.savingProfile,
                 }}
+                schoolId={currentUserSchoolId}
+                schoolOptions={schoolOptions}
               />
             </CardContent>
           </Card>
@@ -293,65 +392,84 @@ export async function UserCenterPageContent() {
           </Card>
         </div>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft via-campus-panel to-campus-page py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.draftsTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/editor?draft=${post.id}`}
-              emptyLabel={t.userCenter.emptyDrafts}
-              hrefLabel={t.userCenter.editDraft}
-              locale={locale}
-              metaLabel={t.userCenter.updatedAt}
-              posts={draftPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+        <UserCenterPostTabs
+          locale={locale}
+          labels={{
+            bookmarked: t.userCenter.bookmarkedTitle,
+            emptyBookmarked: t.userCenter.emptyBookmarked,
+            emptyLiked: t.userCenter.emptyLiked,
+            liked: t.userCenter.likedTitle,
+            mine: t.userCenter.myArticlesTitle,
+            tabList: t.userCenter.contentTabsLabel,
+          }}
+          mineContent={
+            <div className="space-y-6">
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel-soft via-campus-panel to-campus-page py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.draftsTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/editor?draft=${post.id}`}
+                    emptyLabel={t.userCenter.emptyDrafts}
+                    hrefLabel={t.userCenter.editDraft}
+                    locale={locale}
+                    metaLabel={t.userCenter.updatedAt}
+                    posts={draftPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.publishedTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/post/${post.slug}`}
-              emptyLabel={t.userCenter.emptyPublished}
-              hrefLabel={t.userCenter.viewPublicPost}
-              locale={locale}
-              metaLabel={null}
-              posts={publishedPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.publishedTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/post/${post.slug}`}
+                    emptyLabel={t.userCenter.emptyPublished}
+                    hrefLabel={t.userCenter.viewPublicPost}
+                    locale={locale}
+                    metaLabel={null}
+                    posts={publishedPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
 
-        <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
-          <CardHeader className="border-b border-campus-border-soft/70 py-5">
-            <CardTitle className="font-headline text-2xl text-campus-primary">
-              {t.userCenter.hiddenTitle}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-5 py-5">
-            <UserPostList
-              actionHref={(post) => `/post/${post.slug}`}
-              emptyLabel={t.userCenter.emptyHidden}
-              hrefLabel={t.userCenter.previewHiddenPost}
-              locale={locale}
-              metaLabel={t.userCenter.updatedAt}
-              posts={hiddenPostsResult.docs}
-              postUsageBytes={postUsageBytes}
-              t={t}
-            />
-          </CardContent>
-        </Card>
+              <Card className="rounded-[1.75rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-page to-campus-panel-soft/70 py-0 shadow-[0_14px_36px_rgba(13,59,102,0.05)]">
+                <CardHeader className="border-b border-campus-border-soft/70 py-5">
+                  <CardTitle className="font-headline text-2xl text-campus-primary">
+                    {t.userCenter.hiddenTitle}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-5 py-5">
+                  <UserPostList
+                    actionHref={(post) => `/post/${post.slug}`}
+                    emptyLabel={t.userCenter.emptyHidden}
+                    hrefLabel={t.userCenter.previewHiddenPost}
+                    locale={locale}
+                    metaLabel={t.userCenter.updatedAt}
+                    posts={hiddenPostsResult.docs}
+                    postUsageBytes={postUsageBytes}
+                    t={t}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          }
+          posts={{
+            bookmarked: bookmarkedPosts,
+            liked: likedPosts,
+          }}
+        />
       </div>
     </section>
   )

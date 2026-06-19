@@ -166,7 +166,9 @@ export default function EmailActionForm({
       ) : null}
 
       <form
+        action={action}
         className="mt-6 space-y-3 rounded-[1.35rem] border border-campus-border-soft/80 bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FBFE_100%)] p-4 sm:p-5"
+        method="post"
         onSubmit={handleSubmit}
       >
         <label className="space-y-2">

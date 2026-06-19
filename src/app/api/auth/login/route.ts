@@ -3,23 +3,19 @@ import { getPayload } from 'payload'
 import { AuthInputError, parseLoginInput } from '../_lib/authInput'
 import { checkAuthRateLimit, getRequestIP } from '../_lib/authRateLimit'
 import {
+  generatePayloadAuthCookie,
+  type PayloadAuthCookieConfig,
+} from '../_lib/payloadAuthCookie'
+import {
   AUTH_MESSAGES,
   jsonAuthError,
   jsonAuthSuccess,
   sanitizeAuthNextPath,
 } from '../_lib/authResponses'
+import { rejectCrossSiteStateChangingRequest } from '../_lib/stateChangingRequestGuard'
 
 type PayloadLoginError = Error & {
   status?: number
-}
-
-type PayloadAuthCookieConfig = {
-  cookies: {
-    domain?: string | null
-    sameSite?: boolean | 'Lax' | 'None' | 'Strict' | null
-    secure?: boolean | null
-  }
-  tokenExpiration?: number | null
 }
 
 function getPayloadLoginError(error: unknown): PayloadLoginError | null {
@@ -33,39 +29,6 @@ function isPayloadLoginError(error: unknown, name: string): boolean {
 function getPayloadLoginErrorMessage(error: unknown): string | null {
   const message = getPayloadLoginError(error)?.message
   return typeof message === 'string' && message.trim() ? message : null
-}
-
-function generatePayloadAuthCookie(args: {
-  auth: PayloadAuthCookieConfig
-  cookiePrefix: string
-  token: string
-}): string {
-  const sameSite =
-    typeof args.auth.cookies.sameSite === 'string'
-      ? args.auth.cookies.sameSite
-      : args.auth.cookies.sameSite
-        ? 'Strict'
-        : undefined
-  const expires = new Date()
-  expires.setSeconds(expires.getSeconds() + (args.auth.tokenExpiration ?? 7200))
-
-  let cookie = `${args.cookiePrefix}-token=${args.token}; Expires=${expires.toUTCString()}; Path=/`
-
-  if (args.auth.cookies.domain) {
-    cookie += `; Domain=${args.auth.cookies.domain}`
-  }
-
-  if (args.auth.cookies.secure || sameSite === 'None') {
-    cookie += '; Secure=true'
-  }
-
-  cookie += '; HttpOnly=true'
-
-  if (sameSite) {
-    cookie += `; SameSite=${sameSite}`
-  }
-
-  return cookie
 }
 
 async function getPayloadLoginErrorResponse(args: {
@@ -111,6 +74,9 @@ async function getPayloadLoginErrorResponse(args: {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const input = parseLoginInput(await request.json())
     const rateLimit = await checkAuthRateLimit({
@@ -151,6 +117,7 @@ export async function POST(request: Request) {
           generatePayloadAuthCookie({
             auth: usersCollection.config.auth as PayloadAuthCookieConfig,
             cookiePrefix: payload.config.cookiePrefix,
+            request,
             token,
           }),
         )

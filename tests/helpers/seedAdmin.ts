@@ -1,5 +1,6 @@
 import { getPayload } from 'payload'
 import config from '../../src/payload.config.js'
+import { withD1Retry } from './d1Retry'
 
 export const testAdmin = {
   email: 'dev@payloadcms.com',
@@ -15,20 +16,38 @@ export async function seedTestAdmin(): Promise<void> {
   const payload = await getPayload({ config })
 
   // Delete existing test admin if any
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: testAdmin.email,
+  await withD1Retry(() =>
+    payload.delete({
+      collection: 'users',
+      where: {
+        email: {
+          equals: testAdmin.email,
+        },
       },
-    },
-  })
+    }),
+  )
 
   // Create fresh test admin
-  await payload.create({
-    collection: 'users',
-    data: testAdmin,
-  })
+  const created = await withD1Retry(() =>
+    payload.create({
+      collection: 'users',
+      data: testAdmin,
+      disableVerificationEmail: true,
+    }),
+  )
+
+  await withD1Retry(() =>
+    payload.update({
+      collection: 'users',
+      id: created.id,
+      data: {
+        _verificationToken: null,
+        _verified: true,
+      } as never,
+      overrideAccess: true,
+      showHiddenFields: true,
+    }),
+  )
 }
 
 /**
@@ -37,12 +56,14 @@ export async function seedTestAdmin(): Promise<void> {
 export async function cleanupTestAdmin(): Promise<void> {
   const payload = await getPayload({ config })
 
-  await payload.delete({
-    collection: 'users',
-    where: {
-      email: {
-        equals: testAdmin.email,
+  await withD1Retry(() =>
+    payload.delete({
+      collection: 'users',
+      where: {
+        email: {
+          equals: testAdmin.email,
+        },
       },
-    },
-  })
+    }),
+  )
 }

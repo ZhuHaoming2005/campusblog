@@ -69,11 +69,17 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    cities: City;
     schools: School;
     'school-sub-channels': SchoolSubChannel;
     tags: Tag;
     posts: Post;
     comments: Comment;
+    'post-likes': PostLike;
+    'post-bookmarks': PostBookmark;
+    'user-follows': UserFollow;
+    'school-subscriptions': SchoolSubscription;
+    'school-sub-channel-subscriptions': SchoolSubChannelSubscription;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -83,11 +89,17 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    cities: CitiesSelect<false> | CitiesSelect<true>;
     schools: SchoolsSelect<false> | SchoolsSelect<true>;
     'school-sub-channels': SchoolSubChannelsSelect<false> | SchoolSubChannelsSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
     comments: CommentsSelect<false> | CommentsSelect<true>;
+    'post-likes': PostLikesSelect<false> | PostLikesSelect<true>;
+    'post-bookmarks': PostBookmarksSelect<false> | PostBookmarksSelect<true>;
+    'user-follows': UserFollowsSelect<false> | UserFollowsSelect<true>;
+    'school-subscriptions': SchoolSubscriptionsSelect<false> | SchoolSubscriptionsSelect<true>;
+    'school-sub-channel-subscriptions': SchoolSubChannelSubscriptionsSelect<false> | SchoolSubChannelSubscriptionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -145,6 +157,10 @@ export interface User {
    * Profile image displayed for the user across the site.
    */
   avatar?: (number | null) | Media;
+  /**
+   * User-selected school used for profile context and recommendations.
+   */
+  school?: (number | null) | School;
   /**
    * Controls whether this account can access author features.
    */
@@ -216,11 +232,45 @@ export interface School {
   generateSlug?: boolean | null;
   slug: string;
   /**
+   * City used to group schools for nearby recommendations.
+   */
+  city?: (number | null) | City;
+  /**
    * Short introduction shown on the school page and in previews.
    */
   description?: string | null;
   /**
    * Controls whether the school is visible on the frontend.
+   */
+  isActive?: boolean | null;
+  /**
+   * Manual ordering value. Lower numbers appear first.
+   */
+  sortOrder?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cities".
+ */
+export interface City {
+  id: number;
+  /**
+   * City display name used to group nearby schools.
+   */
+  name: string;
+  /**
+   * When enabled, the slug will auto-generate from the title field on save and autosave.
+   */
+  generateSlug?: boolean | null;
+  slug: string;
+  /**
+   * Optional city summary for future location-based surfaces.
+   */
+  description?: string | null;
+  /**
+   * Controls whether schools can be associated with this city.
    */
   isActive?: boolean | null;
   /**
@@ -383,6 +433,62 @@ export interface Comment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-likes".
+ */
+export interface PostLike {
+  id: number;
+  user: number | User;
+  post: number | Post;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-bookmarks".
+ */
+export interface PostBookmark {
+  id: number;
+  user: number | User;
+  post: number | Post;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-follows".
+ */
+export interface UserFollow {
+  id: number;
+  follower: number | User;
+  following: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-subscriptions".
+ */
+export interface SchoolSubscription {
+  id: number;
+  user: number | User;
+  school: number | School;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channel-subscriptions".
+ */
+export interface SchoolSubChannelSubscription {
+  id: number;
+  user: number | User;
+  school: number | School;
+  channel: number | SchoolSubChannel;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -414,6 +520,10 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
+        relationTo: 'cities';
+        value: number | City;
+      } | null)
+    | ({
         relationTo: 'schools';
         value: number | School;
       } | null)
@@ -432,6 +542,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'comments';
         value: number | Comment;
+      } | null)
+    | ({
+        relationTo: 'post-likes';
+        value: number | PostLike;
+      } | null)
+    | ({
+        relationTo: 'post-bookmarks';
+        value: number | PostBookmark;
+      } | null)
+    | ({
+        relationTo: 'user-follows';
+        value: number | UserFollow;
+      } | null)
+    | ({
+        relationTo: 'school-subscriptions';
+        value: number | SchoolSubscription;
+      } | null)
+    | ({
+        relationTo: 'school-sub-channel-subscriptions';
+        value: number | SchoolSubChannelSubscription;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -483,6 +613,7 @@ export interface UsersSelect<T extends boolean = true> {
   displayName?: T;
   bio?: T;
   avatar?: T;
+  school?: T;
   isActive?: T;
   roles?: T;
   quotaBytes?: T;
@@ -525,12 +656,27 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cities_select".
+ */
+export interface CitiesSelect<T extends boolean = true> {
+  name?: T;
+  generateSlug?: T;
+  slug?: T;
+  description?: T;
+  isActive?: T;
+  sortOrder?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "schools_select".
  */
 export interface SchoolsSelect<T extends boolean = true> {
   name?: T;
   generateSlug?: T;
   slug?: T;
+  city?: T;
   description?: T;
   isActive?: T;
   sortOrder?: T;
@@ -595,6 +741,57 @@ export interface CommentsSelect<T extends boolean = true> {
   parent?: T;
   status?: T;
   content?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-likes_select".
+ */
+export interface PostLikesSelect<T extends boolean = true> {
+  user?: T;
+  post?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "post-bookmarks_select".
+ */
+export interface PostBookmarksSelect<T extends boolean = true> {
+  user?: T;
+  post?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-follows_select".
+ */
+export interface UserFollowsSelect<T extends boolean = true> {
+  follower?: T;
+  following?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-subscriptions_select".
+ */
+export interface SchoolSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
+  school?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "school-sub-channel-subscriptions_select".
+ */
+export interface SchoolSubChannelSubscriptionsSelect<T extends boolean = true> {
+  user?: T;
+  school?: T;
+  channel?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -254,7 +254,7 @@ describe('auth password and verification routes', () => {
     )
   })
 
-  it('falls back to the configured site origin for forgot-password emails when request origin is untrusted', async () => {
+  it('falls back to the configured site origin for forgot-password emails when the request URL is untrusted', async () => {
     const forgotPasswordMock = vi.fn().mockResolvedValue('token')
     const sendEmailMock = vi.fn().mockResolvedValue(undefined)
     getFrontendPayloadMock.mockResolvedValue({
@@ -273,7 +273,6 @@ describe('auth password and verification routes', () => {
         body: JSON.stringify({ email: 'user@example.com', next: '/editor' }),
         headers: {
           'content-type': 'application/json',
-          origin: 'https://evil.example.com',
           'x-forwarded-for': '127.0.0.1',
           'x-forwarded-host': 'evil.example.com',
           'x-forwarded-proto': 'https',
@@ -293,12 +292,11 @@ describe('auth password and verification routes', () => {
   })
 
   it('returns a safe invalid-token response when reset password fails', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ errors: [{ message: 'Invalid token' }] }), {
-        headers: { 'content-type': 'application/json' },
-        status: 400,
-      }),
-    )
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('reset-password must not self-fetch'))
+    const resetPasswordMock = vi.fn().mockRejectedValue(new Error('Invalid token'))
+    getFrontendPayloadMock.mockResolvedValue({ resetPassword: resetPasswordMock })
 
     const { POST } = await import('@/app/api/auth/reset-password/route')
 
@@ -314,27 +312,49 @@ describe('auth password and verification routes', () => {
     )
 
     expect(response.status).toBe(400)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(resetPasswordMock).toHaveBeenCalledWith({
+      collection: 'users',
+      data: {
+        password: 'StrongPass123',
+        token: 'bad-token',
+      },
+      overrideAccess: true,
+      req: {
+        headers: expect.any(Headers),
+        url: 'https://example.com/api/auth/reset-password',
+      },
+    })
     await expect(response.json()).resolves.toMatchObject({
       code: 'invalid_or_expired_token',
     })
   })
 
   it('returns reset-password JSON success with the sanitized next path', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          token: 'session-token',
-          user: { id: 7 },
-        }),
-        {
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'payload-token=session-token; Path=/; HttpOnly',
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('reset-password must not self-fetch'))
+    const resetPasswordMock = vi.fn().mockResolvedValue({
+      token: 'session-token',
+      user: { id: 7 },
+    })
+    getFrontendPayloadMock.mockResolvedValue({
+      collections: {
+        users: {
+          config: {
+            auth: {
+              cookies: {
+                sameSite: 'Lax',
+                secure: false,
+              },
+              tokenExpiration: 3600,
+            },
           },
-          status: 200,
         },
-      ),
-    )
+      },
+      config: { cookiePrefix: 'payload' },
+      resetPassword: resetPasswordMock,
+    })
 
     const { POST } = await import('@/app/api/auth/reset-password/route')
 
@@ -351,8 +371,23 @@ describe('auth password and verification routes', () => {
     )
 
     expect(response.status).toBe(200)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(resetPasswordMock).toHaveBeenCalledWith({
+      collection: 'users',
+      data: {
+        password: 'StrongPass123',
+        token: 'reset-token',
+      },
+      overrideAccess: true,
+      req: {
+        headers: expect.any(Headers),
+        url: 'https://example.com/api/auth/reset-password',
+      },
+    })
     expect(response.headers.get('set-cookie')).toContain('payload-token=session-token')
+    expect(response.headers.get('set-cookie')).toContain('Secure')
+    expect(response.headers.get('set-cookie')).toContain('HttpOnly')
+    expect(response.headers.get('set-cookie')).toContain('SameSite=Lax')
     await expect(response.json()).resolves.toMatchObject({
       code: 'password_reset_complete',
       next: '/editor',
@@ -361,21 +396,30 @@ describe('auth password and verification routes', () => {
   })
 
   it('redirects successful reset-password form submissions to login without rendering token errors', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          token: 'session-token',
-          user: { id: 7 },
-        }),
-        {
-          headers: {
-            'content-type': 'application/json',
-            'set-cookie': 'payload-token=session-token; Path=/; HttpOnly',
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValue(new Error('reset-password must not self-fetch'))
+    const resetPasswordMock = vi.fn().mockResolvedValue({
+      token: 'session-token',
+      user: { id: 7 },
+    })
+    getFrontendPayloadMock.mockResolvedValue({
+      collections: {
+        users: {
+          config: {
+            auth: {
+              cookies: {
+                sameSite: 'Lax',
+                secure: false,
+              },
+              tokenExpiration: 3600,
+            },
           },
-          status: 200,
         },
-      ),
-    )
+      },
+      config: { cookiePrefix: 'payload' },
+      resetPassword: resetPasswordMock,
+    })
 
     const { POST } = await import('@/app/api/auth/reset-password/route')
 
@@ -392,11 +436,12 @@ describe('auth password and verification routes', () => {
     )
 
     expect(response.status).toBe(302)
-    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock).not.toHaveBeenCalled()
     expect(response.headers.get('location')).toBe(
       'https://example.com/login?next=%2Feditor&status=password-reset',
     )
     expect(response.headers.get('set-cookie')).toContain('payload-token=session-token')
+    expect(response.headers.get('set-cookie')).toContain('Secure')
   })
 
   it('rejects mismatched reset-password confirmation values on form submissions', async () => {

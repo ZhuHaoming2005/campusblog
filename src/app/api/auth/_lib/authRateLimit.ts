@@ -25,6 +25,11 @@ const RATE_LIMITS: Record<AuthAction, { limit: number; windowMs: number }> = {
 
 const EMAIL_SEND_COOLDOWN_MS = 60 * 1000
 const MIN_KV_EXPIRATION_TTL_SECONDS = 60
+const STORAGE_FAILURE_RETRY_AFTER_SECONDS = 60
+
+function storageUnavailableResult() {
+  return { limited: true, retryAfterSeconds: STORAGE_FAILURE_RETRY_AFTER_SECONDS }
+}
 
 async function sha256(value: string): Promise<string> {
   const bytes = new TextEncoder().encode(value)
@@ -65,7 +70,7 @@ export async function checkAuthRateLimit(args: {
 }) {
   const kv = args.kv ?? (await getAuthKV())
   if (!kv) {
-    return { limited: false, retryAfterSeconds: 0 }
+    return storageUnavailableResult()
   }
 
   try {
@@ -109,7 +114,7 @@ export async function checkAuthRateLimit(args: {
 
     return { limited: false, retryAfterSeconds: 0 }
   } catch {
-    return { limited: false, retryAfterSeconds: 0 }
+    return storageUnavailableResult()
   }
 }
 
@@ -121,7 +126,7 @@ export async function checkAuthCooldown(args: {
 }) {
   const kv = args.kv ?? (await getAuthKV())
   if (!kv) {
-    return { limited: false, retryAfterSeconds: 0 }
+    return storageUnavailableResult()
   }
 
   try {
@@ -144,7 +149,7 @@ export async function checkAuthCooldown(args: {
       retryAfterSeconds: Math.max(1, Math.ceil(remainingMs / 1000)),
     }
   } catch {
-    return { limited: false, retryAfterSeconds: 0 }
+    return storageUnavailableResult()
   }
 }
 

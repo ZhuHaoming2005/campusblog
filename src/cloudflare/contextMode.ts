@@ -90,8 +90,12 @@ export function resolveWranglerPlatformProxyConfigPath(args: {
   isProduction: boolean
   projectDir: string
 }) {
-  if (args.isProduction) return undefined
+  const explicitConfig = args.env?.WRANGLER_CONFIG_PATH
+  if (explicitConfig) return path.resolve(args.projectDir, explicitConfig)
 
-  const selectedConfig = args.env?.WRANGLER_CONFIG_PATH || 'wrangler.dev.jsonc'
-  return path.resolve(args.projectDir, selectedConfig)
+  if (args.isProduction && !(args.isPayloadCLI && args.env?.CLOUDFLARE_ENV === 'dev')) {
+    return undefined
+  }
+
+  return path.resolve(args.projectDir, 'wrangler.dev.jsonc')
 }

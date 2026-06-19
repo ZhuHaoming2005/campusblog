@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang={fallbackLocale}
+      suppressHydrationWarning
       className={`${headlineFont.variable} ${bodyFont.variable} ${labelFont.variable}`}
     >
       <body className="bg-campus-surface font-body text-campus-on-surface antialiased">

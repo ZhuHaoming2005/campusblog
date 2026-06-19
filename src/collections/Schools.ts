@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload'
 
 import { adminOnly, adminOrActive } from '@/access/admin'
 import { buildSlugField } from '@/fields/slug'
+import { cleanupSchoolSubscriptionsBeforeDelete } from '@/collections/Interactions'
 import {
   revalidateSchoolCacheAfterChange,
   revalidateSchoolCacheAfterDelete,
@@ -10,7 +11,7 @@ import {
 export const Schools: CollectionConfig = {
   slug: 'schools',
   admin: {
-    defaultColumns: ['name', 'isActive', 'sortOrder', 'updatedAt'],
+    defaultColumns: ['name', 'city', 'isActive', 'sortOrder', 'updatedAt'],
     useAsTitle: 'name',
   },
   access: {
@@ -20,6 +21,7 @@ export const Schools: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    beforeDelete: [cleanupSchoolSubscriptionsBeforeDelete],
     afterChange: [revalidateSchoolCacheAfterChange],
     afterDelete: [revalidateSchoolCacheAfterDelete],
   },
@@ -36,6 +38,21 @@ export const Schools: CollectionConfig = {
       },
     },
     buildSlugField('name'),
+    {
+      name: 'city',
+      type: 'relationship',
+      relationTo: 'cities',
+      index: true,
+      filterOptions: {
+        isActive: {
+          equals: true,
+        },
+      },
+      admin: {
+        description: 'City used to group schools for nearby recommendations.',
+        position: 'sidebar',
+      },
+    },
     {
       name: 'description',
       type: 'textarea',

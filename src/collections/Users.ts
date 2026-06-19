@@ -10,6 +10,8 @@ import {
   revalidateUserCacheAfterChange,
   revalidateUserCacheAfterDelete,
 } from '@/hooks/revalidateFrontendCache'
+import { validateUserSchool } from '@/hooks/validateUserSchool'
+import { cleanupUserInteractionsBeforeDelete } from '@/collections/Interactions'
 import {
   getAuthEmailSubject,
   readAuthNextPathFromReq,
@@ -19,6 +21,7 @@ import {
 const AUTH_TOKEN_TTL_MS = 1000 * 60 * 60
 const AUTH_LOCK_TIME_MS = 1000 * 60 * 15
 const AUTH_MAX_LOGIN_ATTEMPTS = 5
+const AUTH_COOKIE_SECURE = process.env.NODE_ENV === 'production'
 
 const canReadOwnOrAdmin = ({
   req: { user },
@@ -44,6 +47,10 @@ export const Users: CollectionConfig = {
     useAsTitle: 'displayName',
   },
   auth: {
+    cookies: {
+      sameSite: 'Lax',
+      secure: AUTH_COOKIE_SECURE,
+    },
     forgotPassword: {
       expiration: AUTH_TOKEN_TTL_MS,
       generateEmailHTML: ({ req, token, user }) =>
@@ -80,7 +87,9 @@ export const Users: CollectionConfig = {
     delete: adminOnly,
   },
   hooks: {
+    beforeValidate: [validateUserSchool],
     beforeChange: [preventAdminPasswordChange],
+    beforeDelete: [cleanupUserInteractionsBeforeDelete],
     afterChange: [cleanupDetachedUserMediaAfterChange, revalidateUserCacheAfterChange],
     afterDelete: [cleanupDetachedUserMediaAfterDelete, revalidateUserCacheAfterDelete],
   },
@@ -107,6 +116,21 @@ export const Users: CollectionConfig = {
       relationTo: 'media',
       admin: {
         description: 'Profile image displayed for the user across the site.',
+      },
+    },
+    {
+      name: 'school',
+      type: 'relationship',
+      relationTo: 'schools',
+      index: true,
+      saveToJWT: true,
+      filterOptions: {
+        isActive: {
+          equals: true,
+        },
+      },
+      admin: {
+        description: 'User-selected school used for profile context and recommendations.',
       },
     },
     {

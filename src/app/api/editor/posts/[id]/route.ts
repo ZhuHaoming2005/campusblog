@@ -3,16 +3,22 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../../lib/payloadREST'
 import { resolveCoverImageForQuota } from '../_lib/coverImageQuota'
+import { getEditorPostTagClient } from '../_lib/editorPostTagClient'
+import {
+  EditorPostTagValidationError,
+  resolveEditorPostTagIds,
+} from '../_lib/editorPostTags'
 
 type PostRequestBody = {
   title?: string
   content?: unknown
   school?: string | number
   subChannel?: string | number
-  tags?: (string | number)[]
+  tags?: unknown
   excerpt?: string
   coverImage?: string | number | null
   status?: 'draft' | 'published'
@@ -61,6 +67,9 @@ function formatBytes(value: number, locale: string): string {
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const auth = await requireFrontendAuth({
       headers: request.headers,
@@ -133,11 +142,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       data.coverImage = coverImageId ?? null
     }
 
-    data.tags =
-      tags && Array.isArray(tags) && tags.length > 0
-        ? tags.map((tag) => toNumericId(tag)).filter(Boolean)
-        : []
-
     const projection = await projectQuotaForPostREST({
       candidatePost: {
         content: normalizedContent,
@@ -164,6 +168,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       )
     }
 
+    const tagClient = await getEditorPostTagClient()
+    data.tags = await resolveEditorPostTagIds(tagClient, tags)
+
     const post = await payload.update<PostDoc>('posts', postId, data)
 
     after(() => {
@@ -181,6 +188,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (err instanceof PayloadRESTError && err.status === 404) {
       return Response.json({ error: 'Not found' }, { status: 404 })
     }
+    if (err instanceof EditorPostTagValidationError) {
+      return Response.json({ error: err.message }, { status: 400 })
+    }
 
     const message =
       err instanceof PayloadRESTError
@@ -194,6 +204,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const locale = resolveRequestLocale({
       acceptLanguage: request.headers.get('accept-language'),

@@ -11,27 +11,30 @@ function isRelationDoc<T extends RelationDoc>(value: unknown): value is T {
   return Boolean(value) && typeof value === 'object' && 'id' in (value as RelationDoc)
 }
 
-export function getPostCoverImage(post: Post): Media | null {
+export function getPostCoverImage(post: Pick<Post, 'coverImage'>): Media | null {
   return isRelationDoc<Media>(post.coverImage) ? post.coverImage : null
 }
 
-export function getPostAuthor(post: Post): User | null {
+export function getPostAuthor(post: Pick<Post, 'author'>): User | null {
   return isRelationDoc<User>(post.author) ? post.author : null
 }
 
-export function getPostSchool(post: Post): School | null {
+export function getPostSchool(post: Pick<Post, 'school'>): School | null {
   return isRelationDoc<School>(post.school) ? post.school : null
 }
 
-export function getPostSubChannel(post: Post): SchoolSubChannel | null {
+export function getPostSubChannel(post: Pick<Post, 'subChannel'>): SchoolSubChannel | null {
   return isRelationDoc<SchoolSubChannel>(post.subChannel) ? post.subChannel : null
 }
 
-export function getPostPrimaryTag(post: Post): Tag | null {
-  if (!Array.isArray(post.tags)) return null
+export function getPostPrimaryTag(post: Pick<Post, 'tags'>): Tag | null {
+  return getPostTags(post)[0] ?? null
+}
 
-  const firstTag = post.tags[0]
-  return isRelationDoc<Tag>(firstTag) ? firstTag : null
+export function getPostTags(post: Pick<Post, 'tags'>): Tag[] {
+  if (!Array.isArray(post.tags)) return []
+
+  return post.tags.filter((tag): tag is Tag => isRelationDoc<Tag>(tag))
 }
 
 export function getPostPreviewText(post: Post, maxLength = 220): string {

@@ -2,7 +2,8 @@ import 'server-only'
 
 import { cacheLife, cacheTag } from 'next/cache'
 
-import type { Post, School, SchoolSubChannel, User } from '@/payload-types'
+import type { Comment, Post, School, SchoolSubChannel, User } from '@/payload-types'
+import { toFrontendComment, type FrontendComment } from './commentPresentation'
 import {
   CMS_CONTENT_CACHE_LIFE,
   CMS_STRUCTURE_CACHE_LIFE,
@@ -22,7 +23,16 @@ export const STATIC_PARAMS_PLACEHOLDER_SLUG = '__placeholder__'
 export const STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG = '__placeholder_channel__'
 
 type DiscoverPageData = {
+  nearbyPosts: Post[]
+  preferredCitySchoolIds: Array<number | string>
+  preferredSchoolCityId: number | string | null
+  preferredSchoolId: number | string | null
   posts: Post[]
+}
+
+type PreferredSchoolContext = {
+  cityId: number | string | null
+  schoolId: number | string | null
 }
 
 type SchoolLayoutData = {
@@ -38,6 +48,13 @@ type ChannelPageData = {
   school: School
   channel: SchoolSubChannel
   posts: Post[]
+}
+
+export type PostInteractionState = {
+  bookmarked: boolean
+  followingAuthor: boolean
+  liked: boolean
+  likeCount: number
 }
 
 function shouldSkipCmsQueriesDuringStaticGeneration() {
@@ -59,6 +76,14 @@ function cachePostRelationshipTags(
   if (relationshipTags.length > 0) {
     cacheTag(...relationshipTags)
   }
+}
+
+type RelationValue = number | string | { id?: number | string | null } | null | undefined
+
+function getRelationId(value: RelationValue): number | string | null {
+  if (typeof value === 'number' || typeof value === 'string') return value
+  if (value && (typeof value.id === 'number' || typeof value.id === 'string')) return value.id
+  return null
 }
 
 export async function getActiveSchools() {
@@ -302,9 +327,139 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
   return posts
 }
 
-export async function getDiscoverPageData(): Promise<DiscoverPageData> {
+export async function getUserPreferredSchoolContext(user: User | null): Promise<PreferredSchoolContext> {
+  if (!user?.id || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return { cityId: null, schoolId: null }
+  }
+
+  const payload = await getPayloadClient()
+  const userDoc = await payload.findByID({
+    collection: 'users',
+    depth: 0,
+    id: user.id,
+    overrideAccess: false,
+    select: {
+      school: true,
+    },
+    user,
+  })
+
+  const schoolId = getRelationId((userDoc as { school?: RelationValue }).school)
+  if (!schoolId) return { cityId: null, schoolId: null }
+
+  const schoolResult = await payload.find({
+    collection: 'schools',
+    depth: 0,
+    limit: 1,
+    select: {
+      city: true,
+    },
+    where: {
+      and: [
+        {
+          id: {
+            equals: schoolId,
+          },
+        },
+        {
+          isActive: {
+            equals: true,
+          },
+        },
+      ],
+    },
+  })
+  const school = schoolResult.docs[0] as { city?: RelationValue } | undefined
+
   return {
-    posts: await getPublishedPosts(),
+    cityId: getRelationId(school?.city),
+    schoolId,
+  }
+}
+
+export async function getUserPreferredSchoolId(user: User | null): Promise<number | string | null> {
+  const context = await getUserPreferredSchoolContext(user)
+  return context.schoolId
+}
+
+async function getPreferredCitySchoolIds(context: PreferredSchoolContext) {
+  if (!context.cityId || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'schools',
+    depth: 0,
+    limit: SCHOOL_LIST_LIMIT,
+    pagination: false,
+    where: {
+      and: [
+        {
+          city: {
+            equals: context.cityId,
+          },
+        },
+        {
+          isActive: {
+            equals: true,
+          },
+        },
+      ],
+    },
+  })
+
+  const preferredSchoolKey = context.schoolId == null ? null : String(context.schoolId)
+
+  return (docs as School[])
+    .map((school) => school.id)
+    .filter((schoolId) => String(schoolId) !== preferredSchoolKey)
+}
+
+async function getPublishedPostsBySchoolIds(schoolIds: Array<number | string>) {
+  if (schoolIds.length === 0 || shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'posts',
+    depth: 2,
+    limit: POST_LIST_LIMIT,
+    sort: '-publishedAt',
+    where: {
+      and: [
+        {
+          status: {
+            equals: 'published',
+          },
+        },
+        {
+          school: {
+            in: schoolIds,
+          },
+        },
+      ],
+    },
+  })
+
+  return docs as Post[]
+}
+
+export async function getDiscoverPageData(user: User | null = null): Promise<DiscoverPageData> {
+  const [posts, preferredSchoolContext] = await Promise.all([
+    getPublishedPosts(),
+    getUserPreferredSchoolContext(user),
+  ])
+  const preferredCitySchoolIds = await getPreferredCitySchoolIds(preferredSchoolContext)
+  const nearbyPosts = await getPublishedPostsBySchoolIds(preferredCitySchoolIds)
+
+  return {
+    nearbyPosts,
+    posts,
+    preferredCitySchoolIds,
+    preferredSchoolCityId: preferredSchoolContext.cityId,
+    preferredSchoolId: preferredSchoolContext.schoolId,
   }
 }
 
@@ -317,6 +472,90 @@ export async function getSchoolLayoutData(slug: string): Promise<SchoolLayoutDat
   return {
     school,
     subChannels,
+  }
+}
+
+export async function getPublishedCommentsByPost(postId: number): Promise<FrontendComment[]> {
+  const payload = await getPayloadClient()
+  const { docs } = await payload.find({
+    collection: 'comments',
+    depth: 1,
+    limit: 100,
+    overrideAccess: true,
+    sort: 'createdAt',
+    where: {
+      and: [{ post: { equals: postId } }, { status: { equals: 'published' } }],
+    },
+  })
+
+  return (docs as Comment[]).map(toFrontendComment)
+}
+
+export async function getPostInteractionState(
+  postId: number,
+  authorId: number | string | null,
+  user: User | null,
+): Promise<PostInteractionState> {
+  const payload = await getPayloadClient()
+  const likeCountPromise = payload.find({
+    collection: 'post-likes',
+    depth: 0,
+    limit: 1,
+    overrideAccess: true,
+    where: { post: { equals: postId } },
+  })
+
+  if (!user) {
+    const likeCount = await likeCountPromise
+    return {
+      bookmarked: false,
+      followingAuthor: false,
+      liked: false,
+      likeCount: likeCount.totalDocs,
+    }
+  }
+
+  const [likeCount, like, bookmark, follow] = await Promise.all([
+    likeCountPromise,
+    payload.find({
+      collection: 'post-likes',
+      depth: 0,
+      limit: 1,
+      overrideAccess: false,
+      user,
+      where: {
+        and: [{ user: { equals: user.id } }, { post: { equals: postId } }],
+      },
+    }),
+    payload.find({
+      collection: 'post-bookmarks',
+      depth: 0,
+      limit: 1,
+      overrideAccess: false,
+      user,
+      where: {
+        and: [{ user: { equals: user.id } }, { post: { equals: postId } }],
+      },
+    }),
+    authorId && String(authorId) !== String(user.id)
+      ? payload.find({
+          collection: 'user-follows',
+          depth: 0,
+          limit: 1,
+          overrideAccess: false,
+          user,
+          where: {
+            and: [{ follower: { equals: user.id } }, { following: { equals: authorId } }],
+          },
+        })
+      : Promise.resolve({ docs: [] }),
+  ])
+
+  return {
+    bookmarked: bookmark.docs.length > 0,
+    followingAuthor: follow.docs.length > 0,
+    liked: like.docs.length > 0,
+    likeCount: likeCount.totalDocs,
   }
 }
 

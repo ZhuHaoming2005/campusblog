@@ -3,15 +3,21 @@ import { after } from 'next/server'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { resolveRequestLocale } from '@/app/(frontend)/lib/i18n/locale'
 import { requireFrontendAuth, toAuthFailureResponse } from '@/app/api/auth/_lib/frontendAuth'
+import { rejectCrossSiteStateChangingRequest } from '@/app/api/auth/_lib/stateChangingRequestGuard'
 import { projectQuotaForPostREST } from '@/quota/postQuotaREST'
 import { PayloadRESTError, createPayloadRESTClient } from '../../../../lib/payloadREST'
+import { getEditorPostTagClient } from './_lib/editorPostTagClient'
+import {
+  EditorPostTagValidationError,
+  resolveEditorPostTagIds,
+} from './_lib/editorPostTags'
 
 type PostRequestBody = {
   title?: string
   content?: unknown
   school?: string | number
   subChannel?: string | number
-  tags?: (string | number)[]
+  tags?: unknown
   excerpt?: string
   coverImage?: string | number | null
   status?: 'draft' | 'published'
@@ -55,6 +61,9 @@ function formatBytes(value: number, locale: string): string {
 }
 
 export async function POST(request: Request) {
+  const rejectedRequest = await rejectCrossSiteStateChangingRequest(request)
+  if (rejectedRequest) return rejectedRequest
+
   try {
     const auth = await requireFrontendAuth({
       headers: request.headers,
@@ -115,10 +124,6 @@ export async function POST(request: Request) {
     const coverImageId = toNumericId(coverImage ?? undefined)
     data.coverImage = coverImageId ?? null
 
-    if (tags && Array.isArray(tags) && tags.length > 0) {
-      data.tags = tags.map((tag) => toNumericId(tag)).filter(Boolean)
-    }
-
     const projection = await projectQuotaForPostREST({
       candidatePost: {
         content: normalizedContent,
@@ -141,6 +146,12 @@ export async function POST(request: Request) {
       )
     }
 
+    const tagClient = await getEditorPostTagClient()
+    const resolvedTagIds = await resolveEditorPostTagIds(tagClient, tags)
+    if (resolvedTagIds.length > 0) {
+      data.tags = resolvedTagIds
+    }
+
     const post = await payload.create<PostDoc>('posts', data)
 
     after(() => {
@@ -155,6 +166,10 @@ export async function POST(request: Request) {
       post: { id: post.id, slug: post.slug, status: post.status },
     })
   } catch (err) {
+    if (err instanceof EditorPostTagValidationError) {
+      return Response.json({ error: err.message }, { status: 400 })
+    }
+
     const message =
       err instanceof PayloadRESTError
         ? err.message

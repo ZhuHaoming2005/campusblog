@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 
@@ -66,6 +66,7 @@ describe('user center', () => {
   })
 
   async function renderUserCenterPage(args: {
+    currentUserResult?: Record<string, unknown>
     payloadFindDocs?: Array<{ docs: unknown[] }>
     postUsageBytesMap?: Map<string, number>
     user: Record<string, unknown>
@@ -80,9 +81,13 @@ describe('user center', () => {
     for (const result of args.payloadFindDocs ?? []) {
       payloadFindMock.mockResolvedValueOnce(result)
     }
+    const payloadFindByIDMock = vi.fn().mockResolvedValue(args.currentUserResult ?? args.user)
     const getPostUsageBytesMapMock = vi
       .fn()
       .mockResolvedValue(args.postUsageBytesMap ?? new Map())
+    const userProfileEditorMock = vi.fn((_props: Record<string, unknown>) => (
+      <div data-testid="user-profile-editor" />
+    ))
     const userPostActionsMock = vi.fn(
       ({
         actionLabel,
@@ -120,6 +125,7 @@ describe('user center', () => {
         ...actual,
         getFrontendPayload: vi.fn().mockResolvedValue({
           find: payloadFindMock,
+          findByID: payloadFindByIDMock,
         }),
       }
     })
@@ -137,10 +143,19 @@ describe('user center', () => {
       default: ({ label }: { label: string }) => <button type="button">{label}</button>,
     }))
     vi.doMock('@/components/user/UserProfileEditor', () => ({
-      default: () => <div data-testid="user-profile-editor" />,
+      default: userProfileEditorMock,
     }))
     vi.doMock('@/components/user/UserPostActions', () => ({
       default: userPostActionsMock,
+    }))
+    vi.doMock('@/components/PostFeed', () => ({
+      default: ({ posts }: { posts: Array<{ id: number; title: string }> }) => (
+        <div data-testid="mock-post-feed">
+          {posts.map((post) => (
+            <article key={post.id}>{post.title}</article>
+          ))}
+        </div>
+      ),
     }))
 
     const { UserCenterPageContent } = await import(
@@ -151,13 +166,15 @@ describe('user center', () => {
 
     return {
       getPostUsageBytesMapMock,
+      payloadFindByIDMock,
       payloadFindMock,
       requireFrontendAuthMock,
+      userProfileEditorMock,
       userPostActionsMock,
     }
   }
 
-  it('loads author-side data and renders author controls for verified sessions', async () => {
+  it('loads profile data and renders tabbed content feeds for verified sessions', async () => {
     const verifiedUser: Record<string, unknown> = {
       _verified: true,
       avatar: null,
@@ -166,17 +183,31 @@ describe('user center', () => {
       email: 'writer@example.com',
       id: 1,
       quotaBytes: 4096,
+      school: 999,
       usedBytes: 1536,
     }
-    const { getPostUsageBytesMapMock, payloadFindMock, userPostActionsMock } =
+    const {
+      getPostUsageBytesMapMock,
+      payloadFindByIDMock,
+      payloadFindMock,
+      userProfileEditorMock,
+      userPostActionsMock,
+    } =
       await renderUserCenterPage({
+        currentUserResult: {
+          id: 1,
+          school: 301,
+        },
         payloadFindDocs: [
           {
             docs: [
               {
                 id: 11,
+                school: { id: 301, name: 'North Campus', slug: 'north-campus' },
+                subChannel: { id: 401, name: 'Events', slug: 'events' },
                 title: 'Draft title',
                 status: 'draft',
+                tags: [{ id: 101, name: 'Campus Life', slug: 'campus-life' }],
                 updatedAt: '2026-04-23T00:00:00.000Z',
               },
             ],
@@ -185,15 +216,54 @@ describe('user center', () => {
             docs: [
               {
                 id: 12,
+                school: { id: 302, name: 'South Campus', slug: 'south-campus' },
+                subChannel: { id: 402, name: 'Guides', slug: 'guides' },
                 slug: 'published-title',
                 title: 'Published title',
                 status: 'published',
+                tags: [{ id: 102, name: 'Admissions', slug: 'admissions' }],
                 updatedAt: '2026-04-22T00:00:00.000Z',
               },
             ],
           },
           {
             docs: [],
+          },
+          {
+            docs: [
+              {
+                id: 21,
+                createdAt: '2026-04-21T00:00:00.000Z',
+                post: {
+                  id: 13,
+                  slug: 'liked-title',
+                  title: 'Liked title',
+                  status: 'published',
+                  updatedAt: '2026-04-20T00:00:00.000Z',
+                },
+              },
+            ],
+          },
+          {
+            docs: [
+              {
+                id: 31,
+                createdAt: '2026-04-19T00:00:00.000Z',
+                post: {
+                  id: 14,
+                  slug: 'bookmarked-title',
+                  title: 'Bookmarked title',
+                  status: 'published',
+                  updatedAt: '2026-04-18T00:00:00.000Z',
+                },
+              },
+            ],
+          },
+          {
+            docs: [
+              { id: 301, name: 'North Campus', slug: 'north-campus' },
+              { id: 302, name: 'South Campus', slug: 'south-campus' },
+            ],
           },
         ],
         postUsageBytesMap: new Map([
@@ -207,13 +277,56 @@ describe('user center', () => {
     expect(screen.getByTestId('user-profile-editor')).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.profileCardTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.quotaCardTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.myArticlesTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.likedTitle)).toBeTruthy()
+    expect(screen.getByText(dictionary.userCenter.bookmarkedTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.draftsTitle)).toBeTruthy()
     expect(screen.getByText(dictionary.userCenter.publishedTitle)).toBeTruthy()
     expect(screen.getByText('Draft title')).toBeTruthy()
     expect(screen.getByText('Published title')).toBeTruthy()
+    expect(screen.getByText('Campus Life')).toBeTruthy()
+    expect(screen.getByText('Admissions')).toBeTruthy()
+    const userPostTagRows = screen.getAllByTestId('user-post-card-tags')
+    const draftTagRowText = userPostTagRows[0]?.textContent ?? ''
+    const publishedTagRowText = userPostTagRows[1]?.textContent ?? ''
+
+    expect(userPostTagRows).toHaveLength(2)
+    expect(draftTagRowText.indexOf('North Campus')).toBeLessThan(
+      draftTagRowText.indexOf('Events'),
+    )
+    expect(draftTagRowText.indexOf('Events')).toBeLessThan(
+      draftTagRowText.indexOf('Campus Life'),
+    )
+    expect(publishedTagRowText.indexOf('South Campus')).toBeLessThan(
+      publishedTagRowText.indexOf('Guides'),
+    )
+    expect(publishedTagRowText.indexOf('Guides')).toBeLessThan(
+      publishedTagRowText.indexOf('Admissions'),
+    )
     expect(screen.getAllByTestId('row-post-actions')).toHaveLength(2)
-    expect(payloadFindMock).toHaveBeenCalledTimes(3)
+    fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.likedTitle }))
+    expect(screen.getByText('Liked title')).toBeTruthy()
+    fireEvent.click(screen.getByRole('tab', { name: dictionary.userCenter.bookmarkedTitle }))
+    expect(screen.getByText('Bookmarked title')).toBeTruthy()
+    expect(payloadFindMock).toHaveBeenCalledTimes(6)
+    expect(payloadFindByIDMock).toHaveBeenCalledWith({
+      collection: 'users',
+      depth: 0,
+      id: 1,
+      overrideAccess: false,
+      select: {
+        school: true,
+      },
+      user: verifiedUser,
+    })
     expect(getPostUsageBytesMapMock).toHaveBeenCalledTimes(1)
+    expect(userProfileEditorMock.mock.calls[0]?.[0]).toMatchObject({
+      schoolId: 301,
+      schoolOptions: [
+        { id: 301, name: 'North Campus' },
+        { id: 302, name: 'South Campus' },
+      ],
+    })
     expect(userPostActionsMock).toHaveBeenCalledTimes(2)
     expect(payloadFindMock).toHaveBeenNthCalledWith(
       1,
@@ -237,6 +350,32 @@ describe('user center', () => {
         collection: 'posts',
         overrideAccess: false,
         user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        collection: 'post-likes',
+        depth: 2,
+        overrideAccess: false,
+        user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      5,
+      expect.objectContaining({
+        collection: 'post-bookmarks',
+        depth: 2,
+        overrideAccess: false,
+        user: verifiedUser,
+      }),
+    )
+    expect(payloadFindMock).toHaveBeenNthCalledWith(
+      6,
+      expect.objectContaining({
+        collection: 'schools',
+        depth: 0,
+        where: { isActive: { equals: true } },
       }),
     )
   })

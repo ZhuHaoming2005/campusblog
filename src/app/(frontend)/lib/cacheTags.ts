@@ -4,6 +4,12 @@ export const CMS_CONTENT_CACHE_LIFE = {
   expire: 86400,
 } as const
 
+export const CMS_SEARCH_CACHE_LIFE = {
+  stale: 30,
+  revalidate: 300,
+  expire: 900,
+} as const
+
 export const CMS_STRUCTURE_CACHE_LIFE = {
   stale: 300,
   revalidate: 3600,
@@ -11,8 +17,10 @@ export const CMS_STRUCTURE_CACHE_LIFE = {
 } as const
 
 export const POST_LIST_CACHE_TAG = 'posts:list'
+export const CITIES_CACHE_TAG = 'cities'
 export const SCHOOLS_CACHE_TAG = 'schools'
 export const SCHOOL_SUB_CHANNELS_CACHE_TAG = 'school-sub-channels'
+export const TAGS_CACHE_TAG = 'tags'
 export const NEXT_CUSTOM_CACHE_TAG_LIMIT = 128
 export const RELATIONSHIP_CACHE_TAG_BUDGET = NEXT_CUSTOM_CACHE_TAG_LIMIT - 1
 
@@ -136,7 +144,7 @@ export function getPostRelationshipCacheTags(
   posts: PostRelationshipCacheReference | PostRelationshipCacheReference[] | null | undefined,
   options: PostRelationshipCacheTagOptions = {},
 ) {
-  const { includeAllPostTags = false, maxTags = RELATIONSHIP_CACHE_TAG_BUDGET } = options
+  const { includeAllPostTags = true, maxTags = RELATIONSHIP_CACHE_TAG_BUDGET } = options
   const postList = Array.isArray(posts) ? posts : posts ? [posts] : []
   const tags: string[] = []
 

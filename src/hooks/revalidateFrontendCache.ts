@@ -2,9 +2,11 @@ import { revalidateTag } from 'next/cache'
 import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from 'payload'
 
 import {
+  CITIES_CACHE_TAG,
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
+  TAGS_CACHE_TAG,
   authorCacheTag,
   getPostRevalidationTags,
   mediaCacheTag,
@@ -14,6 +16,8 @@ import {
   schoolSubChannelCacheTag,
   tagCacheTag,
 } from '@/app/(frontend)/lib/cacheTags'
+
+const IMMEDIATE_REVALIDATION_PROFILE = { expire: 0 } as const
 
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
@@ -48,7 +52,7 @@ function getDocumentId(doc?: DocumentWithId | null) {
 function revalidateTags(tags: string[]) {
   for (const tag of tags) {
     try {
-      revalidateTag(tag, 'max')
+      revalidateTag(tag, IMMEDIATE_REVALIDATION_PROFILE)
     } catch (error) {
       console.warn('Unable to revalidate frontend cache tag.', {
         error: error instanceof Error ? error.message : error,
@@ -92,6 +96,10 @@ export function getSchoolCacheInvalidationTags(
   return [...new Set(tags)]
 }
 
+export function getCityCacheInvalidationTags() {
+  return [CITIES_CACHE_TAG, SCHOOLS_CACHE_TAG, POST_LIST_CACHE_TAG]
+}
+
 export function getSchoolSubChannelCacheInvalidationTags(
   current?: SchoolSubChannelCacheDoc | null,
   previous?: SchoolSubChannelCacheDoc | null,
@@ -117,7 +125,7 @@ export function getTagCacheInvalidationTags(
   current?: DocumentWithId | null,
   previous?: DocumentWithId | null,
 ) {
-  const tags = [POST_LIST_CACHE_TAG]
+  const tags: string[] = [TAGS_CACHE_TAG]
 
   for (const doc of [current, previous]) {
     const tagId = getDocumentId(doc)
@@ -131,7 +139,7 @@ export function getMediaCacheInvalidationTags(
   current?: DocumentWithId | null,
   previous?: DocumentWithId | null,
 ) {
-  const tags = [POST_LIST_CACHE_TAG]
+  const tags: string[] = []
 
   for (const doc of [current, previous]) {
     const mediaId = getDocumentId(doc)
@@ -145,7 +153,7 @@ export function getUserCacheInvalidationTags(
   current?: UserCacheDoc | null,
   previous?: UserCacheDoc | null,
 ) {
-  const tags = [POST_LIST_CACHE_TAG]
+  const tags: string[] = []
 
   for (const doc of [current, previous]) {
     const userId = getDocumentId(doc)
@@ -180,6 +188,16 @@ export const revalidateSchoolCacheAfterChange: CollectionAfterChangeHook = async
 
 export const revalidateSchoolCacheAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
   revalidateTags(getSchoolCacheInvalidationTags(doc as DocumentWithId | null))
+  return doc
+}
+
+export const revalidateCityCacheAfterChange: CollectionAfterChangeHook = async ({ doc }) => {
+  revalidateTags(getCityCacheInvalidationTags())
+  return doc
+}
+
+export const revalidateCityCacheAfterDelete: CollectionAfterDeleteHook = async ({ doc }) => {
+  revalidateTags(getCityCacheInvalidationTags())
   return doc
 }
 

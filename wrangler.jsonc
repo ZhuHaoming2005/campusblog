@@ -40,13 +40,6 @@
       "binding": "D1",
       "database_name": "campusblog",
       "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
-      "remote": true,
-    },
-    {
-      "binding": "NEXT_TAG_CACHE_D1",
-      "database_name": "campusblog",
-      "database_id": "57bf555a-437c-4e22-b382-d7bf2b0c6883",
-      "remote": true,
     },
   ],
   "services": [
@@ -61,12 +54,28 @@
         "name": "NEXT_CACHE_DO_QUEUE",
         "class_name": "DOQueueHandler",
       },
+      {
+        "name": "NEXT_TAG_CACHE_DO_SHARDED",
+        "class_name": "DOShardedTagCache",
+      },
+      {
+        "name": "NEXT_CACHE_DO_PURGE",
+        "class_name": "BucketCachePurge",
+      },
     ],
   },
   "migrations": [
     {
       "tag": "v1",
       "new_sqlite_classes": ["DOQueueHandler"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["DOShardedTagCache"],
+    },
+    {
+      "tag": "v3",
+      "new_sqlite_classes": ["BucketCachePurge"],
     },
   ],
   "r2_buckets": [
@@ -91,7 +100,6 @@
     {
       "name": "EMAIL",
       "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
-      "remote": true,
     },
   ],
   "observability": {
@@ -125,13 +133,6 @@
           "binding": "D1",
           "database_name": "campusblog-dev",
           "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
-          "remote": true,
-        },
-        {
-          "binding": "NEXT_TAG_CACHE_D1",
-          "database_name": "campusblog-dev",
-          "database_id": "27c28a9b-e30c-40be-851b-a45b2d452242",
-          "remote": true,
         },
       ],
       "services": [
@@ -146,12 +147,28 @@
             "name": "NEXT_CACHE_DO_QUEUE",
             "class_name": "DOQueueHandler",
           },
+          {
+            "name": "NEXT_TAG_CACHE_DO_SHARDED",
+            "class_name": "DOShardedTagCache",
+          },
+          {
+            "name": "NEXT_CACHE_DO_PURGE",
+            "class_name": "BucketCachePurge",
+          },
         ],
       },
       "migrations": [
         {
           "tag": "v1",
           "new_sqlite_classes": ["DOQueueHandler"],
+        },
+        {
+          "tag": "v2",
+          "new_sqlite_classes": ["DOShardedTagCache"],
+        },
+        {
+          "tag": "v3",
+          "new_sqlite_classes": ["BucketCachePurge"],
         },
       ],
       "r2_buckets": [
@@ -176,7 +193,6 @@
         {
           "name": "EMAIL",
           "allowed_sender_addresses": ["noreply@mail.campusblog.net"],
-          "remote": true,
         },
       ],
     },

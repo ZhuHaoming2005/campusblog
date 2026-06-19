@@ -6,6 +6,7 @@ import { IconCamera, IconLoader2 } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import SchoolSearchSelect from '@/components/school/SchoolSearchSelect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,10 +28,19 @@ type UserProfileEditorProps = {
     profileSaved: string
     resetPassword: string
     saveProfile: string
+    schoolLabel: string
+    schoolNone: string
+    schoolSearchEmpty?: string
+    schoolSearchPlaceholder: string
     savingProfile: string
   }
   displayName: string
   email: string
+  schoolId?: number | string | null
+  schoolOptions?: Array<{
+    id: number | string
+    name: string
+  }>
   userId: number | string
 }
 
@@ -58,11 +68,14 @@ export default function UserProfileEditor({
   copy,
   displayName,
   email,
+  schoolId,
+  schoolOptions = [],
   userId,
 }: UserProfileEditorProps) {
   const router = useRouter()
   const [nextDisplayName, setNextDisplayName] = useState(displayName)
   const [nextBio, setNextBio] = useState(bio ?? '')
+  const [nextSchoolId, setNextSchoolId] = useState(schoolId == null ? '' : String(schoolId))
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -108,6 +121,9 @@ export default function UserProfileEditor({
         avatarId = media.id
       }
 
+      const selectedSchool = schoolOptions.find((school) => String(school.id) === nextSchoolId)
+      const nextSchoolValue = nextSchoolId ? (selectedSchool?.id ?? nextSchoolId) : null
+
       const updateResponse = await fetch(`/api/users/${encodeURIComponent(String(userId))}`, {
         method: 'PATCH',
         headers: {
@@ -116,6 +132,7 @@ export default function UserProfileEditor({
         body: JSON.stringify({
           displayName: trimmedDisplayName,
           bio: nextBio.trim(),
+          school: nextSchoolValue,
           ...(avatarId ? { avatar: avatarId } : {}),
         }),
       })
@@ -186,6 +203,21 @@ export default function UserProfileEditor({
             <Label className="font-label text-sm text-foreground/70">{copy.emailLabel}</Label>
             <Input value={email} disabled className="h-11 rounded-xl border-campus-border-soft bg-campus-panel-soft text-foreground/55" />
           </div>
+
+          <SchoolSearchSelect
+            id="profile-school"
+            label={copy.schoolLabel}
+            options={schoolOptions}
+            value={nextSchoolId}
+            onValueChange={(value) => {
+              setNextSchoolId(value)
+              setSuccess('')
+            }}
+            placeholder={copy.schoolNone}
+            searchPlaceholder={copy.schoolSearchPlaceholder}
+            emptyOptionLabel={copy.schoolNone}
+            emptyResultsLabel={copy.schoolSearchEmpty}
+          />
 
           <div className="space-y-2">
             <Label className="font-label text-sm text-foreground/70">{copy.bioLabel}</Label>

@@ -8,6 +8,8 @@ import type { JSONContent } from '@tiptap/core'
 
 import type { Post } from '@/payload-types'
 import { TiptapReadOnly } from '@/components/editor/TiptapReadOnly'
+import { PostComments } from '@/components/interactions/PostComments'
+import { PostInteractionBar } from '@/components/interactions/PostInteractionBar'
 import PostBackButton from '@/components/PostBackButton'
 import PostFeed from '@/components/PostFeed'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -20,6 +22,8 @@ import {
   getPublishedPosts,
   getPublishedPostsBySchool,
   getPublishedPostsBySchoolAndChannel,
+  getPostInteractionState,
+  getPublishedCommentsByPost,
   getVisiblePostBySlug,
 } from '@/lib/cmsData'
 import { getFrontendRequestContext } from '@/lib/requestContext'
@@ -27,10 +31,10 @@ import {
   estimatePostReadingMinutes,
   getPostAuthor,
   getPostPreviewText,
-  getPostPrimaryTag,
   getPostPublishedLabel,
   getPostSchool,
   getPostSubChannel,
+  getPostTags,
 } from '@/lib/postPresentation'
 
 function dedupePosts(posts: Post[]): Post[] {
@@ -98,11 +102,17 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
     notFound()
   }
 
-  const relatedPosts = await getRelatedPosts(post)
   const school = getPostSchool(post)
   const channel = getPostSubChannel(post)
   const author = getPostAuthor(post)
-  const primaryTag = getPostPrimaryTag(post)
+  const authorId =
+    author?.id ?? (typeof post.author === 'number' || typeof post.author === 'string' ? post.author : null)
+  const [relatedPosts, comments, interactionState] = await Promise.all([
+    getRelatedPosts(post),
+    getPublishedCommentsByPost(post.id),
+    getPostInteractionState(post.id, authorId, currentUser),
+  ])
+  const postTags = getPostTags(post)
   const publishedLabel = getPostPublishedLabel(post.publishedAt ?? post.createdAt, locale)
   const readingMinutes = estimatePostReadingMinutes(post)
   const backHref = channel
@@ -153,12 +163,7 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
         <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-6">
             <header className="rounded-[2rem] border border-campus-border-soft/80 bg-gradient-to-br from-campus-panel via-campus-panel-soft/55 to-campus-page p-6 shadow-[0_18px_44px_rgba(27,75,122,0.05)] sm:p-8">
-              <div className="flex flex-wrap gap-2">
-                {primaryTag ? (
-                  <Badge className="bg-campus-primary text-white hover:bg-campus-primary">
-                    {primaryTag.name}
-                  </Badge>
-                ) : null}
+              <div data-testid="post-detail-tags" className="flex flex-wrap gap-2">
                 {school ? (
                   <Badge
                     variant="secondary"
@@ -175,6 +180,14 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                     {channel.name}
                   </Badge>
                 ) : null}
+                {postTags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    className="bg-campus-primary text-white hover:bg-campus-primary"
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
               </div>
 
               <h1 className="mt-5 font-headline text-4xl leading-tight text-campus-primary sm:text-5xl">
@@ -205,17 +218,40 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3 font-label text-sm text-campus-text-soft">
-                  {publishedLabel ? (
+                <div
+                  data-testid="post-detail-meta-actions"
+                  className="flex flex-col gap-2 lg:items-end"
+                >
+                  <div
+                    data-testid="post-detail-metadata"
+                    className="flex flex-wrap gap-3 font-label text-sm text-campus-text-soft lg:justify-end"
+                  >
+                    {publishedLabel ? (
+                      <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
+                        <IconMapPin size={16} />
+                        {t.post.published}: {publishedLabel}
+                      </span>
+                    ) : null}
                     <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
-                      <IconMapPin size={16} />
-                      {t.post.published}: {publishedLabel}
+                      <IconClockHour4 size={16} />
+                      {readingMinutes} {t.post.readTime}
                     </span>
-                  ) : null}
-                  <span className="inline-flex items-center gap-2 rounded-full border border-campus-border-soft/80 bg-campus-panel-strong px-4 py-2">
-                    <IconClockHour4 size={16} />
-                    {readingMinutes} {t.post.readTime}
-                  </span>
+                  </div>
+
+                  <PostInteractionBar
+                    authorId={authorId}
+                    initialState={interactionState}
+                    labels={{
+                      bookmark: t.post.bookmark,
+                      bookmarked: t.post.bookmarked,
+                      follow: t.post.followAuthor,
+                      following: t.post.followingAuthor,
+                      like: t.post.like,
+                      liked: t.post.liked,
+                    }}
+                    postId={post.id}
+                    viewerId={currentUser?.id}
+                  />
                 </div>
               </div>
             </header>
@@ -229,6 +265,23 @@ async function PostDetailPageContent({ params }: { params: Promise<{ slug: strin
                 loadingClassName="article-prose"
               />
             </section>
+
+            <PostComments
+              canComment={currentUser?._verified === true && currentUser.isActive === true}
+              initialComments={comments}
+              labels={{
+                anonymous: t.common.anonymous,
+                authRequired: t.post.commentAuthRequired,
+                empty: t.post.commentEmpty,
+                error: t.post.commentError,
+                placeholder: t.post.commentPlaceholder,
+                submit: t.post.commentSubmit,
+                submitting: t.post.commentSubmitting,
+                title: t.post.comments,
+              }}
+              locale={locale}
+              postId={post.id}
+            />
           </div>
 
           <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">

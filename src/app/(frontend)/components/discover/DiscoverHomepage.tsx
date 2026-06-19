@@ -9,15 +9,31 @@ import DiscoverExperience from './DiscoverExperience'
 import DiscoverHero from './DiscoverHero'
 
 type DiscoverHomepageProps = {
+  nearbyPosts?: Post[]
   posts: Post[]
   locale: AppLocale
+  preferredCitySchoolIds?: Array<number | string>
+  preferredSchoolCityId?: number | string | null
+  preferredSchoolId?: number | string | null
   t: FrontendDictionary
 }
 
-export default function DiscoverHomepage({ posts, locale, t }: DiscoverHomepageProps) {
+export default function DiscoverHomepage({
+  nearbyPosts,
+  posts,
+  locale,
+  preferredCitySchoolIds,
+  preferredSchoolCityId,
+  preferredSchoolId,
+  t,
+}: DiscoverHomepageProps) {
   const data = buildDiscoverHomeData({
+    nearbyPosts,
     posts,
     copy: t.discoverHome,
+    preferredCitySchoolIds,
+    preferredSchoolCityId,
+    preferredSchoolId,
   })
 
   return (
@@ -28,7 +44,7 @@ export default function DiscoverHomepage({ posts, locale, t }: DiscoverHomepageP
       <div data-testid="discover-homepage-content" className="w-full space-y-6">
         <div
           data-testid="discover-top-search-shell"
-          className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]"
+          className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_13rem]"
         >
           <div data-testid="discover-top-search-slot" className="flex justify-center">
             <SearchBar

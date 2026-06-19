@@ -23,7 +23,7 @@ export default function DiscoverExperience({ data, locale, copy }: DiscoverExper
 
   return (
     <>
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_15rem]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_13rem]">
         <div className="space-y-4">
           <div
             data-testid="discover-tabs-sticky"
@@ -48,7 +48,9 @@ export default function DiscoverExperience({ data, locale, copy }: DiscoverExper
             />
           ) : (
             <section className="rounded-[1.75rem] border border-dashed border-campus-primary/16 p-10 text-center shadow-sm">
-              <h3 className="font-headline text-2xl text-campus-primary">{copy.empty.filteredTitle}</h3>
+              <h3 className="font-headline text-2xl text-campus-primary">
+                {copy.empty.filteredTitle}
+              </h3>
               <p className="mt-2 text-sm leading-7 text-foreground/62">{copy.empty.filteredHint}</p>
             </section>
           )}
