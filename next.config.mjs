@@ -13,12 +13,7 @@ const devWranglerConfigPath = path.resolve(__dirname, 'wrangler.dev.jsonc')
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  cacheComponents: true,
-  experimental: {
-    // Cloudflare Workers caps zlib maxOutputLength at 128 MB. Next defaults to
-    // 100 MB compressed / 500 MB decompressed postponed state, which exceeds it.
-    maxPostponedStateSize: '16 MB',
-  },
+  cacheComponents: false,
   images: {
     localPatterns: [
       {

@@ -125,7 +125,7 @@ export function getTagCacheInvalidationTags(
   current?: DocumentWithId | null,
   previous?: DocumentWithId | null,
 ) {
-  const tags: string[] = [TAGS_CACHE_TAG]
+  const tags: string[] = [TAGS_CACHE_TAG, POST_LIST_CACHE_TAG]
 
   for (const doc of [current, previous]) {
     const tagId = getDocumentId(doc)
@@ -139,7 +139,7 @@ export function getMediaCacheInvalidationTags(
   current?: DocumentWithId | null,
   previous?: DocumentWithId | null,
 ) {
-  const tags: string[] = []
+  const tags: string[] = [POST_LIST_CACHE_TAG]
 
   for (const doc of [current, previous]) {
     const mediaId = getDocumentId(doc)
@@ -153,7 +153,7 @@ export function getUserCacheInvalidationTags(
   current?: UserCacheDoc | null,
   previous?: UserCacheDoc | null,
 ) {
-  const tags: string[] = []
+  const tags: string[] = [POST_LIST_CACHE_TAG]
 
   for (const doc of [current, previous]) {
     const userId = getDocumentId(doc)

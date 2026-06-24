@@ -1,7 +1,7 @@
 import { revalidateTag } from 'next/cache'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { TAGS_CACHE_TAG, postCacheTag } from '@/lib/cacheTags'
+import { POST_LIST_CACHE_TAG, TAGS_CACHE_TAG, postCacheTag } from '@/lib/cacheTags'
 
 vi.mock('next/cache', () => ({
   revalidateTag: vi.fn(),
@@ -69,14 +69,18 @@ describe('frontend cache invalidation hooks', () => {
   })
 
   it('invalidates post caches that embedded tags or media', () => {
-    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual([TAGS_CACHE_TAG, 'tag:78'])
-    expect(getMediaCacheInvalidationTags({ id: 56 })).toEqual(['media:56'])
+    expect(getTagCacheInvalidationTags({ id: 78 })).toEqual([
+      TAGS_CACHE_TAG,
+      POST_LIST_CACHE_TAG,
+      'tag:78',
+    ])
+    expect(getMediaCacheInvalidationTags({ id: 56 })).toEqual([POST_LIST_CACHE_TAG, 'media:56'])
   })
 
   it('invalidates post caches that embedded author profiles or avatars', () => {
     expect(
       getUserCacheInvalidationTags({ id: 98, avatar: { id: 56 } }, { id: 98, avatar: { id: 57 } }),
-    ).toEqual(['author:98', 'media:56', 'media:57'])
+    ).toEqual([POST_LIST_CACHE_TAG, 'author:98', 'media:56', 'media:57'])
   })
 
   it('runs tag and media cache invalidation hooks without failing the mutation', async () => {
@@ -88,6 +92,7 @@ describe('frontend cache invalidation hooks', () => {
       mediaDoc,
     )
     expect(revalidateTag).toHaveBeenCalledWith(TAGS_CACHE_TAG, { expire: 0 })
+    expect(revalidateTag).toHaveBeenCalledWith(POST_LIST_CACHE_TAG, { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('tag:78', { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('media:56', { expire: 0 })
   })
@@ -96,6 +101,7 @@ describe('frontend cache invalidation hooks', () => {
     const userDoc = { id: 98, avatar: { id: 56 } }
 
     await expect(revalidateUserCacheAfterChange({ doc: userDoc } as never)).resolves.toBe(userDoc)
+    expect(revalidateTag).toHaveBeenCalledWith(POST_LIST_CACHE_TAG, { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('author:98', { expire: 0 })
     expect(revalidateTag).toHaveBeenCalledWith('media:56', { expire: 0 })
   })
