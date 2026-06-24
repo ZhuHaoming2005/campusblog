@@ -1,15 +1,35 @@
-import { cacheTag } from 'next/cache'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const findMock = vi.fn()
 const findByIDMock = vi.fn()
 const getFrontendPayloadMock = vi.fn()
+const { cacheTagMock, unstableCacheMock } = vi.hoisted(() => {
+  const cacheTagMock = vi.fn()
+
+  return {
+    cacheTagMock,
+    unstableCacheMock: vi.fn(
+      <T extends (...args: never[]) => Promise<unknown>>(
+        callback: T,
+        _keyParts?: string[],
+        options?: { tags?: string[] },
+      ) => {
+        if (options?.tags?.length) {
+          cacheTagMock(...options.tags)
+        }
+
+        return callback
+      },
+    ),
+  }
+})
 
 vi.mock('server-only', () => ({}))
 
 vi.mock('next/cache', () => ({
   cacheLife: vi.fn(),
-  cacheTag: vi.fn(),
+  cacheTag: cacheTagMock,
+  unstable_cache: unstableCacheMock,
 }))
 
 vi.mock('@/lib/frontendSession', () => ({
@@ -21,7 +41,8 @@ describe('getVisiblePostBySlug', () => {
     vi.resetModules()
     findMock.mockReset()
     findByIDMock.mockReset()
-    vi.mocked(cacheTag).mockReset()
+    cacheTagMock.mockReset()
+    unstableCacheMock.mockClear()
     getFrontendPayloadMock.mockReset()
     getFrontendPayloadMock.mockResolvedValue({ find: findMock, findByID: findByIDMock })
   })
@@ -268,7 +289,7 @@ describe('getVisiblePostBySlug', () => {
     expect(serializedPosts).not.toContain('content')
   })
 
-  it('tags same-city school and post queries for cache invalidation', async () => {
+  it('tags discover post queries for cache invalidation', async () => {
     findMock.mockResolvedValueOnce({ docs: [] })
     findMock.mockResolvedValueOnce({ docs: [{ id: 10, city: 99 }] })
     findMock.mockResolvedValueOnce({ docs: [{ id: 10 }, { id: 11 }, { id: 12 }] })
@@ -279,11 +300,9 @@ describe('getVisiblePostBySlug', () => {
 
     await getDiscoverPageData({ id: 42 } as never)
 
-    const calls = vi.mocked(cacheTag).mock.calls.flat()
+    const calls = cacheTagMock.mock.calls.flat()
     expect(calls).toContain('schools')
     expect(calls).toContain('posts:list')
-    expect(calls).toContain('posts:school:11')
-    expect(calls).toContain('posts:school:12')
   })
 })
 

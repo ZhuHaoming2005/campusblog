@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React from 'react'
 import type { Viewport } from 'next'
 import { connection } from 'next/server'
 
@@ -47,9 +47,5 @@ async function SiteLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-campus-surface" aria-hidden="true" />}>
-      <SiteLayoutContent>{children}</SiteLayoutContent>
-    </Suspense>
-  )
+  return <SiteLayoutContent>{children}</SiteLayoutContent>
 }

@@ -1,6 +1,7 @@
 ﻿import type { AppLocale } from '@/app/(frontend)/lib/i18n/config'
 import type { FrontendDictionary } from '@/app/(frontend)/lib/i18n/dictionaries'
 import { buildDiscoverHomeData } from '@/app/(frontend)/lib/discoverPresentation'
+import type { PostFeedItem } from '@/app/(frontend)/lib/postFeedData'
 import type { Post } from '@/payload-types'
 
 import SearchBar from '@/components/layout/SearchBar'
@@ -9,8 +10,8 @@ import DiscoverExperience from './DiscoverExperience'
 import DiscoverHero from './DiscoverHero'
 
 type DiscoverHomepageProps = {
-  nearbyPosts?: Post[]
-  posts: Post[]
+  nearbyPosts?: Array<Post | PostFeedItem>
+  posts: Array<Post | PostFeedItem>
   locale: AppLocale
   preferredCitySchoolIds?: Array<number | string>
   preferredSchoolCityId?: number | string | null

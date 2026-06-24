@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { getCurrentFrontendUser } from '@/lib/frontendSession'
 import { DEFAULT_LOCALE } from '@/lib/i18n/config'
 import { getDictionary } from '@/lib/i18n/dictionaries'
+import type { PostFeedItem } from '@/lib/postFeedData'
 import {
   getPublishedPostBySlug,
   getPublishedPosts,
@@ -37,8 +38,8 @@ import {
   getPostTags,
 } from '@/lib/postPresentation'
 
-function dedupePosts(posts: Post[]): Post[] {
-  const seen = new Set<number>()
+function dedupePosts(posts: PostFeedItem[]): PostFeedItem[] {
+  const seen = new Set<number | string>()
 
   return posts.filter((post) => {
     if (seen.has(post.id)) return false
@@ -50,7 +51,7 @@ function dedupePosts(posts: Post[]): Post[] {
 async function getRelatedPosts(post: Post) {
   const school = getPostSchool(post)
   const channel = getPostSubChannel(post)
-  const candidates: Post[] = []
+  const candidates: PostFeedItem[] = []
 
   if (school && channel) {
     candidates.push(...(await getPublishedPostsBySchoolAndChannel(school.id, channel.id)))

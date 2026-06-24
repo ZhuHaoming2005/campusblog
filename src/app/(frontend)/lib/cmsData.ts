@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { cacheLife, cacheTag } from 'next/cache'
+import { unstable_cache } from 'next/cache'
 
 import type { Comment, Post, School, SchoolSubChannel, User } from '@/payload-types'
 import { toFrontendComment, type FrontendComment } from './commentPresentation'
@@ -10,12 +10,12 @@ import {
   POST_LIST_CACHE_TAG,
   SCHOOL_SUB_CHANNELS_CACHE_TAG,
   SCHOOLS_CACHE_TAG,
-  getPostRelationshipCacheTags,
   postCacheTag,
   postsBySchoolCacheTag,
   postsBySchoolChannelCacheTag,
 } from './cacheTags'
 import { getFrontendPayload } from './frontendSession'
+import { POST_FEED_SELECT, toPostFeedItems, type PostFeedItem } from './postFeedData'
 
 const POST_LIST_LIMIT = 20
 const SCHOOL_LIST_LIMIT = 50
@@ -23,11 +23,11 @@ export const STATIC_PARAMS_PLACEHOLDER_SLUG = '__placeholder__'
 export const STATIC_PARAMS_PLACEHOLDER_CHANNEL_SLUG = '__placeholder_channel__'
 
 type DiscoverPageData = {
-  nearbyPosts: Post[]
+  nearbyPosts: PostFeedItem[]
   preferredCitySchoolIds: Array<number | string>
   preferredSchoolCityId: number | string | null
   preferredSchoolId: number | string | null
-  posts: Post[]
+  posts: PostFeedItem[]
 }
 
 type PreferredSchoolContext = {
@@ -41,13 +41,13 @@ type SchoolLayoutData = {
 }
 
 type SchoolPageData = SchoolLayoutData & {
-  posts: Post[]
+  posts: PostFeedItem[]
 }
 
 type ChannelPageData = {
   school: School
   channel: SchoolSubChannel
-  posts: Post[]
+  posts: PostFeedItem[]
 }
 
 export type PostInteractionState = {
@@ -68,16 +68,6 @@ async function getPayloadClient() {
   return getFrontendPayload()
 }
 
-function cachePostRelationshipTags(
-  posts: Post | Post[] | null,
-  options?: Parameters<typeof getPostRelationshipCacheTags>[1],
-) {
-  const relationshipTags = getPostRelationshipCacheTags(posts, options)
-  if (relationshipTags.length > 0) {
-    cacheTag(...relationshipTags)
-  }
-}
-
 type RelationValue = number | string | { id?: number | string | null } | null | undefined
 
 function getRelationId(value: RelationValue): number | string | null {
@@ -86,16 +76,7 @@ function getRelationId(value: RelationValue): number | string | null {
   return null
 }
 
-export async function getActiveSchools() {
-  'use cache'
-
-  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
-  cacheTag(SCHOOLS_CACHE_TAG)
-
-  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return []
-  }
-
+async function readActiveSchools() {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'schools',
@@ -108,16 +89,20 @@ export async function getActiveSchools() {
   return docs as School[]
 }
 
-export async function getSchoolBySlug(slug: string) {
-  'use cache'
+const getActiveSchoolsCached = unstable_cache(readActiveSchools, ['active-schools'], {
+  revalidate: CMS_STRUCTURE_CACHE_LIFE.revalidate,
+  tags: [SCHOOLS_CACHE_TAG],
+})
 
-  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
-  cacheTag(SCHOOLS_CACHE_TAG)
-
+export async function getActiveSchools() {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return null
+    return []
   }
 
+  return getActiveSchoolsCached()
+}
+
+async function readSchoolBySlug(slug: string) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'schools',
@@ -131,16 +116,20 @@ export async function getSchoolBySlug(slug: string) {
   return (docs[0] as School | undefined) ?? null
 }
 
-export async function getSubChannelsBySchool(schoolId: number) {
-  'use cache'
+const getSchoolBySlugCached = unstable_cache(readSchoolBySlug, ['school-by-slug'], {
+  revalidate: CMS_STRUCTURE_CACHE_LIFE.revalidate,
+  tags: [SCHOOLS_CACHE_TAG],
+})
 
-  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
-  cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
-
+export async function getSchoolBySlug(slug: string) {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return []
+    return null
   }
 
+  return getSchoolBySlugCached(slug)
+}
+
+async function readSubChannelsBySchool(schoolId: number) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'school-sub-channels',
@@ -155,16 +144,24 @@ export async function getSubChannelsBySchool(schoolId: number) {
   return docs as SchoolSubChannel[]
 }
 
-export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: string) {
-  'use cache'
+const getSubChannelsBySchoolCached = unstable_cache(
+  readSubChannelsBySchool,
+  ['sub-channels-by-school'],
+  {
+    revalidate: CMS_STRUCTURE_CACHE_LIFE.revalidate,
+    tags: [SCHOOL_SUB_CHANNELS_CACHE_TAG],
+  },
+)
 
-  cacheLife(CMS_STRUCTURE_CACHE_LIFE)
-  cacheTag(SCHOOL_SUB_CHANNELS_CACHE_TAG)
-
+export async function getSubChannelsBySchool(schoolId: number) {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return null
+    return []
   }
 
+  return getSubChannelsBySchoolCached(schoolId)
+}
+
+async function readSchoolSubChannelBySlug(schoolId: number, channelSlug: string) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'school-sub-channels',
@@ -182,16 +179,24 @@ export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: s
   return (docs[0] as SchoolSubChannel | undefined) ?? null
 }
 
-export async function getPublishedPosts() {
-  'use cache'
+const getSchoolSubChannelBySlugCached = unstable_cache(
+  readSchoolSubChannelBySlug,
+  ['school-sub-channel-by-slug'],
+  {
+    revalidate: CMS_STRUCTURE_CACHE_LIFE.revalidate,
+    tags: [SCHOOL_SUB_CHANNELS_CACHE_TAG],
+  },
+)
 
-  cacheLife(CMS_CONTENT_CACHE_LIFE)
-  cacheTag(POST_LIST_CACHE_TAG)
-
+export async function getSchoolSubChannelBySlug(schoolId: number, channelSlug: string) {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return []
+    return null
   }
 
+  return getSchoolSubChannelBySlugCached(schoolId, channelSlug)
+}
+
+async function readPublishedPosts() {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -199,24 +204,26 @@ export async function getPublishedPosts() {
     sort: '-publishedAt',
     limit: POST_LIST_LIMIT,
     depth: 2,
+    select: POST_FEED_SELECT,
   })
 
-  const posts = docs as Post[]
-  cachePostRelationshipTags(posts)
-
-  return posts
+  return toPostFeedItems(docs as Post[])
 }
 
-export async function getPublishedPostBySlug(slug: string) {
-  'use cache'
+const getPublishedPostsCached = unstable_cache(readPublishedPosts, ['published-posts'], {
+  revalidate: CMS_CONTENT_CACHE_LIFE.revalidate,
+  tags: [POST_LIST_CACHE_TAG],
+})
 
-  cacheLife(CMS_CONTENT_CACHE_LIFE)
-  cacheTag(postCacheTag(slug))
-
+export async function getPublishedPosts() {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return null
+    return []
   }
 
+  return getPublishedPostsCached()
+}
+
+async function readPublishedPostBySlug(slug: string) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -227,10 +234,18 @@ export async function getPublishedPostBySlug(slug: string) {
     depth: 2,
   })
 
-  const post = (docs[0] as Post | undefined) ?? null
-  cachePostRelationshipTags(post, { includeAllPostTags: true })
+  return (docs[0] as Post | undefined) ?? null
+}
 
-  return post
+export async function getPublishedPostBySlug(slug: string) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return null
+  }
+
+  return unstable_cache(readPublishedPostBySlug, ['published-post-by-slug', slug], {
+    revalidate: CMS_CONTENT_CACHE_LIFE.revalidate,
+    tags: [POST_LIST_CACHE_TAG, postCacheTag(slug)],
+  })(slug)
 }
 
 export async function getVisiblePostBySlug(slug: string, user: User | null) {
@@ -269,16 +284,7 @@ export async function getVisiblePostBySlug(slug: string, user: User | null) {
   return (docs[0] as Post | undefined) ?? null
 }
 
-export async function getPublishedPostsBySchool(schoolId: number) {
-  'use cache'
-
-  cacheLife(CMS_CONTENT_CACHE_LIFE)
-  cacheTag(postsBySchoolCacheTag(schoolId))
-
-  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
-    return []
-  }
-
+async function readPublishedPostsBySchool(schoolId: number) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -288,24 +294,24 @@ export async function getPublishedPostsBySchool(schoolId: number) {
     sort: '-publishedAt',
     limit: POST_LIST_LIMIT,
     depth: 2,
+    select: POST_FEED_SELECT,
   })
 
-  const posts = docs as Post[]
-  cachePostRelationshipTags(posts)
-
-  return posts
+  return toPostFeedItems(docs as Post[])
 }
 
-export async function getPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
-  'use cache'
-
-  cacheLife(CMS_CONTENT_CACHE_LIFE)
-  cacheTag(postsBySchoolChannelCacheTag(schoolId, channelId))
-
+export async function getPublishedPostsBySchool(schoolId: number) {
   if (shouldSkipCmsQueriesDuringStaticGeneration()) {
     return []
   }
 
+  return unstable_cache(readPublishedPostsBySchool, ['published-posts-by-school', String(schoolId)], {
+    revalidate: CMS_CONTENT_CACHE_LIFE.revalidate,
+    tags: [POST_LIST_CACHE_TAG, postsBySchoolCacheTag(schoolId)],
+  })(schoolId)
+}
+
+async function readPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
   const payload = await getPayloadClient()
   const { docs } = await payload.find({
     collection: 'posts',
@@ -319,12 +325,29 @@ export async function getPublishedPostsBySchoolAndChannel(schoolId: number, chan
     sort: '-publishedAt',
     limit: POST_LIST_LIMIT,
     depth: 2,
+    select: POST_FEED_SELECT,
   })
 
-  const posts = docs as Post[]
-  cachePostRelationshipTags(posts)
+  return toPostFeedItems(docs as Post[])
+}
 
-  return posts
+export async function getPublishedPostsBySchoolAndChannel(schoolId: number, channelId: number) {
+  if (shouldSkipCmsQueriesDuringStaticGeneration()) {
+    return []
+  }
+
+  return unstable_cache(
+    readPublishedPostsBySchoolAndChannel,
+    ['published-posts-by-school-channel', String(schoolId), String(channelId)],
+    {
+      revalidate: CMS_CONTENT_CACHE_LIFE.revalidate,
+      tags: [
+        POST_LIST_CACHE_TAG,
+        postsBySchoolCacheTag(schoolId),
+        postsBySchoolChannelCacheTag(schoolId, channelId),
+      ],
+    },
+  )(schoolId, channelId)
 }
 
 export async function getUserPreferredSchoolContext(user: User | null): Promise<PreferredSchoolContext> {
@@ -426,6 +449,7 @@ async function getPublishedPostsBySchoolIds(schoolIds: Array<number | string>) {
     collection: 'posts',
     depth: 2,
     limit: POST_LIST_LIMIT,
+    select: POST_FEED_SELECT,
     sort: '-publishedAt',
     where: {
       and: [
@@ -443,7 +467,7 @@ async function getPublishedPostsBySchoolIds(schoolIds: Array<number | string>) {
     },
   })
 
-  return docs as Post[]
+  return toPostFeedItems(docs as Post[])
 }
 
 export async function getDiscoverPageData(user: User | null = null): Promise<DiscoverPageData> {

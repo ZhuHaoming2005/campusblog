@@ -3,26 +3,40 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   POST_LIST_CACHE_TAG,
   TAGS_CACHE_TAG,
-  authorCacheTag,
-  mediaCacheTag,
   postsBySchoolCacheTag,
-  schoolCacheTag,
-  schoolSubChannelCacheTag,
-  tagCacheTag,
 } from '@/lib/cacheTags'
 
-const { cacheLifeMock, cacheTagMock, findMock, getFrontendPayloadMock } = vi.hoisted(() => ({
-  cacheLifeMock: vi.fn(),
-  cacheTagMock: vi.fn(),
-  findMock: vi.fn(),
-  getFrontendPayloadMock: vi.fn(),
-}))
+const { cacheLifeMock, cacheTagMock, findMock, getFrontendPayloadMock, unstableCacheMock } =
+  vi.hoisted(() => {
+    const cacheTagMock = vi.fn()
+
+    return {
+      cacheLifeMock: vi.fn(),
+      cacheTagMock,
+      findMock: vi.fn(),
+      getFrontendPayloadMock: vi.fn(),
+      unstableCacheMock: vi.fn(
+        <T extends (...args: never[]) => Promise<unknown>>(
+          callback: T,
+          _keyParts?: string[],
+          options?: { tags?: string[] },
+        ) => {
+          if (options?.tags?.length) {
+            cacheTagMock(...options.tags)
+          }
+
+          return callback
+        },
+      ),
+    }
+  })
 
 vi.mock('server-only', () => ({}))
 
 vi.mock('next/cache', () => ({
   cacheLife: cacheLifeMock,
   cacheTag: cacheTagMock,
+  unstable_cache: unstableCacheMock,
 }))
 
 vi.mock('@/app/(frontend)/lib/frontendSession', () => ({
@@ -46,12 +60,13 @@ describe('searchPublishedPosts', () => {
     vi.resetModules()
     cacheLifeMock.mockReset()
     cacheTagMock.mockReset()
+    unstableCacheMock.mockClear()
     findMock.mockReset()
     getFrontendPayloadMock.mockReset()
     getFrontendPayloadMock.mockResolvedValue({ find: findMock })
   })
 
-  it('selects only search-card fields and tags relationship dependencies', async () => {
+  it('selects only search-card fields and tags search scopes', async () => {
     const author = { id: 2, displayName: 'Alex', avatar: { id: 3, url: '/avatar.png' } }
     const school = { id: 10, name: 'North Campus' }
     const subChannel = { id: 11, name: 'News' }
@@ -136,17 +151,7 @@ describe('searchPublishedPosts', () => {
       },
     })
     expect(cacheTagMock.mock.calls.flat()).toEqual(
-      expect.arrayContaining([
-        POST_LIST_CACHE_TAG,
-        TAGS_CACHE_TAG,
-        postsBySchoolCacheTag(10),
-        authorCacheTag(2),
-        mediaCacheTag(3),
-        schoolCacheTag(10),
-        schoolSubChannelCacheTag(11),
-        mediaCacheTag(12),
-        tagCacheTag(13),
-      ]),
+      expect.arrayContaining([POST_LIST_CACHE_TAG, TAGS_CACHE_TAG, postsBySchoolCacheTag(10)]),
     )
   })
 

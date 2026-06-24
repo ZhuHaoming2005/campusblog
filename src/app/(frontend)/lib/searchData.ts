@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { cacheLife, cacheTag } from 'next/cache'
+import { unstable_cache } from 'next/cache'
 import type { Where } from 'payload'
 
 import type { Post, PostsSelect } from '@/payload-types'
@@ -8,7 +8,6 @@ import {
   CMS_SEARCH_CACHE_LIFE,
   POST_LIST_CACHE_TAG,
   TAGS_CACHE_TAG,
-  getPostRelationshipCacheTags,
   postsBySchoolCacheTag,
 } from './cacheTags'
 import { getFrontendPayload } from './frontendSession'
@@ -176,21 +175,19 @@ async function findMatchingTagIds(
   return [...tagIds]
 }
 
-async function searchPublishedPostsCached(
+function getSearchCacheTags(normalizedQuery: string, schoolId?: number | string) {
+  return [
+    POST_LIST_CACHE_TAG,
+    ...(shouldSearchTags(normalizedQuery) ? [TAGS_CACHE_TAG] : []),
+    ...(schoolId === undefined || schoolId === null ? [] : [postsBySchoolCacheTag(schoolId)]),
+  ]
+}
+
+async function readSearchPublishedPosts(
   normalizedQuery: string,
   schoolId?: number | string,
 ): Promise<SearchPublishedPostsResult> {
-  'use cache'
-
-  cacheLife(CMS_SEARCH_CACHE_LIFE)
-  cacheTag(POST_LIST_CACHE_TAG)
   const includeTagMatches = shouldSearchTags(normalizedQuery)
-  if (includeTagMatches) {
-    cacheTag(TAGS_CACHE_TAG)
-  }
-  if (schoolId !== undefined && schoolId !== null) {
-    cacheTag(postsBySchoolCacheTag(schoolId))
-  }
 
   const payload = await getFrontendPayload()
   const matchingTagIds = includeTagMatches ? await findMatchingTagIds(payload, normalizedQuery) : []
@@ -222,16 +219,25 @@ async function searchPublishedPostsCached(
     payload,
     result.docs as SearchResultPost[],
   )
-  const relationshipCacheTags = getPostRelationshipCacheTags(posts)
-
-  if (relationshipCacheTags.length > 0) {
-    cacheTag(...relationshipCacheTags)
-  }
 
   return {
     posts,
     totalDocs: result.totalDocs,
   }
+}
+
+async function searchPublishedPostsForQuery(
+  normalizedQuery: string,
+  schoolId?: number | string,
+): Promise<SearchPublishedPostsResult> {
+  return unstable_cache(
+    readSearchPublishedPosts,
+    ['search-published-posts', normalizedQuery, schoolId == null ? 'all' : String(schoolId)],
+    {
+      revalidate: CMS_SEARCH_CACHE_LIFE.revalidate,
+      tags: getSearchCacheTags(normalizedQuery, schoolId),
+    },
+  )(normalizedQuery, schoolId)
 }
 
 export async function searchPublishedPosts({
@@ -247,5 +253,5 @@ export async function searchPublishedPosts({
     return emptySearchResult()
   }
 
-  return searchPublishedPostsCached(normalizedQuery, schoolId)
+  return searchPublishedPostsForQuery(normalizedQuery, schoolId)
 }
